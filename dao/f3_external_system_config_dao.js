@@ -32,7 +32,7 @@ ExternalSystemConfig = (function () {
          * @param {nlobjSearchFilter, nlobjSearchFilter[]} [filters] [optional] A single nlobjSearchFilter object - or - an array of nlobjSearchFilter objects.
          * @return {nlobjSearchResult[]} Returns an array of nlobjSearchResult objects corresponding to the searched records.
          *
-         * @since	Jan 12, 2015
+         * @since    Jan 12, 2015
          */
         lookup: function (filters) {
             var result = [];
@@ -45,7 +45,7 @@ ExternalSystemConfig = (function () {
                 }
                 result = nlapiSearchRecord(this.InternalId, null, fils, cols) || [];
             } catch (e) {
-                logException('ExternalSystemConfig.lookup', e);
+                Utility.logException('ExternalSystemConfig.lookup', e);
             }
             return result;
         },
@@ -76,6 +76,7 @@ ExternalSystemConfig = (function () {
 
                 systemConfig.push(obj);
             }
+            Utility.logDebug('ExternalSystemConfig.getConfig', JSON.stringify(systemConfig));
             return systemConfig;
         }
     };

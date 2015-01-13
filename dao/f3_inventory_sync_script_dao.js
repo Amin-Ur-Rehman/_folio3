@@ -22,7 +22,7 @@ InventorySyncScript = (function () {
          * Create or Update a record with specific name
          *
          * @param {object}  data
-         * @param {int}     id The internal ID for the record.
+         * @param {int}     [optional] id The internal ID for the record.
          * @return {int}    id The internal ID for the record.
          *
          * @since    Jan 12, 2015
@@ -35,7 +35,7 @@ InventorySyncScript = (function () {
                 }
                 id = nlapiSubmitRecord(rec, true, true);
             } catch (e) {
-                logException('InventorySyncScript.upsert', e);
+                Utility.logException('InventorySyncScript.upsert', e);
             }
             return id;
         },
@@ -59,7 +59,7 @@ InventorySyncScript = (function () {
                 }
                 result = nlapiSearchRecord(this.InternalId, null, fils, cols) || [];
             } catch (e) {
-                logException('InventorySyncScript.lookup', e);
+                Utility.logException('InventorySyncScript.lookup', e);
             }
             return result;
         },

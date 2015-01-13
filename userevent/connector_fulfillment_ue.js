@@ -305,7 +305,7 @@ function startup(type) {
                     var webservicepw = MGCONFIG.WebService.Password;
                     var sofrequency = '4';
                     var soprice = '1';
-                    magentoSOID = magentoSO.getFieldValue('custbody_magentoid');
+                    magentoSOID = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
 
                     if (!isBlankOrNull(magentoSOID)) {
                         sessionObj = getSessionID_From_Magento(webserviceid, webservicepw, URL);
@@ -361,7 +361,7 @@ function getCyberSourceCaptureXML() {
     xml += '    <soapenv:Body>';
     xml += '        <urn:requestMessage xmlns="urn:schemas-cybersource-com:transaction-data-1.104">';
     xml += '            <urn:merchantID>' + cyberSouceConfig.merchantId + '</urn:merchantID>';
-    var soId = magentoSO.getFieldValue('custbody_magentoid');
+    var soId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
     xml += '           <urn:merchantReferenceCode>' + soId + '</urn:merchantReferenceCode>';
 
     //xml += '<urn:clientApplication>Credit Card Settlement</urn:clientApplication>';

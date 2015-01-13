@@ -1,3 +1,32 @@
+/**
+ * Created by zahmed on 13-Jan-15.
+ *
+ * Description:
+ * - This script is responsible for importing all the customers & his addresses from Magento store(s)
+ * -
+ * Referenced By:
+ * -
+ * Dependency:
+ * - Script Parameters:
+ *   -
+ * -
+ * - Script Id:
+ *   - customscript_magento_customer_sync
+ * -
+ * - Deployment Id:
+ *   - customdeploy_magento_customer_sync
+ * -
+ * - Scripts:
+ *   - accessMagento.js
+ *   - connector_common_records.js
+ *   - connector-common-lib.js
+ *   - connector-timezone-lib.js
+ *   - connector-general.js
+ *   - folio3ConnectorLicenseVerification.js
+ *   - mc_sync_constants.js
+ *   - f3mg_connector_common.js
+ */
+
 var XML_HEADER = '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento"><soapenv:Header/><soapenv:Body>';
 var XML_FOOTER = '</soapenv:Body></soapenv:Envelope>';
 //var URL="http://mystores1.gostorego.com/api/v2_soap";
@@ -67,7 +96,6 @@ function startup() {
 
             if (result.errorMsg != '') {
                 nlapiLogExecution('DEBUG', 'Master Scheduler', 'Job Ending With Message ' + result.errorMsg);
-                //     setMasterJobStatus(jobId,'Ready');
             }
             else {
 
@@ -131,7 +159,7 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
 
         if (customers != null)                                   // Move this customer createion code to connector_common_records.js to make it generalize
         {
-            var magentoCustomerId = MAGENTO_COMMON_Entity.FieldName.MAGENTO_ID_PRO;
+            var magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
 
 
             nlapiLogExecution('DEBUG', customers.length + ' Customer(s) Found for Processing ');
@@ -150,7 +178,7 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
                     cols.push(new nlobjSearchColumn('email'));
                     cols.push(new nlobjSearchColumn('entityid'));
 
-                    existingCustomerRecords = getRecords('customer', filterExpression, cols);
+                    existingCustomerRecords = ConnectorCommon.getRecords('customer', filterExpression, cols);
 
                     if (existingCustomerRecords != null) {
                         var CustIdInNS = existingCustomerRecords[0].getId();

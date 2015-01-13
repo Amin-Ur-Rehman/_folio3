@@ -1,3 +1,31 @@
+/**
+ * Created by zahmed on 13-Jan-15.
+ *
+ * Description:
+ * - This script is responsible for syncing inventory quantity and pricing to Magento store(s)
+ * -
+ * Referenced By:
+ * -
+ * Dependency:
+ * - Script Parameters:
+ *   - InternalId - custscriptcustscriptinternalid - Free-Form Text
+ *   - Start Date - custscript_start_date - Date/Time
+ * -
+ * - Script Id:
+ *   - customscript_magento_item_sync_sch
+ * -
+ * - Deployment Id:
+ *   - customdeploy_magento_item_sync_sch
+ * -
+ * - Scripts:
+ *   - accessMagento.js
+ *   - connector_common_records.js
+ *   - folio3ConnectorLicenseVerification.js
+ *   - mc_sync_constants.js
+ *   - f3_inventory_sync_script_dao.js
+ *   - f3_utility_methods.js
+ */
+
 var XML_HEADER = '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento"><soapenv:Header/><soapenv:Body>';
 var XML_FOOTER = '</soapenv:Body></soapenv:Envelope>';
 
@@ -334,7 +362,7 @@ function ws_soaftsubm(type) {
         var lastModifiedDate = getLastModifiedDate();
 
         if (!scriptStartDate) {
-            var currentDate = getDateUTC(0);
+            var currentDate = Utility.getDateUTC(0);
             scriptStartDate = nlapiDateToString(currentDate, 'datetimetz');
         }
 
@@ -519,22 +547,6 @@ function getLastModifiedDate() {
         dateTime = '1/12/2014 6:00 pm';
     }
     return dateTime;
-}
-
-function parseFloatNum(num) {
-    var no = parseFloat(num);
-    if (isNaN(no)) {
-        no = 0;
-    }
-    return no;
-}
-
-function getDateUTC(offset) {
-    var today = new Date();
-    var utc = today.getTime() + (today.getTimezoneOffset() * 60000);
-    offset = parseInt(parseFloatNum(offset * 60 * 60 * 1000));
-    today = new Date(utc + offset);
-    return today;
 }
 
 var ScriptParameter = ScriptParameter || {};
