@@ -1,7 +1,3 @@
-//var XML_HEADER = '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento"><soapenv:Header/><soapenv:Body>';
-var XML_HEADER = '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"><soapenv:Header/><soapenv:Body>';
-var XML_FOOTER = '</soapenv:Body></soapenv:Envelope>';
-
 var magentoIdId = 'custbody_magentoshipmentid';
 var magentoSO;
 var magentoItemIds;
@@ -54,74 +50,7 @@ function validateTrackingCreateResponse(xml, operation) {
     return responseMagento;
 }
 
-function getCreateFulfillmentXML(sessionID) {
-    nlapiLogExecution('DEBUG', 'Enter in getCreateFulfillmentXML() fun');
-    var itemsQuantity = nlapiGetLineItemCount('item');
-    var shipmentXML;
 
-    shipmentXML = XML_HEADER + '<urn:salesOrderShipmentCreate>';
-    shipmentXML = shipmentXML + '<sessionId urn:type="xsd:string">' + sessionID + '</sessionId>';
-    shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOID + '</orderIncrementId>';
-    shipmentXML = shipmentXML + '<itemsQty  SOAP-ENC:arrayType="urn:orderItemIdQtyArray[' + itemsQuantity + ']" xsi:type="urn:orderItemIdQty">';
-    nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
-
-    var comment = '';
-    for (var line = 1; line <= itemsQuantity; line++) {
-        // magentoItemIds is a global object contains the magento item id
-        var itemId = magentoItemIds[nlapiGetLineItemValue('item', 'item', line)];
-        var itemQty = nlapiGetLineItemValue('item', 'quantity', line);
-        if (nlapiGetLineItemValue('item', 'isserialitem', 1) == 'T') {
-            comment = comment + ',' + nlapiGetLineItemValue('item', 'itemdescription', line) + '=' + nlapiGetLineItemValue('item', 'serialnumbers', line);
-        }
-        else {
-            comment = '-';
-        }
-
-        nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
-        shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">    ';
-        shipmentXML = shipmentXML + '<order_item_id type="xsd:int">' + itemId + '</order_item_id>';
-        shipmentXML = shipmentXML + '<qty type="xsd:double">' + itemQty + '</qty>';
-        shipmentXML = shipmentXML + '</item>';
-        nlapiLogExecution('AUDIT', 'Quantity', itemId);
-        nlapiLogExecution('AUDIT', 'Quantity', itemQty);
-        nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
-    }
-
-
-    shipmentXML = shipmentXML + '</itemsQty>';
-    shipmentXML = shipmentXML + ' <comment xsi:type="xsd:string">' + comment + '</comment>';
-    shipmentXML = shipmentXML + '</urn:salesOrderShipmentCreate>';
-
-    shipmentXML = shipmentXML + XML_FOOTER;
-
-    nlapiLogExecution('DEBUG', 'Exit from getCreateFulfillmentXML() funciton');
-
-    return shipmentXML;
-
-}
-
-function createTrackingXML(id, carrier, carrierText, tracking, sessionID) {
-    // Add TrackingNum for shipment - XML
-    var tShipmentXML = '';
-    tShipmentXML = XML_HEADER;
-    tShipmentXML = tShipmentXML + '<urn:salesOrderShipmentAddTrack soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
-    tShipmentXML = tShipmentXML + '<sessionId xsi:type="xsd:string">' + sessionID + '</sessionId>'
-    tShipmentXML = tShipmentXML + '<shipmentIncrementId xsi:type="xsd:string">' + id + '</shipmentIncrementId>';
-
-    //if (carrierText.split(' ')[0] == 'UPS') {
-    tShipmentXML = tShipmentXML + '<carrier xsi:type="xsd:string">' + 'ups' + '</carrier>';
-    //}
-    /*else {
-     tShipmentXML = tShipmentXML + '<carrier xsi:type="xsd:string">' + 'usps' + '</carrier>';
-     }*/
-
-    tShipmentXML = tShipmentXML + '<title xsi:type="xsd:string">' + carrierText + '</title>';
-    tShipmentXML = tShipmentXML + '<trackNumber xsi:type="xsd:string">' + tracking + '</trackNumber>';
-    tShipmentXML = tShipmentXML + '</urn:salesOrderShipmentAddTrack>';
-    tShipmentXML = tShipmentXML + XML_FOOTER;
-    nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(tShipmentXML));
-    return tShipmentXML;
-}
 
 function validateFulfillmentExportResponse(xml, operation) {
     var responseMagento = {};
@@ -178,11 +107,11 @@ function syncFulfillmentsMagento(sessionID, jobId, enviornment) {
     var rectype = nlapiGetRecordType();
 
     if (!nlapiGetFieldValue(magentoIdId)) {
-        fulfillmentXML = getCreateFulfillmentXML(sessionID);
+        fulfillmentXML = XmlUtility.getCreateFulfillmentXML(sessionID);
         nlapiLogExecution('DEBUG', 'XML', 'EOS ' + fulfillmentXML);
     }
 
-    responseMagento = validateFulfillmentExportResponse(soapRequestToMagento(fulfillmentXML));           // soapRequestToMagento Function in accessMagento.js
+    responseMagento = validateFulfillmentExportResponse(XmlUtility.soapRequestToMagento(fulfillmentXML));           // soapRequestToMagento Function in accessMagento.js
     //captureCreditCard();
 
     if (responseMagento.status === false) {
@@ -205,12 +134,12 @@ function syncFulfillmentsMagento(sessionID, jobId, enviornment) {
 
         for (var p = 1; p <= totalPackages; p++) {
             var tracking = nlapiGetLineItemValue('package', 'packagetrackingnumber', p);
-            if (isBlankOrNull(tracking)) {
+            if (Utility.isBlankOrNull(tracking)) {
                 tracking = 0;
             }
             // Setting Tracking Number
-            var trackingXML = createTrackingXML(responseMagento.result, carrier, carrierText, tracking, sessionID);
-            responseTracking = validateTrackingCreateResponse(soapRequestToMagento(trackingXML));
+            var trackingXML = XmlUtility.createTrackingXML(responseMagento.result, carrier, carrierText, tracking, sessionID);
+            responseTracking = validateTrackingCreateResponse(XmlUtility.soapRequestToMagento(trackingXML));
             nlapiLogExecution('AUDIT', 'CHECK', 'I tried setting shipment tracking id Got this in response : ' + responseTracking.result);
         }
         //capture
@@ -305,15 +234,15 @@ function startup(type) {
                     var webservicepw = MGCONFIG.WebService.Password;
                     var sofrequency = '4';
                     var soprice = '1';
-                    magentoSOID = magentoSO.getFieldValue('custbody_magentoid');
+                    magentoSOID = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
 
-                    if (!isBlankOrNull(magentoSOID)) {
+                    if (!Utility.isBlankOrNull(magentoSOID)) {
                         sessionObj = getSessionID_From_Magento(webserviceid, webservicepw, URL);
 
                         nlapiLogExecution('Debug', 'sessionObj.data', sessionObj.data);
                         nlapiLogExecution('Debug', 'sessionObj.errorMsg', sessionObj.errorMsg);
 
-                        if (!isBlankOrNull(sessionObj)) {
+                        if (!Utility.isBlankOrNull(sessionObj)) {
                             if (sessionObj.errorMsg.toString() === '') {
                                 nlapiLogExecution('Debug', 'Inside if sessionObj.errorMsg');
                                 sessionID = sessionObj.data;
@@ -361,7 +290,7 @@ function getCyberSourceCaptureXML() {
     xml += '    <soapenv:Body>';
     xml += '        <urn:requestMessage xmlns="urn:schemas-cybersource-com:transaction-data-1.104">';
     xml += '            <urn:merchantID>' + cyberSouceConfig.merchantId + '</urn:merchantID>';
-    var soId = magentoSO.getFieldValue('custbody_magentoid');
+    var soId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
     xml += '           <urn:merchantReferenceCode>' + soId + '</urn:merchantReferenceCode>';
 
     //xml += '<urn:clientApplication>Credit Card Settlement</urn:clientApplication>';
