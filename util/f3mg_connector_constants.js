@@ -3,30 +3,48 @@
  */
 
 /**
- * ConnectorConstants class that has the functionality of
+ * ConnectorConstants class that has the constants used in the connector
  */
+
+/**
+ * Magento Id Format: [{"<StoreName>":"","MagentoId":""},{"StoreName":"","MagentoId":""}]
+ */
+
 var ConnectorConstants = (function () {
     return {
+        MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
         ExternalSystemConfig: null,
         CurrentStore: null,
+        Client: null,
+        NSToMGShipMap: null,
         DummyItem: {
             ItemId: 'unmatched_magento_item',
             Id: null
         },
         Entity: {
             Fields: {
-                MagentoId: 'custentity_magento_custid'
+                MagentoId: 'custentity_magento_custid',// JSON
+                MagentoSync: 'custentity_magentosync_dev',
+                MagentoStore: 'custentity_f3mg_magento_stores'// multiselect
             }
         },
         Transaction: {
             Fields: {
-                MagentoId: 'custbody_magentoid'
+                MagentoId: 'custbody_magentoid',
+                MagentoSync: 'custbody_magentosyncdev',
+                MagentoStore: 'custbody_f3mg_magento_store'
             }
         },
         Item: {
             Fields: {
-                MagentoId: ''
+                MagentoId: 'custitem_magentoid',// JSON
+                MagentoSync: 'custitem_magentosyncdev',
+                MagentoStores: 'custitem_f3mg_magento_stores'// multiselect
             }
+        },
+        ShippingMethod: {
+            'UPS': 'ups',
+            'FedEx': 'nonups'
         },
 
         /**
@@ -34,8 +52,86 @@ var ConnectorConstants = (function () {
          */
         initialize: function () {
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
+            this.Client = F3ClientFactory.createClient('Folio3');
+            this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
+        },
+        initialize2: function () {
             this.DummyItem.Id = ConnectorCommon.getDummyItemId(this.DummyItem.ItemId);
         }
-
     };
 })();
+
+var US_CA_States = {
+    //US states
+    'Alabama': 'AL',
+    'Alaska': 'AK',
+    'Arizona': 'AZ',
+    'Arkansas': 'AR',
+    'Armed Forces Americas': 'AA',
+    'Armed Forces Europe': 'AE',
+    'Armed Forces Pacific': 'AP',
+    'California': 'CA',
+    'Colorado': 'CO',
+    'Connecticut': 'CT',
+    'Delaware': 'DE',
+    'District of Columbia': 'DC',
+    'Florida': 'FL',
+    'Georgia': 'GA',
+    'GUAM': 'GU',
+    'Hawaii': 'HI',
+    'Idaho': 'ID',
+    'Illinois': 'IL',
+    'Indiana': 'IN',
+    'Iowa': 'IA',
+    'Kansas': 'KS',
+    'Kentucky': 'KY',
+    'Louisiana': 'LA',
+    'Maine': 'ME',
+    'Maryland': 'MD',
+    'Massachusetts': 'MA',
+    'Michigan': 'MI',
+    'Minnesota': 'MN',
+    'Mississippi': 'MS',
+    'Missouri': 'MO',
+    'Montana': 'MT',
+    'Nebraska': 'NE',
+    'Nevada': 'NV',
+    'New Hampshire': 'NH',
+    'New Jersey': 'NJ',
+    'New Mexico': 'NM',
+    'New York': 'NY',
+    'North Carolina': 'NC',
+    'North Dakota': 'ND',
+    'Ohio': 'OH',
+    'Oklahoma': 'OK',
+    'Oregon': 'OR',
+    'Pennsylvania': 'PA',
+    'Puerto Rico': 'PR',
+    'Rhode Island': 'RI',
+    'South Carolina': 'SC',
+    'South Dakota': 'SD',
+    'Tennessee': 'TN',
+    'Texas': 'TX',
+    'Utah': 'UT',
+    'Vermont': 'VT',
+    'Virgin Islands': 'VI',
+    'Virginia': 'VA',
+    'Washington': 'WA',
+    'West Virginia': 'WV',
+    'Wisconsin': 'WI',
+    'Wyoming': 'WY',
+    // canada states
+    'Alberta': 'AB',
+    'British Columbia': 'BC',
+    'Manitoba': 'MB',
+    'New Brunswick': 'NB',
+    'Newfoundland': 'NL',
+    'Northwest Territories': 'NT',
+    'Nova Scotia': 'NS',
+    'Nunavut': 'NU',
+    'Ontario': 'ON',
+    'Prince Edward Island': 'PE',
+    'Quebec': 'QC',
+    'Saskatchewan': 'SK',
+    'Yukon': 'YT'
+};

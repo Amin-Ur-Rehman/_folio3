@@ -174,7 +174,7 @@ function storeMessage(customerNsId, subject, message, empNsId) {
     msg.setFieldValue('entity', customerNsId);
     msg.setFieldValue('recipient', customerNsId);
     msg.setFieldValue('message', message);
-    msg.setFieldValue('messageType', 'SMS');
+    //msg.setFieldValue('messageType', 'SMS');
     msg.setFieldValue('subject', subject);
     nlapiSubmitRecord(msg, true);
 

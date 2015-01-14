@@ -92,6 +92,42 @@ var Utility = (function () {
             } else {
                 nlapiLogExecution('DEBUG', title, description);
             }
+        },
+        isBlankOrNull: function (str) {
+            return str == null || str == undefined || typeof (str) == 'undefined' || str == 'undefined' || (str + '').trim().length == 0;
+        },
+        addZeroes: function (vle, requiredLength) {
+            vle = vle.toString();
+            var i = vle.length;
+
+            while (i < requiredLength) {
+
+                vle = '0' + vle;
+                i++;
+            }
+
+            return vle;
+        },
+        // convert into to digits
+        convertIntToDigit: function (num, length) {
+            var str = '';
+            if (!isNaN(num)) {
+                num = parseInt(num);
+                if (num >= 0) {
+                    var numArr = new String(num);
+                    if (numArr.length < length) {
+                        var diff = length - numArr.length;
+                        for (var i = 0; i < diff; i++) {
+                            str += '0';
+                        }
+                    }
+                    str += num;
+                }
+            }
+            return str;
+        },
+        addslashes: function (str) {
+            return  (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
         }
     };
 })();
