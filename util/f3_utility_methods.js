@@ -15,7 +15,7 @@
  * -
  */
 
-var Utility = (function () {
+Utility = (function () {
     return {
         /**
          * Init method

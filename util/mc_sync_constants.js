@@ -13,7 +13,7 @@
  * -
  */
 
-var MC_SYNC_CONSTANTS = {
+MC_SYNC_CONSTANTS = {
     /**
      * Validates license for current connector
      * @returns {boolean}

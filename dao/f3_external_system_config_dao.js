@@ -19,6 +19,7 @@ ExternalSystemConfig = (function () {
         InternalId: 'customrecord_external_system_config',
         FieldName: {
             SystemDisplayName: 'custrecord_esc_system_display_name',
+            SystemId: 'custrecord_esc_system_id',
             UserName: 'custrecord_esc_username',
             Password: 'custrecord_esc_password',
             Endpoint: 'custrecord_esc_endpoint',
@@ -60,7 +61,7 @@ ExternalSystemConfig = (function () {
             for (var i in res) {
                 var config = res[i];
 
-                var systemId = config.getValue(this.FieldName.SystemDisplayName, null, null);
+                var systemId = config.getValue(this.FieldName.SystemId, null, null);
                 var systemDisplayName = config.getText(this.FieldName.SystemDisplayName, null, null);
                 var userName = config.getValue(this.FieldName.UserName, null, null);
                 var password = config.getValue(this.FieldName.Password, null, null);
@@ -76,7 +77,7 @@ ExternalSystemConfig = (function () {
                     entitySyncInfo: entitySyncInfo
                 };
 
-                systemConfig.push(obj);
+                systemConfig[systemId] = obj;
             }
             Utility.logDebug('ExternalSystemConfig.getConfig', JSON.stringify(systemConfig));
             return systemConfig;

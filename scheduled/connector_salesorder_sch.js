@@ -2,7 +2,7 @@
  * Created by zahmed on 13-Jan-15.
  *
  * Description:
- * - This script is responsible for importing customer & his addresses from Magento store(s)
+ * - This script is responsible for importing salesorders and customer & his addresses from Magento store(s)
  * -
  * Referenced By:
  * -
@@ -51,68 +51,7 @@ var SO_IMPORT_MIN_USAGELIMIT = 1000;        // For the safe side its 1000, we ca
  return config;
  }*/
 
-function startup(type) {
-    if (MC_SYNC_CONSTANTS.isValidLicense()) {
-        // inititlize constants
-        ConnectorConstants.initialize();
-        // getting configuration
-        var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
-        var sessionID;
-        var jobId;
-        var context = nlapiGetContext();
-        var result = {};
-        var soUpdateDate;
-
-        externalSystemConfig.forEach(function (store) {
-            // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first
-            try {
-                // set the percent complete parameter to 0.00
-                context.setPercentComplete(0.00);
-                // set store for ustilizing in other functions
-                ConnectorConstants.CurrentStore = store;
-                ConnectorConstants.initialize2();
-
-                var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
-
-                soUpdateDate = ConnectorCommon.getUpdateDate(-1 * sofrequency);
-                Utility.logDebug('soUpdateDate', soUpdateDate);
-
-                sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
-
-                if (!sessionID) {
-                    Utility.logDebug('sessionID', 'sessionID is empty');
-                    return;
-                }
-
-                Utility.logDebug('startup', 'Start Syncing');
-
-                result = syncSalesOrderMagento(sessionID, soUpdateDate, jobId);
-
-                // Something Wrong with SO Sync
-                if (result.errorMsg.toString() !== '') {
-                    Utility.logDebug('Master Scheduler', 'Job Ending With Message ' + result.errorMsg);
-                }
-                else {
-                    if (result.infoMsg.toString() === 'Reschedule') {
-                        Utility.logDebug('startup', 'Reschedule');
-                        nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), null);
-                    }
-                    else {
-                        Utility.logDebug('startup', 'JOB RAN SUCCESSFULLyy');
-                    }
-                }
-
-            } catch (ex) {
-                Utility.logException('startup', ex);
-            }
-        });
-
-    } else {
-        Utility.logDebug('Validate', 'License has expired');
-    }
-}
-
-function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
+function syncSalesOrderMagento(sessionID, updateDate) {
     var order = {};
 
     var responseMagentoOrders;
@@ -126,9 +65,6 @@ function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
     var result = {};
     var context;
     var usageRemaining;
-    var existingCustomerRecords;
-    var filterExpression;
-    var cols;
 
     //order.updateDate='2013-07-18 00:00:00';
     try {
@@ -203,7 +139,7 @@ function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
                     Utility.logDebug('products', JSON.stringify(products));
                     netsuiteMagentoProductMap = ConnectorCommon.getNetsuiteProductIdsByMagentoIds(products, 'pro');
 
-                    if (netsuiteMagentoProductMap.errorMsg != '') {
+                    if (!Utility.isBlankOrNull(netsuiteMagentoProductMap.errorMsg)) {
                         Utility.logDebug('result', JSON.stringify(result));
                         Utility.logDebug('COULD NOT EXECUTE Mapping perfectly', 'Please convey to Folio3');
                         continue;
@@ -213,69 +149,73 @@ function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
                     var customer = ConnectorModels.getCustomerObject(orders[i]);
-                    var CustIdInNS;
+                    var customerNSInternalId = null;
+                    var customerSearchObj = {};
+                    var customerIndex = 0;
+                    var leadCreateAttemptResult = {};
 
+                    // if order comes with guest customer whose record is not existed in Magento
                     if (Utility.isBlankOrNull(orders[i].customer_id)) {
-                        // TODO: if id does not exist then search customer against email address if found OK else create customer in NetSuite
                         Utility.logDebug('Guest Customer Exists', '');
 
-
+                        // adding shipping and billing address in customer object getting from sales order
                         customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
-                        CustIdInNS = ConnectorCommon.getNSCustomerID(customer, sessionID);
-                        Utility.logDebug('NetSuite Id for Guest Customer:', CustIdInNS);
 
-                        if (!!CustIdInNS) {
+                        // searching customer record in NetSuite
+                        customerSearchObj = ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, null);
+                        // if customer record found in NetSuite, update the customer record
+                        if (customerSearchObj.status) {
+                            customerNSInternalId = customerSearchObj.netSuiteInternalId;
+                        } else {
+                            Utility.logDebug('Start Creating Lead', '');
+                            leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, true);
+                            Utility.logDebug('Attempt to create lead', JSON.stringify(leadCreateAttemptResult));
+                            if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg) || !Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
+                                continue;
+                            }
+                            Utility.logDebug('End Creating Lead', '');
+                            customerNSInternalId = leadCreateAttemptResult.id;
+                        }
 
+                        Utility.logDebug('NetSuite Id for Guest Customer:', customerNSInternalId);
+
+                        if (!!customerNSInternalId) {
                             // make order data object
-                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, CustIdInNS, '', shippingAddress, billingAddress, payment);
+                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress, billingAddress, payment);
                             ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                         }
                     }
                     else {
-                        var customerIndex = 0;
+                        // create or update customer record
                         // start creating customer
                         Utility.logDebug('Magento Customer Id: ', customer[customerIndex].customer_id);
 
-                        existingCustomerRecords = null;
-                        filterExpression = null;
+                        // searching customer record in NetSuite
+                        customerSearchObj = ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, customer[customerIndex].customer_id);
 
-                        var magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, customer[customerIndex].customer_id);
-
-                        cols = [];
-                        filterExpression = [
-                            [ ConnectorConstants.Entity.Fields.MagentoId, 'contains', magentoFormattedId]
-                        ];
-                        cols.push(new nlobjSearchColumn(ConnectorConstants.Entity.Fields.MagentoId, null, null)); // Distinct the Parent
-
-                        existingCustomerRecords = ConnectorCommon.getRecords('customer', filterExpression, cols);
-
-                        var leadCreateAttemptResult;
-
-                        if (existingCustomerRecords.length > 0) {
-                            CustIdInNS = existingCustomerRecords[0].getId();
-                            ConnectorConstants.Client.updateCustomerInNetSuite(CustIdInNS, customer[customerIndex], '', sessionID);
-                            Utility.logDebug('Customer Updated in NetSuite', 'Customer Id: ' + CustIdInNS);
+                        // if customer record found in NetSuite, update the customer record
+                        if (customerSearchObj.status) {
+                            ConnectorConstants.Client.updateCustomerInNetSuite(customerSearchObj.netSuiteInternalId, customer[customerIndex], sessionID);
+                            Utility.logDebug('Customer Updated in NetSuite', 'Customer Id: ' + customerNSInternalId);
+                            customerNSInternalId = customerSearchObj.netSuiteInternalId;
                         }
                         else {
+                            // if customer record not found in NetSuite, create a lead record in NetSuite
                             Utility.logDebug('Start Creating Lead', '');
-                            leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], '', sessionID, false);
+                            leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, false);
                             Utility.logDebug('Attempt to create lead', JSON.stringify(leadCreateAttemptResult));
-
-                            if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg)) {
-                                continue;
-                            }
-                            else if (!Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
+                            if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg) || !Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
                                 continue;
                             }
                             Utility.logDebug('End Creating Lead', '');
-                            CustIdInNS = leadCreateAttemptResult.id;
+                            customerNSInternalId = leadCreateAttemptResult.id;
                         }
 
                         // make order data object
-                        salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, CustIdInNS, '', shippingAddress, billingAddress, payment);
+                        salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress, billingAddress, payment);
+                        // create sales order
                         ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                     }
-
 
                     // Write Code to handle Re-scheduling in case of going down than min Governance
                     context = nlapiGetContext();
@@ -296,7 +236,6 @@ function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
                 // the Scheduled Script Status page
                 context.getPercentComplete();
             }
-
         }
         else {
             result.infoMsg = 'No Order(s) Found';
@@ -311,4 +250,76 @@ function syncSalesOrderMagento(sessionID, updateDate, jobId, configuration) {
 
     return result;
 
+}
+
+function startup(type) {
+    if (type.toString() === 'scheduled' || type.toString() === 'userinterface') {
+        if (MC_SYNC_CONSTANTS.isValidLicense()) {
+            // inititlize constants
+            ConnectorConstants.initialize();
+            // getting configuration
+            var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
+            var sessionID;
+            var context = nlapiGetContext();
+            var result = {};
+            var soUpdateDate;
+            var lastStoreId;
+            var store;
+
+            // getting last store id if script has been rescheduled
+            lastStoreId = context.getSetting('SCRIPT', ConnectorConstants.ScriptParameters.LastStoreIdSalesOrder);
+            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 1 : parseInt(lastStoreId);
+
+            for (var system = lastStoreId; system < externalSystemConfig.length; system++) {
+                // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first
+                try {
+                    // getting store/system object
+                    store = externalSystemConfig[system];
+                    // set the percent complete parameter to 0.00
+                    context.setPercentComplete(0.00);
+                    // set store for ustilizing in other functions
+                    ConnectorConstants.CurrentStore = store;
+                    ConnectorConstants.initializeDummyItem();
+
+                    var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
+
+                    soUpdateDate = ConnectorCommon.getUpdateDate(-1 * sofrequency);
+                    Utility.logDebug('soUpdateDate', soUpdateDate);
+
+                    sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+
+                    if (!sessionID) {
+                        Utility.logDebug('sessionID', 'sessionID is empty');
+                        return;
+                    }
+
+                    Utility.logDebug('startup', 'Start Syncing');
+
+                    result = syncSalesOrderMagento(sessionID, soUpdateDate);
+
+                    // Something Wrong with SO Sync
+                    if (!Utility.isBlankOrNull(result.errorMsg)) {
+                        Utility.logDebug('Master Scheduler', 'Job Ending With Message ' + result.errorMsg);
+                    }
+                    else {
+                        if (result.infoMsg.toString() === 'Reschedule') {
+                            Utility.logDebug('startup', 'Reschedule');
+                            var params = {};
+                            params[ConnectorConstants.ScriptParameters.LastStoreIdSalesOrder] = system;
+                            nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), null);
+                        }
+                        else {
+                            Utility.logDebug('startup', 'JOB RAN SUCCESSFULLyy');
+                        }
+                    }
+
+                } catch (ex) {
+                    Utility.logException('startup', ex);
+                }
+            }
+
+        } else {
+            Utility.logDebug('Validate', 'License has expired');
+        }
+    }
 }

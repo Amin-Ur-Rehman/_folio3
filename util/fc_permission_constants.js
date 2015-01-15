@@ -10,7 +10,7 @@
  * -
  */
 
-var F3_PERMISSION_CONSTANTS = {
+F3_PERMISSION_CONSTANTS = {
     permissionJson: null,
     mask: 0,
     features: {},

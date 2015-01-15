@@ -298,50 +298,6 @@ var ConnectorCommon = (function () {
 
             return soUpdateDate
         },
-        // zee method: i have just separated the code.TODO: generalize
-        getNSCustomerID: function (customer, sessionID) {
-            var customerIndex = 0;
-            var existingCustomerRecords;
-            var email = customer[customerIndex].email;
-            var filterExpression;
-            Utility.logDebug('Start Iterating on Customer: ' + email, '');
-            filterExpression = [
-                ['email', 'is', email]
-            ];
-            Utility.logDebug('Start Iterating on Customer: ' + filterExpression, '');
-            var cols = [];
-            cols.push(new nlobjSearchColumn(ConnectorConstants.Entity.Fields.MagentoId, null, null));
-
-            existingCustomerRecords = ConnectorCommon.getRecords('customer', filterExpression, cols);
-
-            var leadCreateAttemptResult;
-
-            if (existingCustomerRecords) {
-                CustIdInNS = existingCustomerRecords[0].getId();
-                return CustIdInNS;
-
-            }
-            else {
-                Utility.logDebug('existingCustomerRecords Found', 'length: ' + existingCustomerRecords);
-                Utility.logDebug('No Existing Records', 'Create Lead without duplicate check');
-                Utility.logDebug('Start Creating Lead', '');
-
-                leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], '', sessionID, true);
-
-                if (leadCreateAttemptResult.errorMsg != '') {
-                    Utility.logDebug('ERROR', 'End Creating Lead');
-                    return '';
-                }
-                else if (leadCreateAttemptResult.infoMsg != '') {
-                    Utility.logDebug('DEBUG', 'End Creating Lead');
-                    return '';
-                }
-                Utility.logDebug('DEBUG', 'End Creating Lead');
-
-                return leadCreateAttemptResult.id;
-            }
-            Utility.logDebug('DEBUG', 'End Iterating on Customer: ' + email);
-        },
         setAddresses: function (rec, addresses) {
             Utility.logDebug('in setAddresses() start', addresses.toSource());
 
@@ -825,7 +781,7 @@ var ConnectorCommon = (function () {
             }
         },
         getLastModifiedDate: function () {
-            var res = InventorySyncScript.lookup(new nlobjSearchFilter(InventorySyncScript.FieldName.Name, null, 'is', ConnectorConstants.CurrentStore.systemDisplayName, null));
+            var res = InventorySyncScript.lookup(new nlobjSearchFilter(InventorySyncScript.FieldName.Name, null, 'is', 'Last Run Date', null));
             var dateTime;
             if (res.length > 0) {
                 dateTime = res[0].getValue(InventorySyncScript.FieldName.LastRunDateTime) + '';
@@ -873,17 +829,15 @@ var ConnectorCommon = (function () {
             else if (type === 'update') {
                 if (!!existingId) {
                     var isAlreadyExist = false;
-                    var tempMagentoIdObjArr = JSON.parse(existingId);
-                    for (var i in tempMagentoIdObjArr) {
-                        var tempMagentoIdObj = tempMagentoIdObjArr[i];
+                    magentoIdObjArr = JSON.parse(existingId);
+                    for (var i in magentoIdObjArr) {
+                        var tempMagentoIdObj = magentoIdObjArr[i];
                         if (tempMagentoIdObj.StoreId === storeId) {
                             isAlreadyExist = true;
                             tempMagentoIdObj.MagentoId = magentoId;
                         }
                     }
-                    if (isAlreadyExist) {
-                        magentoIdObjArr = tempMagentoIdObjArr;
-                    } else {
+                    if (!isAlreadyExist) {
                         var obj2 = {};
 
                         obj2.StoreId = storeId;
