@@ -27,81 +27,12 @@
  *   - f3mg_connector_common.js
  */
 
-var URL = '';
 // For the safe side its 1000, we calculate , in actual it is 460
 var CUSTOMER_IMPORT_MIN_USAGELIMIT = 1000;
 var SCRIPT_ID = 'customscript_magento_customer_sync';
 var SCRIPT_DEPLOYMENT_ID = 'customdeploy_magento_customer_sync';
 
-
-function startup() {
-    if (MC_SYNC_CONSTANTS.isValidLicense()) {
-        // inititlize constants
-        ConnectorConstants.initialize();
-        // getting configuration
-        var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
-        var configuration;
-        var sessionID;
-        var sessionObj = {};
-        var context = nlapiGetContext();
-        var result = {};
-        var params = [];
-        var customerUpdateDate;
-
-
-        externalSystemConfig.forEach(function (store) {
-            // set the percent complete parameter to 0.00
-            context.setPercentComplete(0.00);
-            // set store for ustilizing in other functions
-            ConnectorConstants.CurrentStore = store;
-
-            // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first
-            try {
-                context.setPercentComplete(0.00);  // set the percent complete parameter to 0.00
-
-                var customerFrequency = store.entitySyncInfo.customer.noOfDays;
-
-                customerUpdateDate = ConnectorCommon.getUpdateDate(-1 * customerFrequency);
-                Utility.logDebug('soUpdateDate', customerFrequency);
-
-                sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
-
-                if (!sessionID) {
-                    Utility.logDebug('sessionID', 'sessionID is empty');
-                    return;
-                }
-
-                Utility.logDebug('startup', 'Start Syncing');
-
-                result = syncCustomerMagento(sessionID, customerUpdateDate, configuration);
-
-                if (result.errorMsg != '') {
-                    Utility.logDebug('Master Scheduler', 'Job Ending With Message ' + result.errorMsg);
-                }
-                else {
-
-
-                    if (result.infoMsg == 'Reschedule') {
-                        Utility.logDebug('Rescheduling ', ' i = ' + result.i);
-                        params['custscript_internalid'] = result.i;
-                        nlapiScheduleScript(SCRIPT_ID, SCRIPT_DEPLOYMENT_ID, params);
-                        return true;
-                    }
-                }
-
-            } catch (ex) {
-
-                // logEntry(jobId,'Error','Unexpected End with Error Message: ' + ex.toString());
-            }
-
-        });
-
-    } else {
-        Utility.logDebug('Validate', 'License has expired');
-    }
-}
-
-function syncCustomerMagento(sessionID, updateDate, configuration) {
+function syncCustomerMagento(sessionID, updateDate) {
     var customerXML = "";
     var customer = {};
     var responseMagento;
@@ -122,7 +53,7 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
         Utility.logDebug('Count', customerCount);
 
 
-        if (customerCount.errorMsg != '') {
+        if (!Utility.isBlankOrNull(customerCount.errorMsg)) {
             result.errorMsg = customerCount.errorMsg;
             return result;
         }
@@ -134,21 +65,20 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
 
         responseMagento = XmlUtility.validateResponseCustomer(XmlUtility.soapRequestToMagento(customerXML));
 
-        if (responseMagento.status == false) {
+        if (!responseMagento.status) {
             result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
             return result;
         }
 
         customers = responseMagento.customers;
 
-        if (customers != null)                                   // Move this customer createion code to connector_common_records.js to make it generalize
-        {
+        if (!Utility.isBlankOrNull(customers)) {
             var magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
 
 
             Utility.logDebug(customers.length + ' Customer(s) Found for Processing ', '');
 
-            for (var i = (paramInternalId == null) ? 0 : paramInternalId, k = 0; i < customers.length; i++, k++) {
+            for (var i = !!paramInternalId ? paramInternalId : 0, k = 0; i < customers.length; i++, k++) {
                 try {
                     var existingCustomerRecords;
                     var entityId = customers[i].firstname + ' ' + customers[i].middlename + customers[i].lastname;
@@ -164,7 +94,7 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
 
                     existingCustomerRecords = ConnectorCommon.getRecords('customer', filterExpression, cols);
 
-                    if (existingCustomerRecords != null) {
+                    if (!Utility.isBlankOrNull(existingCustomerRecords)) {
                         var CustIdInNS = existingCustomerRecords[0].getId();
                         Utility.logDebug('Start Update Customer', '');
                         ConnectorConstants.Client.updateCustomerInNetSuite(CustIdInNS, customers[i], enviornment, sessionID);
@@ -173,14 +103,14 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
                     else {
                         Utility.logDebug('Start Creating Lead', '');
 
-                        leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customers[i], '', sessionID);
+                        leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customers[i], sessionID, false);
 
-                        if (leadCreateAttemptResult.errorMsg != '') {
+                        if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg)) {
                             Utility.logDebug('ERROR', 'End Creating Lead');
                             Utility.logDebug('ERROR', 'End Iterating on Customer: ' + entityId);
                             continue;
                         }
-                        else if (leadCreateAttemptResult.infoMsg != '') {
+                        else if (!Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
                             Utility.logDebug('End Creating Lead', '');
                             Utility.logDebug('End Iterating on Customer: ' + entityId, '');
                             continue;
@@ -216,4 +146,69 @@ function syncCustomerMagento(sessionID, updateDate, configuration) {
     }
 
     return result;
+}
+
+function startup() {
+    if (MC_SYNC_CONSTANTS.isValidLicense()) {
+        // inititlize constants
+        ConnectorConstants.initialize();
+        // getting configuration
+        var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
+        var sessionID;
+        var context = nlapiGetContext();
+        var result = {};
+        var params = [];
+        var customerUpdateDate;
+
+
+        externalSystemConfig.forEach(function (store) {
+            // set the percent complete parameter to 0.00
+            context.setPercentComplete(0.00);
+            // set store for ustilizing in other functions
+            ConnectorConstants.CurrentStore = store;
+
+            // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first
+            try {
+                context.setPercentComplete(0.00);  // set the percent complete parameter to 0.00
+
+                var customerFrequency = store.entitySyncInfo.customer.noOfDays;
+
+                customerUpdateDate = ConnectorCommon.getUpdateDate(-1 * customerFrequency);
+                Utility.logDebug('soUpdateDate', customerFrequency);
+
+                sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+
+                if (!sessionID) {
+                    Utility.logDebug('sessionID', 'sessionID is empty');
+                    return;
+                }
+
+                Utility.logDebug('startup', 'Start Syncing');
+
+                result = syncCustomerMagento(sessionID, customerUpdateDate);
+
+                if (!Utility.isBlankOrNull(result.errorMsg)) {
+                    Utility.logDebug('Master Scheduler', 'Job Ending With Message ' + result.errorMsg);
+                }
+                else {
+
+
+                    if (result.infoMsg === 'Reschedule') {
+                        Utility.logDebug('Rescheduling ', ' i = ' + result.i);
+                        params['custscript_internalid'] = result.i;
+                        nlapiScheduleScript(SCRIPT_ID, SCRIPT_DEPLOYMENT_ID, params);
+                        return true;
+                    }
+                }
+
+            } catch (ex) {
+
+                // logEntry(jobId,'Error','Unexpected End with Error Message: ' + ex.toString());
+            }
+
+        });
+
+    } else {
+        Utility.logDebug('Validate', 'License has expired');
+    }
 }

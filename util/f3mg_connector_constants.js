@@ -10,7 +10,7 @@
  * Magento Id Format: [{"<StoreName>":"","MagentoId":""},{"StoreName":"","MagentoId":""}]
  */
 
-var ConnectorConstants = (function () {
+ConnectorConstants = (function () {
     return {
         MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
         ExternalSystemConfig: null,
@@ -43,8 +43,15 @@ var ConnectorConstants = (function () {
             }
         },
         ShippingMethod: {
-            'UPS': 'ups',
-            'FedEx': 'nonups'
+            UPS: 'ups',
+            FedEx: 'nonups'
+        },
+        ScriptParameters: {
+            LastStoreIdSalesOrder: 'custscript_last_store_id_salesorder',
+            LastStoreIdCusttomer: 'custscript_last_store_id_customer',
+
+            LastInternalId: 'custscriptcustscriptinternalid',
+            ScriptStartDate: 'custscript_start_date'
         },
 
         /**
@@ -55,7 +62,7 @@ var ConnectorConstants = (function () {
             this.Client = F3ClientFactory.createClient('Folio3');
             this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
-        initialize2: function () {
+        initializeDummyItem: function () {
             this.DummyItem.Id = ConnectorCommon.getDummyItemId(this.DummyItem.ItemId);
         }
     };

@@ -16,7 +16,7 @@
  * Folio3 Connector Feature Verification class is responsible for validating feature which
  * will be provided to the users with Folio3 Connectors.
  */
-var Folio3FeaturesVerification = (function () {
+Folio3FeaturesVerification = (function () {
     var _serverUrl = 'http://202.142.150.38:3000/get_permissions.json';
 
     /**

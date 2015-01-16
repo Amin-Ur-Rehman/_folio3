@@ -12,7 +12,7 @@
 /**
  * This script is responsible for returning the object on client basis.
  */
-var F3ClientFactory = (function () {
+F3ClientFactory = (function () {
     return {
         /**
          * Init method
@@ -139,14 +139,10 @@ function F3ClientBase() {
             var magentoSyncId;
             var isDummyItemSetInOrder = '';
             var containsSerialized = false;
-            var enviornment = 'pro';
             var netSuiteItemID;
 
-            if (enviornment == 'production') {
-            } else {
-                magentoIdId = ConnectorConstants.Transaction.Fields.MagentoId;
-                magentoSyncId = ConnectorConstants.Transaction.Fields.MagentoSync;
-            }
+            magentoIdId = ConnectorConstants.Transaction.Fields.MagentoId;
+            magentoSyncId = ConnectorConstants.Transaction.Fields.MagentoSync;
 
             var rec = nlapiCreateRecord('salesorder', null);
             Utility.logDebug('setting payment ', '');
@@ -157,7 +153,7 @@ function F3ClientBase() {
             var shippingMethod = ConnectorCommon.getShippingCarrierAndMethod2(order.shipping_description);
 
             if (!ConnectorCommon.isDevAccount()) {
-                rec.setFieldValue('shipcaConnectorConstants.rrier', ConnectorConstants.ShippingMethod.FedEx);// hardcoded to noups
+                rec.setFieldValue('shipcarrier', ConnectorConstants.ShippingMethod.FedEx);// hardcoded to noups
                 rec.setFieldValue('shipmethod', shippingMethod);
             }
             // rec.setFieldValue('taxitem',-2379);
@@ -289,27 +285,16 @@ function F3ClientBase() {
         /**
          * Description of method: Create Lead Record in NetSuite
          * @param magentoCustomerObj
-         * @param enviornment
          * @param sessionID
          * @param isGuest
          * @return {Object}
          */
-        createLeadInNetSuite: function (magentoCustomerObj, enviornment, sessionID, isGuest) {
+        createLeadInNetSuite: function (magentoCustomerObj, sessionID, isGuest) {
 
-            var magentoCustomerId;
-            var magentoSync;
-            var result = {};
-
-            if (enviornment === 'production') {
-                magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
-                magentoSync = 'custentity_magentosync';
-            } else {
-                magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
-                magentoSync = ConnectorConstants.Entity.Fields.MagentoSync;
-            }
-
-            result.errorMsg = '';
-            result.infoMsg = '';
+            var result = {
+                errorMsg: '',
+                infoMsg: ''
+            };
 
             var rec = nlapiCreateRecord('lead', null);
             //rec.setFieldValue('isperson', 'T');
@@ -326,7 +311,7 @@ function F3ClientBase() {
                 custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
                 responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
 
-                if (responseMagento.status == false) {
+                if (!responseMagento.status) {
                     result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
                     Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' + magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
                     return result;
@@ -334,13 +319,13 @@ function F3ClientBase() {
 
                 addresses = responseMagento.addresses;
 
-                if (addresses != null) {
+                if (!Utility.isBlankOrNull(addresses)) {
                     rec = ConnectorCommon.setAddresses(rec, addresses);
                 }
             } else {
                 // if guest customer comes
 
-                if (addresses != null) {
+                if (!Utility.isBlankOrNull(addresses)) {
                     rec = ConnectorCommon.setAddresses(rec, magentoCustomerObj.addresses);
                 }
             }
@@ -357,8 +342,8 @@ function F3ClientBase() {
 
             var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, isGuest ? 'Guest' : magentoCustomerObj.customer_id, 'create', null);
 
-            rec.setFieldValue(magentoCustomerId, magentoIdObjArrStr);
-            rec.setFieldValue(magentoSync, 'T');
+            rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
+            rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
             rec.setFieldValue('email', magentoCustomerObj.email);
             rec.setFieldValue('firstname', magentoCustomerObj.firstname);
             rec.setFieldValue('middlename', magentoCustomerObj.middlename);
@@ -369,6 +354,7 @@ function F3ClientBase() {
                 result.id = nlapiSubmitRecord(rec, false, true);
             } catch (ex) {
                 result.errorMsg = ex.toString();
+                Utility.logException('createLeadInNetSuite', ex);
             }
 
             return result;
@@ -378,33 +364,20 @@ function F3ClientBase() {
          * Description of method: Update Customer Record in NetSuite
          * @param customerId
          * @param magentoCustomerObj
-         * @param enviornment
          * @param sessionID
          * @return {Object}
          */
-        updateCustomerInNetSuite: function (customerId, magentoCustomerObj, enviornment, sessionID) {
-            var magentoCustomerId;
-            var magentoSync;
+        updateCustomerInNetSuite: function (customerId, magentoCustomerObj, sessionID) {
             var result = {};
-
-            if (enviornment == 'production') {
-                magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
-                magentoSync = 'custentity_magentosync';
-            } else {
-                magentoCustomerId = ConnectorConstants.Entity.Fields.MagentoId;
-                magentoSync = ConnectorConstants.Entity.Fields.MagentoSync;
-            }
-
             var rec = nlapiLoadRecord('customer', customerId, null);
-
 
             // mulitple stores handling
 
-            var existingMagentoId = rec.getFieldValue(magentoCustomerId);
+            var existingMagentoId = rec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId);
             var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, magentoCustomerObj.customer_id, 'update', existingMagentoId);
 
-            rec.setFieldValue(magentoCustomerId, magentoIdObjArrStr);
-            rec.setFieldValue(magentoSync, 'T');
+            rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
+            rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
             rec.setFieldValue('email', magentoCustomerObj.email);
             rec.setFieldValue('firstname', magentoCustomerObj.firstname);
             rec.setFieldValue('middlename', magentoCustomerObj.middlename);
@@ -415,7 +388,7 @@ function F3ClientBase() {
 
             var custAddrXML;
             var responseMagento;
-            var addresses = {};
+            var addresses;
 
             custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
 
@@ -429,16 +402,48 @@ function F3ClientBase() {
 
             addresses = responseMagento.addresses;
 
-            if (addresses != null) {
+            if (!Utility.isBlankOrNull(addresses)) {
                 rec = ConnectorCommon.setAddresses(rec, addresses);
             }
 
             // zee: get customer address list: end
-
-
-            var id = nlapiSubmitRecord(rec, false, true);
-
+            var id = nlapiSubmitRecord(rec, true, true);
             Utility.logDebug('Customer updated in NetSuite', 'Customer Id: ' + id);
+        },
+
+        /**
+         * Search the customer with email or formatted magentoId
+         * @param {string} magentoId
+         * @param {string} email
+         * @return {object} {status: boolean, [netSuiteInternalId: string], [netSuiteMagentoId: string]}
+         */
+        searchCustomerInNetSuite: function (email, magentoId) {
+            var magentoFormattedId;
+            var filExp = [];
+            var cols = [];
+            var results;
+            var resultobj = {'status': false};
+
+            magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoId);
+            cols.push(new nlobjSearchColumn(ConnectorConstants.Entity.Fields.MagentoId, null, null));
+
+            filExp.push(['email', 'is', email]);
+
+            if (!Utility.isBlankOrNull(magentoId)) {
+                filExp.push('OR');
+                filExp.push([ ConnectorConstants.Entity.Fields.MagentoId, 'contains', magentoFormattedId]);
+            }
+
+            results = ConnectorCommon.getRecords('customer', filExp, cols);
+
+            if (results.length > 0) {
+                // Assumeing that there should be only one customer wiht one Id
+                var result = results[0];
+                resultobj.netSuiteInternalId = result.getId();
+                resultobj.netSuiteMagentoId = result.getValue(ConnectorConstants.Entity.Fields.MagentoId, null, null);
+                resultobj.status = true;
+            }
+            return resultobj;
         }
     };
     return self;
