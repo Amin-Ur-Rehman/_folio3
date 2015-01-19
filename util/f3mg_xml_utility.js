@@ -805,6 +805,39 @@ XmlUtility = (function () {
             }
 
             return responseMagento;
+        },
+        validateCustomerExportOperationResponse:function(xml,operation)
+        {
+            var faultCode="";
+            var faultString;
+            var responseMagento = {};
+            responseMagento.status=true;
+
+            try {
+
+                if(operation=="create") {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    if(responseMagento.faultCode !="") {
+                        responseMagento.status=false;
+                    }
+
+                    if(responseMagento.status)
+                    {
+                        magentoCustomerId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerCreateResponse/result");
+                        responseMagento.magentoCustomerId = magentoCustomerId;
+                    }
+
+                }
+
+            } catch (ex) {
+            }
+
+            return responseMagento;
+
         }
+
+
     };
 })();

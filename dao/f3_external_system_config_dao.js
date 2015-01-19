@@ -61,6 +61,7 @@ ExternalSystemConfig = (function () {
             for (var i in res) {
                 var config = res[i];
 
+                var internalId = config.getId();
                 var systemId = config.getValue(this.FieldName.SystemId, null, null);
                 var systemDisplayName = config.getText(this.FieldName.SystemDisplayName, null, null);
                 var userName = config.getValue(this.FieldName.UserName, null, null);
@@ -69,6 +70,7 @@ ExternalSystemConfig = (function () {
                 var entitySyncInfo = JSON.parse(config.getValue(this.FieldName.EntitySyncInfo, null, null));
 
                 var obj = {
+                    internalId:internalId,
                     systemId: systemId,
                     systemDisplayName: systemDisplayName,
                     userName: userName,
