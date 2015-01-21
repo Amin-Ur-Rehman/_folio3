@@ -72,28 +72,13 @@ function customerExport() {
                         {
                             nlapiLogExecution('debug','Step-5');
 
-                            //Temporary Code
-                            var logRec=nlapiCreateRecord('customrecord_dummaydata');
-
                             requsetXML=CUSTOMER.getMagentoRequestXML(customerRecord,store.sessionID);
 
                             nlapiLogExecution('debug','store.endpoint',store.endpoint);
 
-                            if(!!requsetXML) {
-                                logRec.setFieldValue('custrecord_xmldata',XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store));
-                                nlapiSubmitRecord(logRec);
-
-                            }
-
 
 
                             responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagento(requsetXML),'create');
-
-
-
-
-
-
 
                             nlapiLogExecution('debug','Step-5c');
 
@@ -105,23 +90,47 @@ function customerExport() {
                                 magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, 'create', null);
                                 nsCustomerUpdateStatus=CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr,customerIds[c].internalId);
 
-                                nlapiLogExecution('debug','Step-7');
+                                nlapiLogExecution('debug','Step-7 ' ,magentoIdObjArrStr);
 
-                                /*
+
+                                magentoIdObjArrStr=JSON.parse(magentoIdObjArrStr);
+
+
 
                                 if(nsCustomerUpdateStatus) {
 
-                                    customerAddresses=CUSTOMER.getNSCustomerAddresses(customerRecord);
+                                    nlapiLogExecution('debug','Step-8');
+
+                                    customerAddresses=CUSTOMER.getNSCustomerAddresses(customerRecord.nsObj);
                                     allAddressedSynched=true;
+
                                     for(var adr=0;adr<customerAddresses.length;adr++)
                                     {
+                                        nlapiLogExecution('debug','Step-9  magentoIdObjArrStr[0].magentoId ', magentoIdObjArrStr[0].MagentoId);
                                         //Address Create
-                                        requsetXML=CUSTOMER.getMagentoAddressRequestXML(customerAddresses[adr]);
-                                        responseMagento = Utility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagento(requsetXML), 'create');
+                                        requsetXML=CUSTOMER.getMagentoAddressRequestXML(customerAddresses[adr],store.sessionID,magentoIdObjArrStr[0].MagentoId);
+
+                                        nlapiLogExecution('debug','Step-10');
+
+                                         //Temporary Code
+                                         var logRec=nlapiCreateRecord('customrecord_dummaydata');
+
+                                         if(!!requsetXML) {
+                                         logRec.setFieldValue('custrecord_xmldata',requsetXML);
+                                         nlapiSubmitRecord(logRec);
+
+                                         }
+
+                                        nlapiLogExecution('debug','Step-11');
+
+
+                                        responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store), 'create');
+
+                                        nlapiLogExecution('debug','Step-12');
 
                                         if(!responseMagento.status)
                                         {
-                                            Utility.logDebug('customerId  ' + customerIds[c].internalId + ' Address Number '+ adr+1 + ' is not synched with Magento' );
+                                            Utility.logDebug('customerId  ' + customerIds[c].internalId + ' Address Number '+ (parseInt(adr)+1) + ' is not synched with Magento' );
                                             allAddressedSynched=false;
 
                                         }
@@ -130,11 +139,12 @@ function customerExport() {
 
                                     if(allAddressedSynched) {
 
-                                        nsCustomerUpdateStatus=CUSTOMER.setCustomerMagentoSync(magentoId);
+                                        nsCustomerUpdateStatus=CUSTOMER.setCustomerMagentoSync(magentoIdObjArrStr[0].MagentoId);
                                         if(!nsCustomerUpdateStatus)
                                             Utility.logDebug('customerId  ' + customerIds[c].internalId + ' Customer Data Updated but Address Not Updated');
 
                                     }
+
                                 }
                                 else
                                 {
@@ -143,7 +153,7 @@ function customerExport() {
 
                                 }
 
-                                */
+
 
                             }
                             else{

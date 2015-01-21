@@ -48,6 +48,7 @@ getCustomers : function(allStores,storeId)
         try {
 
             nlapiSubmitField('customer',customerId,'custentity_magento_custid',magentoId);
+            result=true;
 
         }catch (ex) {}
 
@@ -98,6 +99,7 @@ getCustomer :function(customerInternalId,storeInfo)
         customerDataObject.dob="";
         customerDataObject.taxvat="";
         customerDataObject.gender="";
+        customerDataObject.nsObj=customerRecord;
 
     }
 
@@ -110,19 +112,20 @@ getCustomer :function(customerInternalId,storeInfo)
         var customerAddresses=new Array();
         var addressObject;
 
-        for(var i=0;i<customerRecord.getLineItemCount('item');i++)
+        for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
         {
-            addressObject.defaultshipping=customerRecord.getLineItemValue('addressbook','defaultshipping');
-            addressObject.defaultbilling=customerRecord.getLineItemValue('addressbook','defaultbilling');
-            addressObject.country=customerRecord.getLineItemValue('addressbook','country');
-            addressObject.firstname=customerRecord.getLineItemValue('addressbook','addressee');
-            addressObject.telephone=customerRecord.getLineItemValue('addressbook','addrphone');
-            addressObject.city=customerRecord.getLineItemValue('addressbook','city');
-            addressObject.street1=customerRecord.getLineItemValue('addressbook','address1');
-            addressObject.street2=customerRecord.getLineItemValue('addressbook','address2');
-            addressObject.region=customerRecord.getLineItemValue('addressbook','state');
-            addressObject.region_text=customerRecord.getLineItemText('addressbook','state');
-            addressObject.postcode=customerRecord.getLineItemText('addressbook','zip');
+            addressObject=new Object();
+            addressObject.defaultshipping=customerRecord.getLineItemValue('addressbook','defaultshipping',i);
+            addressObject.defaultbilling=customerRecord.getLineItemValue('addressbook','defaultbilling',i);
+            addressObject.country=customerRecord.getLineItemValue('addressbook','country',i);
+            addressObject.firstname=customerRecord.getLineItemValue('addressbook','addressee',i);
+            addressObject.telephone=customerRecord.getLineItemValue('addressbook','phone',i);
+            addressObject.city=customerRecord.getLineItemValue('addressbook','city',i);
+            addressObject.street1=customerRecord.getLineItemValue('addressbook','addr1',i);
+            addressObject.street2=customerRecord.getLineItemValue('addressbook','addr2',i);
+            addressObject.region=customerRecord.getLineItemValue('addressbook','state',i);
+            addressObject.region_text=customerRecord.getLineItemText('addressbook','state',i);
+            addressObject.postcode=customerRecord.getLineItemValue('addressbook','zip',i);
 
             customerAddresses.push(addressObject);
         }
@@ -187,7 +190,8 @@ getCustomer :function(customerInternalId,storeInfo)
     getMagentoAddressRequestXML :function(customerAddressObject,sessionId,magentoCustomerId) {
         var xml = '';
 
-        if (customerDataObject != null) {
+        nlapiLogExecution('debug','magentoCustomerId',magentoCustomerId);
+        if (customerAddressObject != null) {
             xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">';
             xml = xml + '<soapenv:Header/>';
             xml = xml + '<soapenv:Body>';
@@ -197,11 +201,11 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '            <addressData xsi:type="urn:customerAddressEntityCreate" xs:type="type:customerAddressEntityCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             //                <!--You may enter the following 16 items in any order-->
             //                <!--Optional:-->
-            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">customerAddressObject.city</city>';
+            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.city+'</city>';
             //                <!--Optional:-->
-            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">customerAddressObject.company</company>';
+            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.company+'</company>';
             //                <!--Optional:-->
-            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">customerAddressObject.country</country_id>';
+            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.country+'</country_id>';
             //                <!--Optional:-->
             xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>>';
             //                <!--Optional:-->
