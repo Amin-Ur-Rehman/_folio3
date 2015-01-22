@@ -115,19 +115,25 @@ getCustomer :function(customerInternalId,storeInfo)
         for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
         {
             addressObject=new Object();
-            addressObject.defaultshipping=customerRecord.getLineItemValue('addressbook','defaultshipping',i);
-            addressObject.defaultbilling=customerRecord.getLineItemValue('addressbook','defaultbilling',i);
-            addressObject.country=customerRecord.getLineItemValue('addressbook','country',i);
-            addressObject.firstname=customerRecord.getLineItemValue('addressbook','addressee',i);
-            addressObject.telephone=customerRecord.getLineItemValue('addressbook','phone',i);
-            addressObject.city=customerRecord.getLineItemValue('addressbook','city',i);
-            addressObject.street1=customerRecord.getLineItemValue('addressbook','addr1',i);
-            addressObject.street2=customerRecord.getLineItemValue('addressbook','addr2',i);
-            addressObject.region=customerRecord.getLineItemValue('addressbook','state',i);
-            addressObject.region_text=customerRecord.getLineItemText('addressbook','state',i);
-            addressObject.postcode=customerRecord.getLineItemValue('addressbook','zip',i);
+            addressObject.defaultshipping=getBlankIfNull(customerRecord.getLineItemValue('addressbook','defaultshipping',i));
+            addressObject.defaultbilling=getBlankIfNull(customerRecord.getLineItemValue('addressbook','defaultbilling',i));
+            addressObject.country=getBlankIfNull(customerRecord.getLineItemValue('addressbook','country',i));
+            addressObject.firstname=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addressee',i));
+            addressObject.telephone=getBlankIfNull(customerRecord.getLineItemValue('addressbook','phone',i));
+            addressObject.city=getBlankIfNull(customerRecord.getLineItemValue('addressbook','city',i));
+            addressObject.street1=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addr1',i));
+            addressObject.street2=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addr2',i));
+
+
+            addressObject.region=getBlankIfNull(customerRecord.getLineItemValue('addressbook','state',i));
+            addressObject.region_text=getBlankIfNull(customerRecord.getLineItemText('addressbook','state',i));
+
+
+            addressObject.postcode=getBlankIfNull(customerRecord.getLineItemValue('addressbook','zip',i));
+
 
             customerAddresses.push(addressObject);
+
         }
 
         return customerAddresses;
@@ -207,42 +213,42 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '            <addressData xsi:type="urn:customerAddressEntityCreate" xs:type="type:customerAddressEntityCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             //                <!--You may enter the following 16 items in any order-->
             //                <!--Optional:-->
-            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+getBlankIfNull(customerAddressObject.city)+'</city>';
+            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.city+'</city>';
             //                <!--Optional:-->
-            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+getBlankIfNull(customerAddressObject.company)+'</company>';
+            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.company+'</company>';
             //                <!--Optional:-->
-            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+getBlankIfNull(customerAddressObject.country)+'</country_id>';
+            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.country+'</country_id>';
             //                <!--Optional:-->
-            xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.fax) + '</fax>>';
+            xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>>';
             //                <!--Optional:-->
-            xml = xml + '                <firstname xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.firstname) + '</firstname>';
+            xml = xml + '                <firstname xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.firstname + '</firstname>';
             //                <!--Optional:-->
-            xml = xml + '                <lastname xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.lastname) + '</lastname>';
+            xml = xml + '                <lastname xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.lastname + '</lastname>';
             //                <!--Optional:-->
-            xml = xml + '                <middlename xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.middlename) + '</middlename>>';
+            xml = xml + '                <middlename xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.middlename + '</middlename>>';
             //                <!--Optional:-->
-            xml = xml + '                <postcode xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.postcode) + '</postcode>';
+            xml = xml + '                <postcode xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.postcode + '</postcode>';
             //                <!--Optional:-->
-            xml = xml + '                <prefix xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.prefix) + '</prefix>';
+            xml = xml + '                <prefix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.prefix + '</prefix>';
             //                <!--Optional:-->
-            xml = xml + '                <region_id xsi:type="xsd:int" xs:type="type:int">' + getBlankIfNull(customerAddressObject.region_id) + '</region_id>';
+            xml = xml + '                <region_id xsi:type="xsd:int" xs:type="type:int">' + customerAddressObject.region_id + '</region_id>';
             //                <!--Optional:-->
-            xml = xml + '                <region xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.region) + '</region>';
+            xml = xml + '                <region xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.region + '</region>';
             //                <!--Optional:-->
 
             xml = xml + '<street xsi:type="urn:ArrayOfString" soapenc:arrayType="xsd:string[]" xs:type="type:string">';
-            xml = xml + '    <item>' + getBlankIfNull(customerAddressObject.street1) + '</item>';
-            xml = xml + '    <item>' + getBlankIfNull(customerAddressObject.street2) + '</item>';
+            xml = xml + '    <item>' + customerAddressObject.street1 + '</item>';
+            xml = xml + '    <item>' + customerAddressObject.street2 + '</item>';
             xml = xml + '</street>';
-            xml = xml + ' <suffix xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.suffix) + '</suffix>';
+            xml = xml + ' <suffix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.suffix + '</suffix>';
 
 
             //                <!--Optional:-->
-            xml = xml + '                <telephone xsi:type="xsd:string" xs:type="type:string">' + getBlankIfNull(customerAddressObject.telephone) + '</telephone>';
+            xml = xml + '                <telephone xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.telephone + '</telephone>';
             //                <!--Optional:-->
-            xml = xml + '                <is_default_billing xsi:type="xsd:boolean" xs:type="type:boolean">' + getBlankIfNull(customerAddressObject.defaultbilling) + '</is_default_billing>';
+            xml = xml + '                <is_default_billing xsi:type="xsd:boolean" xs:type="type:boolean">' + customerAddressObject.defaultbilling + '</is_default_billing>';
             //                <!--Optional:-->
-            xml = xml + '                <is_default_shipping xsi:type="xsd:boolean" xs:type="type:boolean">' + getBlankIfNull(customerAddressObject.defaultshipping) + '</is_default_shipping>';
+            xml = xml + '                <is_default_shipping xsi:type="xsd:boolean" xs:type="type:boolean">' + customerAddressObject.defaultshipping + '</is_default_shipping>';
             xml = xml + '            </addressData>';
             xml = xml + '        </urn:customerAddressCreate>';
             xml = xml + '    </soapenv:Body>';
