@@ -68,15 +68,6 @@ XmlUtility = (function () {
 
             soXML = soXML + '<complex_filter SOAP-ENC:arrayType="urn:complexFilter[2]" xsi:type="urn:complexFilterArray">';
 
-            /*soXML = soXML + '<item xsi:type="ns1:complexFilter">';
-             soXML = soXML + '    <key xsi:type="xsd:string">increment_id</key>';
-             soXML = soXML + '    <value xsi:type="ns1:associativeEntity">';
-             soXML = soXML + '        <key xsi:type="xsd:string">in</key>';
-             soXML = soXML + '        <value xsi:type="xsd:string">1100000178</value>';
-             soXML = soXML + '    </value>';
-             soXML = soXML + '</item>';*/
-
-
             soXML = soXML + '<item xsi:type="ns1:complexFilter">';
 
             soXML = soXML + '<key xsi:type="xsd:string">updated_at</key>';
@@ -113,32 +104,9 @@ XmlUtility = (function () {
             customerXML = this.XmlHeader;
             customerXML = customerXML + '<urn:customerCustomerList>';
             customerXML = customerXML + '<sessionId urn:type="xsd:string">' + sessionID + '</sessionId>';
-            //  customerXML=customerXML+'<filters xsi:type="urn:filters">'
-            //  customerXML=customerXML+'<filter SOAP-ENC:arrayType="urn:associativeEntity[0]" xsi:type="urn:associativeArray">';
-            //  customerXML=customerXML+'</filter>';
-            /*customerXML=customerXML+'<complex_filter SOAP-ENC:arrayType="urn:complexFilter[1]" xsi:type="urn:complexFilterArray">';
-             customerXML=customerXML+'<item xsi:type="ns1:complexFilter">';
-             customerXML=customerXML+'<key xsi:type="xsd:string">customer_id</key>';
-             customerXML=customerXML+'<value xsi:type="ns1:associativeEntity">';
-             customerXML=customerXML+'<key xsi:type="xsd:string">gt</key>';
-             customerXML=customerXML+'<value xsi:type="xsd:string">'+customer.maxMagentoId+'</value>'
-             customerXML=customerXML+'</value>';
-             customerXML=customerXML+'</item>';
-             customerXML=customerXML+'</complex_filter>';*/
-            /*
-             customerXML=customerXML+'<complex_filter SOAP-ENC:arrayType="urn:complexFilter[1]" xsi:type="urn:complexFilterArray">';
-             customerXML=customerXML+'<item xsi:type="ns1:complexFilter">';
-             customerXML=customerXML+'<key xsi:type="xsd:string">updated_at</key>';
-             customerXML=customerXML+'<value xsi:type="ns1:associativeEntity">';
-             customerXML=customerXML+'<key xsi:type="xsd:string">gt</key>';
-             customerXML=customerXML+'<value xsi:type="xsd:string">'+customer.updateDate+'</value>'
-             customerXML=customerXML+'</value>';
-             customerXML=customerXML+'</item>';
-             customerXML=customerXML+'</complex_filter>';  */
-            //  customerXML=customerXML+'</filters>';
             customerXML = customerXML + '</urn:customerCustomerList>';
             customerXML = customerXML + this.XmlFooter;
-            nlapiLogExecution('DEBUG', 'req', nlapiXMLToString(customerXML));
+
             return customerXML;
 
         },
@@ -217,28 +185,6 @@ XmlUtility = (function () {
             xml = xml + '<product>' + magID + '</product>';
 
             xml = xml + '<productData xsi:type="urn:catalogProductCreateEntity">';
-            /*xml = xml + '<additional_attributes xsi:type="urn:catalogProductAdditionalAttributesEntity">';
-
-             xml = xml + '<single_data xsi:type="urn:associativeArray" soapenc:arrayType="urn:associativeEntity[4]">';
-             xml = xml + '<item>';
-             xml = xml + '<key>custitem_queenst_stock </key>';
-             xml = xml + '<value>' + item.custitem_queenst_stock + '</value>';
-             xml = xml + '</item>';
-             xml = xml + '<item>';
-             xml = xml + '<key>custitem_vault_stock</key>';
-             xml = xml + '<value>' + item.custitem_vault_stock + '</value>';
-             xml = xml + '</item>';
-             xml = xml + '<item>';
-             xml = xml + '<key>custitem_annst_stock</key>';
-             xml = xml + '<value>' + item.custitem_annst_stock + '</value>';
-             xml = xml + '</item>';
-             xml = xml + '<item>';
-             xml = xml + '<key>custitem_linklogic_stock</key>';
-             xml = xml + '<value>' + item.custitem_linklogic_stock + '</value>';
-             xml = xml + '</item>';
-             xml = xml + '</single_data>';
-             xml = xml + '</additional_attributes>';*/
-
             xml = xml + '<price xsi:type="xsd:string">' + item.price + '</price>';
 
             xml = xml + '<stock_data xsi:type="urn:catalogInventoryStockItemUpdateEntity" xs:type="type:catalogInventoryStockItemUpdateEntity">';
@@ -312,12 +258,7 @@ XmlUtility = (function () {
             tShipmentXML = tShipmentXML + '<sessionId xsi:type="xsd:string">' + sessionID + '</sessionId>';
             tShipmentXML = tShipmentXML + '<shipmentIncrementId xsi:type="xsd:string">' + id + '</shipmentIncrementId>';
 
-            //if (carrierText.split(' ')[0] == 'UPS') {
             tShipmentXML = tShipmentXML + '<carrier xsi:type="xsd:string">' + 'ups' + '</carrier>';
-            //}
-            /*else {
-             tShipmentXML = tShipmentXML + '<carrier xsi:type="xsd:string">' + 'usps' + '</carrier>';
-             }*/
 
             tShipmentXML = tShipmentXML + '<title xsi:type="xsd:string">' + carrierText + '</title>';
             tShipmentXML = tShipmentXML + '<trackNumber xsi:type="xsd:string">' + tracking + '</trackNumber>';
@@ -351,15 +292,6 @@ XmlUtility = (function () {
             xml = xml + '<productData xsi:type="urn:catalogProductCreateEntity">';
             xml = xml + '<additional_attributes xsi:type="urn:catalogProductAdditionalAttributesEntity">';
 
-            /*  xml =  xml + '<single_data xsi:type="urn:associativeArray" soapenc:arrayType="urn:associativeEntity[1]">';
-             xml =  xml + '<item>';
-             xml =  xml + '<key>custitem_queenst_stock</key>';
-             xml =  xml + '<value>56920</value>';
-             xml =  xml + '</item>';
-             xml =  xml + '</single_data>';
-             xml =  xml + '</additional_attributes>';
-             */
-
             xml = xml + '<categories SOAP-ENC:arrayType="xsd:string[' + categoryIds.length + ']" xsi:type="urn:ArrayOfString">';
 
             if (!Utility.isBlankOrNull(categoryIds) && categoryIds.length > 0) {
@@ -373,8 +305,6 @@ XmlUtility = (function () {
             xml = xml + '<websites SOAP-ENC:arrayType="xsd:string[1]" xsi:type="urn:ArrayOfString"><item xsi:type="xsd:string">1</item></websites>';
             xml = xml + '<name xsi:type="xsd:string">' + product.name + '</name>';
             xml = xml + '<description xsi:type="xsd:string">' + product.description + '</description>';
-            //nlapiLogExecution('Debug','desc',(item.displayname=='')?item.description:item.displayname);
-            //xml =  xml + '<short_description xsi:type="xsd:string">'+(item.displayname=='')?item.description:item.displayname+'</short_description>';
             xml = xml + '<short_description xsi:type="xsd:string">' + product.description + '</short_description>';
             xml = xml + '<weight xsi:type="xsd:string">0.0000</weight>';
             xml = xml + '<status xsi:type="xsd:string">1</status>';
@@ -512,7 +442,7 @@ XmlUtility = (function () {
             shippingObj.firstname = nlapiSelectValue(shipping[0], 'firstname');
             shippingObj.lastname = nlapiSelectValue(shipping[0], 'lastname');
 
-            return  shippingObj;
+            return shippingObj;
         },
         transformSalesOrderInfoXMLtobillingAddress: function (billing) {
             var billingObj = {};
@@ -527,7 +457,7 @@ XmlUtility = (function () {
             billingObj.firstname = nlapiSelectValue(billing[0], 'firstname');
             billingObj.lastname = nlapiSelectValue(billing[0], 'lastname');
 
-            return  billingObj;
+            return billingObj;
         },
         transformSalesOrderInfoXMLtoPayment: function (payment) {
             var paymentObj = {};
@@ -543,7 +473,7 @@ XmlUtility = (function () {
             paymentObj.ccExpYear = nlapiSelectValue(payment[0], 'cc_exp_year');
             paymentObj.paymentId = nlapiSelectValue(payment[0], 'payment_id');
 
-            return  paymentObj;
+            return paymentObj;
         },
         transformSalesOrderInfoXMLtoArray: function (products) {
             var result = [];
@@ -552,7 +482,6 @@ XmlUtility = (function () {
 
             for (var i = 0; i < products.length; i++) {
                 product = {};
-                //product.product_id = nlapiSelectValue(products[i], 'product_id');// zee change
                 var sku = nlapiSelectValue(products[i], 'sku');
                 if (skuArr.indexOf(sku) === -1) {
                     skuArr.push(sku);
@@ -575,11 +504,11 @@ XmlUtility = (function () {
                 customer.customer_id = nlapiSelectValue(customers[i], 'customer_id');
                 customer.email = nlapiSelectValue(customers[i], 'email');
                 customer.firstname = nlapiSelectValue(customers[i], 'firstname');
-                middleName = getBlankForNull(nlapiSelectValue(customers[i], 'middlename'));
+                middleName = Utility.getBlankForNull(nlapiSelectValue(customers[i], 'middlename'));
                 customer.middlename = middleName ? middleName + ' ' : '';
                 customer.lastname = nlapiSelectValue(customers[i], 'lastname');
                 customer.group_id = nlapiSelectValue(customers[i], 'group_id');
-                customer.prefix = getBlankForNull(nlapiSelectValue(customers[i], 'prefix'));
+                customer.prefix = Utility.getBlankForNull(nlapiSelectValue(customers[i], 'prefix'));
                 customer.suffix = nlapiSelectValue(customers[i], 'suffix');
                 customer.dob = nlapiSelectValue(customers[i], 'dob');
 
@@ -659,9 +588,8 @@ XmlUtility = (function () {
                     responseMagento.status = true;
                     responseMagento.invoices = this.transformInvoiceListToArray(invoices);
                 }
-                else    // Not Attribute ID Found, Nor fault code found
-                {
-                    //nlapiLogExecution('Debug','Error in validateResponse-operation=product ');
+                else {
+                    // Not Attribute ID Found, Nor fault code found
                     responseMagento.status = false;
                     responseMagento.faultCode = '000';
                     responseMagento.faultString = 'Unexpected Error';

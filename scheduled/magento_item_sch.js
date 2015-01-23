@@ -18,12 +18,16 @@
  *   - customdeploy_magento_item_sync_sch
  * -
  * - Scripts:
- *   - accessMagento.js
- *   - connector_common_records.js
  *   - folio3ConnectorLicenseVerification.js
  *   - mc_sync_constants.js
  *   - f3_inventory_sync_script_dao.js
  *   - f3_utility_methods.js
+ *   - f3mg_connector_constants.js
+ *   - f3mg_connector_common.js
+ *   - f3mg_xml_utility.js
+ *   - f3_external_system_config_dao.js
+ *   - f3_client_factory.js
+ *   - f3mg_ns_mg_shipping_methods_map_dao.js
  */
 
 function getMagentoParents(itemId) {

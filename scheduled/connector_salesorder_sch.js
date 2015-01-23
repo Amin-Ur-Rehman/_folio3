@@ -8,7 +8,7 @@
  * -
  * Dependency:
  * - Script Parameters:
- *   - No. Of Days - custscript_no_of_days - Integer Number
+ *   -
  * -
  * - Script Id:
  *   - customscript_connectororderimport
@@ -17,18 +17,18 @@
  *   - customdeploy_connectororderimport
  * -
  * - Scripts:
- *   - folio3ConnectorLicenseVerification.js
- *   - mc_sync_constants.js
- *   - f3_client_factory.js
- *   - f3mg_xml_utility.js
- *   - f3mg_connector_common.js
- *   - f3mg_connector_constants.js
- *   - f3_utility_methods.js
- *   - f3_external_system_config_dao.js
- *   - f3_utility_methods.js
- *   - f3mg_ns_mg_shipping_methods_map_dao.js
  *   - base64_lib.js
  *   - CyberSourceSingleTransactionReport.js
+ *   - folio3ConnectorLicenseVerification.js
+ *   - mc_sync_constants.js
+ *   - f3mg_ns_mg_shipping_methods_map_dao.js
+ *   - f3mg_connector_common.js
+ *   - f3_external_system_config_dao.js
+ *   - f3_utility_methods.js
+ *   - f3mg_connector_constants.js
+ *   - f3mg_xml_utility.js
+ *   - f3_client_factory.js
+ *   - f3mg_connector_models.js
  */
 
 var SO_IMPORT_MIN_USAGELIMIT = 1000;        // For the safe side its 1000, we calculate , in actual it is 480

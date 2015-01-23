@@ -178,12 +178,12 @@ function F3ClientBase() {
             //if ( )shipcarrier  ups nonups
 
             //Setting shipping
-            ConnectorCommon.setAddressV2(rec, shippingAddress, 'T');
-            Utility.logDebug('Setting Shipping Fields', '');
+            //ConnectorCommon.setAddressV2(rec, shippingAddress, 'T');
+            //Utility.logDebug('Setting Shipping Fields', '');
 
             //Setting billing
-            ConnectorCommon.setAddressV2(rec, billingAddress, 'F', 'T');
-            Utility.logDebug('Setting Billing Fields', '');
+            //ConnectorCommon.setAddressV2(rec, billingAddress, 'F', 'T');
+            //Utility.logDebug('Setting Billing Fields', '');
 
             // set payment details
             ConnectorCommon.setPayment(rec, payment);
@@ -342,7 +342,9 @@ function F3ClientBase() {
 
             var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, isGuest ? 'Guest' : magentoCustomerObj.customer_id, 'create', null);
 
-            rec.setFieldValue('subsidiary', ConnectorConstants.CurrentStore.entitySyncInfo.customer.subsidiary);
+            if (Utility.isOneWorldAccount()) {
+                rec.setFieldValue('subsidiary', ConnectorConstants.CurrentStore.entitySyncInfo.customer.subsidiary);
+            }
             rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
             rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
             rec.setFieldValue('email', magentoCustomerObj.email);
@@ -432,7 +434,7 @@ function F3ClientBase() {
 
             if (!Utility.isBlankOrNull(magentoId)) {
                 filExp.push('OR');
-                filExp.push([ ConnectorConstants.Entity.Fields.MagentoId, 'contains', magentoFormattedId]);
+                filExp.push([ConnectorConstants.Entity.Fields.MagentoId, 'contains', magentoFormattedId]);
             }
 
             results = ConnectorCommon.getRecords('customer', filExp, cols);

@@ -22,7 +22,7 @@
  *   -
  */
 
-var ConnectorModels = (function () {
+ConnectorModels = (function () {
     return {
         /**
          * Init method
@@ -58,6 +58,11 @@ var ConnectorModels = (function () {
 
             return salesOrderObject;
         },
+        /**
+         * Make an object array for Customer data fetching from Sales Order
+         * @param {object} order
+         * @return {Array}
+         */
         getCustomerObject: function (order) {
             var result = [];
             var customer = {};
@@ -76,15 +81,18 @@ var ConnectorModels = (function () {
             return result;
 
         },
+        /**
+         * Make an array of objects for address data using shipping & billing addresses
+         * @param {object} shippingAddress
+         * @param {object} billingAddress
+         * @return {Array}
+         */
         getAddressesFromOrder: function (shippingAddress, billingAddress) {
             var result = [];
+            var address = {};
+            // checking if both addresses are same
             if (ConnectorCommon.isSame(shippingAddress, billingAddress)) {
-                var address = {};
 
-                //address.customer_address_id = nlapiSelectValue(addresses[i], 'customer_address_id');
-                //address.created_at = nlapiSelectValue(addresses[i], 'created_at');
-                //address.updated_at = nlapiSelectValue(addresses[i], 'updated_at');
-                //address.company = nlapiSelectValue(addresses[i], 'company');
                 address.city = shippingAddress.city;
                 address.country_id = shippingAddress.country;
                 address.firstname = shippingAddress.firstname;
@@ -99,7 +107,7 @@ var ConnectorModels = (function () {
 
                 result[result.length] = address;
             } else {
-                var address = {};
+                address = {};
 
                 address.city = shippingAddress.city;
                 address.country_id = shippingAddress.country;
@@ -115,7 +123,7 @@ var ConnectorModels = (function () {
 
                 result[result.length] = address;
 
-                var address = {};
+                address = {};
 
                 address.city = billingAddress.city;
                 address.country_id = billingAddress.country;
