@@ -128,6 +128,20 @@ Utility = (function () {
         },
         addslashes: function (str) {
             return  (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+        },
+        /**
+         * Calculate the size of object
+         * @param {object} obj
+         * @return {number} Returns the count of attributes of object at first level
+         */
+        objectSize: function (obj) {
+            var size = 0, key;
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    size++;
+                }
+            }
+            return size;
         }
     };
 })();

@@ -261,20 +261,19 @@ XmlUtility = (function () {
             return xml;
 
         },
-        getCreateFulfillmentXML: function (sessionID) {
-            nlapiLogExecution('DEBUG', 'Enter in getCreateFulfillmentXML() fun');
+        getCreateFulfillmentXML: function (sessionID, magentoItemIds, magentoSOId) {
+            Utility.logDebug('getCreateFulfillmentXML', 'Enter in getCreateFulfillmentXML() fun');
             var itemsQuantity = nlapiGetLineItemCount('item');
             var shipmentXML;
 
             shipmentXML = this.XmlHeader + '<urn:salesOrderShipmentCreate>';
             shipmentXML = shipmentXML + '<sessionId urn:type="xsd:string">' + sessionID + '</sessionId>';
-            shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOID + '</orderIncrementId>';
+            shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOId + '</orderIncrementId>';
             shipmentXML = shipmentXML + '<itemsQty  SOAP-ENC:arrayType="urn:orderItemIdQtyArray[' + itemsQuantity + ']" xsi:type="urn:orderItemIdQty">';
-            nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
+            Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
 
             var comment = '';
             for (var line = 1; line <= itemsQuantity; line++) {
-                // magentoItemIds is a global object contains the magento item id
                 var itemId = magentoItemIds[nlapiGetLineItemValue('item', 'item', line)];
                 var itemQty = nlapiGetLineItemValue('item', 'quantity', line);
                 if (nlapiGetLineItemValue('item', 'isserialitem', 1) === 'T') {
@@ -284,16 +283,15 @@ XmlUtility = (function () {
                     comment = '-';
                 }
 
-                nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
-                shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">    ';
+                Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
+                shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">';
                 shipmentXML = shipmentXML + '<order_item_id type="xsd:int">' + itemId + '</order_item_id>';
                 shipmentXML = shipmentXML + '<qty type="xsd:double">' + itemQty + '</qty>';
                 shipmentXML = shipmentXML + '</item>';
-                nlapiLogExecution('AUDIT', 'Quantity', itemId);
-                nlapiLogExecution('AUDIT', 'Quantity', itemQty);
-                nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
+                Utility.logDebug('Quantity', itemId);
+                Utility.logDebug('Quantity', itemQty);
+                Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
             }
-
 
             shipmentXML = shipmentXML + '</itemsQty>';
             shipmentXML = shipmentXML + ' <comment xsi:type="xsd:string">' + comment + '</comment>';
@@ -301,7 +299,7 @@ XmlUtility = (function () {
 
             shipmentXML = shipmentXML + this.XmlFooter;
 
-            nlapiLogExecution('DEBUG', 'Exit from getCreateFulfillmentXML() funciton');
+            Utility.logDebug('getCreateFulfillmentXML', 'Exit from getCreateFulfillmentXML() funciton');
 
             return shipmentXML;
 
@@ -420,6 +418,16 @@ XmlUtility = (function () {
             xml = xml + '</soapenv:Body>';
             xml = xml + '</soapenv:Envelope>';
             return xml;
+        },
+        getUpdateFulfillmentXML: function (fulfillmentId, sessionID) {
+            nlapiLogExecution('DEBUG', 'Enter in getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+
+            var xml = '';
+
+            nlapiLogExecution('DEBUG', 'Exit from getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+
+            return xml;
+
         },
 
         transformCustAddrListXMLtoArray: function (addresses) {
@@ -801,6 +809,95 @@ XmlUtility = (function () {
                 responseMagento.faultCode = '000';
                 responseMagento.faultString = 'Unexpected Error';
 
+
+            }
+
+            return responseMagento;
+        },
+        validateTrackingCreateResponse: function (xml, operation) {
+            nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
+            var responseMagento = {};
+            var magentoFulfillmentID;
+            var faultCode;
+            var faultString;
+
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                //  if (operation=='create')
+                magentoFulfillmentID = nlapiSelectValue(xml, "//result");
+                //else if (operation=='update')
+                //magentoFulfillmentID= nlapiSelectValue(xml,"SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
+
+
+            } catch (ex) {
+            }
+
+
+            if (faultCode != null) {
+                responseMagento.status = false;       // Means There is fault
+                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.faultString = faultString; //Fault String
+                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed  ' + responseMagento.faultString, '', 'order');
+            }
+            else if (magentoFulfillmentID != null) {
+                responseMagento.status = true;       // Means There is fault
+                responseMagento.result = magentoFulfillmentID;
+            }
+            else    // Not Attribute ID Found, Nor fault code found
+            {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed ' + responseMagento.faultString, '', 'order');
+
+            }
+
+            return responseMagento;
+        },
+        validateFulfillmentExportResponse: function (xml, operation) {
+            var responseMagento = {};
+            var magentoFulfillmentID;
+            var faultCode;
+            var faultString;
+
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                //  if (operation=='create')
+                magentoFulfillmentID = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:salesOrderShipmentCreateResponse/shipmentIncrementId");
+                //else if (operation=='update')
+                //magentoFulfillmentID= nlapiSelectValue(xml,"SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
+
+
+            } catch (ex) {
+            }
+
+
+            if (faultCode != null) {
+                responseMagento.status = false;       // Means There is fault
+                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.faultString = faultString; //Fault String
+                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
+            }
+            else if (magentoFulfillmentID != null) {
+                responseMagento.status = true;       // Means There is fault
+                responseMagento.result = magentoFulfillmentID;
+            }
+            else    // Not Attribute ID Found, Nor fault code found
+            {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
 
             }
 
