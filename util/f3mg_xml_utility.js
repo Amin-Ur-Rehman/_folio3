@@ -859,29 +859,27 @@ XmlUtility = (function () {
 
         },
 
-        validateCustomerAddressExportOperationResponse:function(xml,operation)
-        {
-            var faultCode="";
+        validateCustomerAddressExportOperationResponse:function(xml,operation) {
+            var faultCode = "";
             var faultString;
             var responseMagento = {};
-            responseMagento.status=true;
+            responseMagento.status = true;
 
             try {
 
-                if(operation=="create") {
+                if (operation == "create") {
                     faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                     faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
-                    responseMagento.faultCode= faultCode;
-                    responseMagento.faultString= faultString;
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
 
 
-                    if(!!responseMagento.faultCode !="") {
-                        responseMagento.status=false;
+                    if (!!responseMagento.faultCode != "") {
+                        responseMagento.status = false;
                     }
 
-                    if(responseMagento.status)
-                    {
+                    if (responseMagento.status) {
                         magentoAddressId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
                         responseMagento.magentoCustomerId = magentoAddressId;
                     }
@@ -892,10 +890,10 @@ XmlUtility = (function () {
             }
 
 
-            nlapiLogExecution('debug','responseMagento',JSON.stringify(responseMagento));
+            nlapiLogExecution('debug', 'responseMagento', JSON.stringify(responseMagento));
 
             return responseMagento;
-
+        },
 
         validateTrackingCreateResponse: function (xml, operation) {
             nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
