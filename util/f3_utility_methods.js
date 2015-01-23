@@ -128,6 +128,49 @@ Utility = (function () {
         },
         addslashes: function (str) {
             return  (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+        },
+
+        /**
+         * Calculate the size of object
+         * @param {object} obj
+         * @return {number} Returns the count of attributes of object at first level
+         */
+        objectSize: function (obj) {
+            var size = 0, key;
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    size++;
+                }
+            }
+            return size;
+        },
+        /**
+         * Get Empty string for null
+         * @param data
+         * @return {data, ''}
+         */        getBlankForNull: function (data) {
+            var returnValue;
+            if (this.isBlankOrNull(data)) {
+                returnValue = '';
+            } else {
+                returnValue = data;
+            }
+            return returnValue;
+        },
+        /**
+         * Check if NetSuite Account Type is One World
+         * @return {boolean}
+         */
+        isOneWorldAccount: function () {
+            return nlapiGetContext().getFeature('SUBSIDIARIES');
+        },
+        /**
+         * Check if MultiLocation is enabled
+         * @return {boolean}
+         */
+        isMultiLocInvt: function () {
+            return nlapiGetContext().getFeature('MULTILOCINVT');
         }
+
     };
 })();

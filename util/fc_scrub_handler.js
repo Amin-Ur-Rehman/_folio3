@@ -86,7 +86,7 @@ var FC_ScrubHandler = (function() {
             return dataValue;
         },
         scrubValue : function(strScrubbingAttrs, dataValue) {
-            var scrubbedValue = '';
+         	var scrubbedValue = '';
             var scrubbingAttr = null;
             var scrubbingAttrs = getScrubbingAttrs(strScrubbingAttrs);
 

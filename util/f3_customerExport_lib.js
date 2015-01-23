@@ -13,7 +13,7 @@ getCustomers : function(allStores,storeId)
     if (!allStores)
         arrFils.push(new nlobjSearchFilter('custentity_f3mg_magento_stores', null, 'is', storeId));
 
-    arrFils.push(new nlobjSearchFilter('internalid',null,'is','1542'));
+    arrFils.push(new nlobjSearchFilter('internalid',null,'is','58914'));
 
     arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -79,6 +79,7 @@ getCustomer :function(customerInternalId,storeInfo)
     var customerDataObject;
     var customerAddresses;
     var customerAddressObject;
+    var names;
 
 
     if(customerRecord!=null)
@@ -86,15 +87,33 @@ getCustomer :function(customerInternalId,storeInfo)
         customerDataObject=new Object();
 
 
-        customerDataObject.email=customerRecord.getFieldValue('email');
-        customerDataObject.firstname=customerRecord.getFieldValue('firstname');
-        customerDataObject.middlename=customerRecord.getFieldValue('middlename');
-        customerDataObject.lastname=customerRecord.getFieldValue('lastname');
-        customerDataObject.password=customerRecord.getFieldValue('password');
+        customerDataObject.isPerson=customerRecord.getFieldValue('isperson');
+
+        customerDataObject.email=getBlankForNull(customerRecord.getFieldValue('email'));
+
+        customerDataObject.companyName=getBlankForNull(customerRecord.getFieldValue('companyname'));
+
+
+        if(customerDataObject.isPerson=="T")
+        {
+            customerDataObject.firstname = customerRecord.getFieldValue('firstname');
+            customerDataObject.middlename = getBlankForNull(customerRecord.getFieldValue('middlename'));
+            customerDataObject.lastname = customerRecord.getFieldValue('lastname');
+        }
+        else
+        {
+            names=getFirstNameLastName(customerDataObject.companyName);
+
+            customerDataObject.firstname = names['firstName'];
+            customerDataObject.middlename = "";
+            customerDataObject.lastname = names['lastName'];
+        }
+
+        customerDataObject.password="";
         customerDataObject.website_id="";
         customerDataObject.store_id=storeInfo.systemId;
         customerDataObject.group_id="";
-        customerDataObject.prefix=customerRecord.getFieldValue('salutation');
+        customerDataObject.prefix=getBlankForNull(customerRecord.getFieldValue('salutation'));
         customerDataObject.suffix="";
         customerDataObject.dob="";
         customerDataObject.taxvat="";
@@ -111,25 +130,45 @@ getCustomer :function(customerInternalId,storeInfo)
     {
         var customerAddresses=new Array();
         var addressObject;
+        var names;
 
         for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
         {
             addressObject=new Object();
-            addressObject.defaultshipping=getBlankIfNull(customerRecord.getLineItemValue('addressbook','defaultshipping',i));
-            addressObject.defaultbilling=getBlankIfNull(customerRecord.getLineItemValue('addressbook','defaultbilling',i));
-            addressObject.country=getBlankIfNull(customerRecord.getLineItemValue('addressbook','country',i));
-            addressObject.firstname=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addressee',i));
-            addressObject.telephone=getBlankIfNull(customerRecord.getLineItemValue('addressbook','phone',i));
-            addressObject.city=getBlankIfNull(customerRecord.getLineItemValue('addressbook','city',i));
-            addressObject.street1=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addr1',i));
-            addressObject.street2=getBlankIfNull(customerRecord.getLineItemValue('addressbook','addr2',i));
+            addressObject.defaultshipping=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultshipping',i));
+            addressObject.defaultbilling=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultbilling',i));
+            addressObject.country=getBlankForNull(customerRecord.getLineItemValue('addressbook','country',i));
 
 
-            addressObject.region=getBlankIfNull(customerRecord.getLineItemValue('addressbook','state',i));
-            addressObject.region_text=getBlankIfNull(customerRecord.getLineItemText('addressbook','state',i));
+
+            addressObject.firstname=getBlankForNull(customerRecord.getLineItemValue('addressbook','addressee',i));
+
+            names=getFirstNameLastName(addressObject.firstname);
+            addressObject.firstname=names['firstName'];
+            addressObject.lastname=names['lastName'];
+
+            addressObject.middlename='';
+            addressObject.suffix='';
+            addressObject.prefix='';
+            addressObject.company='';
+            addressObject.prefix='';
+            addressObject.fax='';
+            addressObject.vatnumber='';
 
 
-            addressObject.postcode=getBlankIfNull(customerRecord.getLineItemValue('addressbook','zip',i));
+            addressObject.telephone=getBlankForNull(customerRecord.getLineItemValue('addressbook','phone',i));
+            addressObject.city=getBlankForNull(customerRecord.getLineItemValue('addressbook','city',i));
+            addressObject.street1=getBlankForNull(customerRecord.getLineItemValue('addressbook','addr1',i));
+            addressObject.street2=getBlankForNull(customerRecord.getLineItemValue('addressbook','addr2',i));
+
+
+            addressObject.region=getBlankForNull(customerRecord.getLineItemValue('addressbook','state',i));
+            addressObject.region_text=addressObject.region;
+
+
+            addressObject.postcode=getBlankForNull(customerRecord.getLineItemValue('addressbook','zip',i));
+
+
 
 
             customerAddresses.push(addressObject);
@@ -202,7 +241,7 @@ getCustomer :function(customerInternalId,storeInfo)
         nlapiLogExecution('debug','magentoCustomerId',magentoCustomerId);
         if (customerAddressObject != null) {
 
-            names=getFirstNameLastName();
+
 
             xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">';
             xml = xml + '<soapenv:Header/>';
@@ -231,9 +270,9 @@ getCustomer :function(customerInternalId,storeInfo)
             //                <!--Optional:-->
             xml = xml + '                <prefix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.prefix + '</prefix>';
             //                <!--Optional:-->
-            xml = xml + '                <region_id xsi:type="xsd:int" xs:type="type:int">' + customerAddressObject.region_id + '</region_id>';
+            xml = xml + '                <region_id xsi:type="xsd:int" xs:type="type:int">' + customerAddressObject.region + '</region_id>';
             //                <!--Optional:-->
-            xml = xml + '                <region xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.region + '</region>';
+            xml = xml + '                <region xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.region_text + '</region>';
             //                <!--Optional:-->
 
             xml = xml + '<street xsi:type="urn:ArrayOfString" soapenc:arrayType="xsd:string[]" xs:type="type:string">';
@@ -241,6 +280,7 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '    <item>' + customerAddressObject.street2 + '</item>';
             xml = xml + '</street>';
             xml = xml + ' <suffix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.suffix + '</suffix>';
+            xml = xml + ' <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>';
 
 
             //                <!--Optional:-->
@@ -267,12 +307,7 @@ getCustomer :function(customerInternalId,storeInfo)
 
 
 
-function getBlankIfNull(data) {
-    if (data == null)
-        return '';
-    else
-        return data;
-}
+
 
 
 function getFirstNameLastName(data) {
@@ -291,8 +326,18 @@ function getFirstNameLastName(data) {
 
     firstName=firstName.trim();
 
-    result.push(firstName);
-    result.push(lastName);
+    result['firstName']=firstName;
+    result['lastName']=lastName;
 
+    if(isBlankOrNull(result['firstName'])) {
+        result['firstName'] = result['lastName'];
+    }
+
+
+    if(isBlankOrNull(result['lastName']))
+        result['lastName']='';
+
+
+    return result;
 
 }

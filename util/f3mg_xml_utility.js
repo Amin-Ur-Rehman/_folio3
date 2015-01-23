@@ -863,20 +863,27 @@ XmlUtility = (function () {
                     faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                     faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
-                    if(responseMagento.faultCode !="") {
+                    responseMagento.faultCode= faultCode;
+                    responseMagento.faultString= faultString;
+
+
+                    if(!!responseMagento.faultCode !="") {
                         responseMagento.status=false;
                     }
 
                     if(responseMagento.status)
                     {
-                        magentoCustomerId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
-                        responseMagento.magentoCustomerId = magentoCustomerId;
+                        magentoAddressId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
+                        responseMagento.magentoCustomerId = magentoAddressId;
                     }
 
                 }
 
             } catch (ex) {
             }
+
+
+            nlapiLogExecution('debug','responseMagento',JSON.stringify(responseMagento));
 
             return responseMagento;
 
