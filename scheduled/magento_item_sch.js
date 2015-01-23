@@ -192,11 +192,17 @@ function ws_soaftsubm(type) {
                             var product = {};
                             // product.queenStock = itemRec.getFieldValue('custitem_queenst_stock');
                             if (!ConnectorCommon.isDevAccount()) {
-                                product.price = itemRec.getLineItemValue('price1', 'price_1_', soprice) || 0;
-                                // TODO: check feature either multi location feature is enabled
-                                var locLine = itemRec.findLineItemValue('locations', 'location', quantityLocation);
-                                product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', locLine) || 0;
-                                //product.quatity = itemRec.getLineItemValue('locations', 'quantityavailable', locLine) || 0;
+                                // TODO: check multipricing feature
+                                product.price = itemRec.getLineItemValue('price', 'price_1_', soprice) || 0;
+                                // check  multi location feature
+                                if (Utility.isMultiLocInvt()) {
+                                    var locLine = itemRec.findLineItemValue('locations', 'location', quantityLocation);
+                                    //product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', locLine) || 0;
+                                    product.quatity = itemRec.getLineItemValue('locations', 'quantityavailable', locLine) || 0;
+                                } else {
+                                    product.quatity = itemRec.getFieldValue('quantityavailable') || 0;
+                                }
+
                             } else {
                                 product.price = itemRec.getLineItemValue('price1', 'price_1_', soprice) || 0;
                                 //product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', 1) || 0;

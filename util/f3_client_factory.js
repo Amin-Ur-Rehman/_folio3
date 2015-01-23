@@ -148,13 +148,13 @@ function F3ClientBase() {
             Utility.logDebug('setting payment ', '');
 
             //   rec.setFieldValue('tranid', order.increment_id);
-            rec.setFieldValue('shippingcost', order.shipping_amount);
 
             var shippingMethod = ConnectorCommon.getShippingCarrierAndMethod2(order.shipping_description);
 
             if (!ConnectorCommon.isDevAccount()) {
                 rec.setFieldValue('shipcarrier', ConnectorConstants.ShippingMethod.FedEx);// hardcoded to noups
                 rec.setFieldValue('shipmethod', shippingMethod);
+                rec.setFieldValue('shippingcost', order.shipping_amount);
             }
             // rec.setFieldValue('taxitem',-2379);
 
@@ -251,7 +251,7 @@ function F3ClientBase() {
                 rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
 
                 //rec.setFieldValue('subsidiary', '3');// TODO generalize
-                var id = nlapiSubmitRecord(rec, true, true);
+                var id = nlapiSubmitRecord(rec, false, true);
                 Utility.logDebug('Netsuite SO-ID for magento order ' + order.increment_id, id);
                 /*if (isDummyItemSetInOrder) {
                  // if order has dummy item then don't create invoice and customer payment

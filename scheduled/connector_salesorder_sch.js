@@ -196,8 +196,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         // if customer record found in NetSuite, update the customer record
                         if (customerSearchObj.status) {
                             ConnectorConstants.Client.updateCustomerInNetSuite(customerSearchObj.netSuiteInternalId, customer[customerIndex], sessionID);
-                            Utility.logDebug('Customer Updated in NetSuite', 'Customer Id: ' + customerNSInternalId);
                             customerNSInternalId = customerSearchObj.netSuiteInternalId;
+                            Utility.logDebug('Customer Updated in NetSuite', 'Customer Id: ' + customerNSInternalId);
                         }
                         else {
                             // if customer record not found in NetSuite, create a lead record in NetSuite

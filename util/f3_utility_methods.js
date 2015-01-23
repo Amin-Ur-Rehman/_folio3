@@ -163,6 +163,13 @@ Utility = (function () {
          */
         isOneWorldAccount:function(){
             return nlapiGetContext().getFeature('SUBSIDIARIES');
+        },
+        /**
+         * Check if MultiLocation is enabled
+         * @return {boolean}
+         */
+        isMultiLocInvt:function(){
+            return nlapiGetContext().getFeature('MULTILOCINVT');
         }
     };
 })();
