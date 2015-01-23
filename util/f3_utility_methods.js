@@ -129,7 +129,10 @@ Utility = (function () {
         addslashes: function (str) {
             return  (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
         },
+<<<<<<< HEAD
 
+=======
+>>>>>>> 805a7813f40e533f9ecf69ddb9fa19267938c4c4
         /**
          * Calculate the size of object
          * @param {object} obj
@@ -143,6 +146,7 @@ Utility = (function () {
                 }
             }
             return size;
+<<<<<<< HEAD
         },
         /**
          * Get Empty string for null
@@ -170,6 +174,8 @@ Utility = (function () {
          */
         isMultiLocInvt: function () {
             return nlapiGetContext().getFeature('MULTILOCINVT');
+=======
+>>>>>>> 805a7813f40e533f9ecf69ddb9fa19267938c4c4
         }
 
     };

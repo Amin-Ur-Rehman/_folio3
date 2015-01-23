@@ -268,20 +268,19 @@ XmlUtility = (function () {
             return xml;
 
         },
-        getCreateFulfillmentXML: function (sessionID) {
-            nlapiLogExecution('DEBUG', 'Enter in getCreateFulfillmentXML() fun');
+        getCreateFulfillmentXML: function (sessionID, magentoItemIds, magentoSOId) {
+            Utility.logDebug('getCreateFulfillmentXML', 'Enter in getCreateFulfillmentXML() fun');
             var itemsQuantity = nlapiGetLineItemCount('item');
             var shipmentXML;
 
             shipmentXML = this.XmlHeader + '<urn:salesOrderShipmentCreate>';
             shipmentXML = shipmentXML + '<sessionId urn:type="xsd:string">' + sessionID + '</sessionId>';
-            shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOID + '</orderIncrementId>';
+            shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOId + '</orderIncrementId>';
             shipmentXML = shipmentXML + '<itemsQty  SOAP-ENC:arrayType="urn:orderItemIdQtyArray[' + itemsQuantity + ']" xsi:type="urn:orderItemIdQty">';
-            nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
+            Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
 
             var comment = '';
             for (var line = 1; line <= itemsQuantity; line++) {
-                // magentoItemIds is a global object contains the magento item id
                 var itemId = magentoItemIds[nlapiGetLineItemValue('item', 'item', line)];
                 var itemQty = nlapiGetLineItemValue('item', 'quantity', line);
                 if (nlapiGetLineItemValue('item', 'isserialitem', 1) === 'T') {
@@ -291,16 +290,15 @@ XmlUtility = (function () {
                     comment = '-';
                 }
 
-                nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
-                shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">    ';
+                Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
+                shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">';
                 shipmentXML = shipmentXML + '<order_item_id type="xsd:int">' + itemId + '</order_item_id>';
                 shipmentXML = shipmentXML + '<qty type="xsd:double">' + itemQty + '</qty>';
                 shipmentXML = shipmentXML + '</item>';
-                nlapiLogExecution('AUDIT', 'Quantity', itemId);
-                nlapiLogExecution('AUDIT', 'Quantity', itemQty);
-                nlapiLogExecution('AUDIT', 'xml', nlapiEscapeXML(shipmentXML));
+                Utility.logDebug('Quantity', itemId);
+                Utility.logDebug('Quantity', itemQty);
+                Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
             }
-
 
             shipmentXML = shipmentXML + '</itemsQty>';
             shipmentXML = shipmentXML + ' <comment xsi:type="xsd:string">' + comment + '</comment>';
@@ -308,7 +306,7 @@ XmlUtility = (function () {
 
             shipmentXML = shipmentXML + this.XmlFooter;
 
-            nlapiLogExecution('DEBUG', 'Exit from getCreateFulfillmentXML() funciton');
+            Utility.logDebug('getCreateFulfillmentXML', 'Exit from getCreateFulfillmentXML() funciton');
 
             return shipmentXML;
 
@@ -427,6 +425,16 @@ XmlUtility = (function () {
             xml = xml + '</soapenv:Body>';
             xml = xml + '</soapenv:Envelope>';
             return xml;
+        },
+        getUpdateFulfillmentXML: function (fulfillmentId, sessionID) {
+            nlapiLogExecution('DEBUG', 'Enter in getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+
+            var xml = '';
+
+            nlapiLogExecution('DEBUG', 'Exit from getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+
+            return xml;
+
         },
 
         transformCustAddrListXMLtoArray: function (addresses) {
@@ -813,6 +821,7 @@ XmlUtility = (function () {
 
             return responseMagento;
         },
+
         validateCustomerExportOperationResponse:function(xml,operation)
         {
             var faultCode="";
@@ -886,6 +895,228 @@ XmlUtility = (function () {
             nlapiLogExecution('debug','responseMagento',JSON.stringify(responseMagento));
 
             return responseMagento;
+
+
+        validateTrackingCreateResponse: function (xml, operation) {
+            nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
+            var responseMagento = {};
+            var magentoFulfillmentID;
+            var faultCode;
+            var faultString;
+
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                //  if (operation=='create')
+                magentoFulfillmentID = nlapiSelectValue(xml, "//result");
+                //else if (operation=='update')
+                //magentoFulfillmentID= nlapiSelectValue(xml,"SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
+
+
+            } catch (ex) {
+            }
+
+
+            if (faultCode != null) {
+                responseMagento.status = false;       // Means There is fault
+                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.faultString = faultString; //Fault String
+                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed  ' + responseMagento.faultString, '', 'order');
+            }
+            else if (magentoFulfillmentID != null) {
+                responseMagento.status = true;       // Means There is fault
+                responseMagento.result = magentoFulfillmentID;
+            }
+            else    // Not Attribute ID Found, Nor fault code found
+            {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed ' + responseMagento.faultString, '', 'order');
+
+            }
+
+            return responseMagento;
+        },
+        validateFulfillmentExportResponse: function (xml, operation) {
+            var responseMagento = {};
+            var magentoFulfillmentID;
+            var faultCode;
+            var faultString;
+
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                //  if (operation=='create')
+                magentoFulfillmentID = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:salesOrderShipmentCreateResponse/shipmentIncrementId");
+                //else if (operation=='update')
+                //magentoFulfillmentID= nlapiSelectValue(xml,"SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
+
+
+            } catch (ex) {
+            }
+
+
+            if (faultCode != null) {
+                responseMagento.status = false;       // Means There is fault
+                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.faultString = faultString; //Fault String
+                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
+            }
+            else if (magentoFulfillmentID != null) {
+                responseMagento.status = true;       // Means There is fault
+                responseMagento.result = magentoFulfillmentID;
+            }
+            else    // Not Attribute ID Found, Nor fault code found
+            {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
+
+            }
+
+            return responseMagento;
+        },
+
+        /**
+         * Description of method getCustomerXmlForSaleOrder
+         * @param parameter
+         */
+        getCustomerXmlForSaleOrder: function (customer) {
+            var customerXml = '';
+
+            customerXml = customerXml + '<customer xsi:type="urn:customCustomerEntity" xs:type="type:customCustomerEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            customerXml = customerXml + '<entity xsi:type="urn:shoppingCartCustomerEntity" xs:type="type:shoppingCartCustomerAddressEntity">';
+            customerXml = customerXml + '<mode xsi:type="xsd:string" xs:type="type:string">shipping</mode>';
+            customerXml = customerXml + '<customer_id xsi:type="xsd:int" xs:type="type:int">' + customer.customerId +'</customer_id>';
+            customerXml = customerXml + '<email xsi:type="xsd:string" xs:type="type:string">' + customer.email + '</email>';
+            customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
+            customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
+            customerXml = customerXml + '<company xs:type="type:string">' + customer.company + '</company>';
+            customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
+            customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
+            customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
+            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
+            customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
+            customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
+            customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
+            customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
+            customerXml = customerXml + '<is_default_billing xs:type="type:int">0</is_default_billing>';
+            customerXml = customerXml + '<is_default_shipping xs:type="type:int">1</is_default_shipping>';
+            customerXml = customerXml + '</entity>';
+            customerXml = customerXml + '<address xsi:type="urn:shoppingCartCustomerAddressEntityArray" soapenc:arrayType="urn:shoppingCartCustomerAddressEntity[2]" xs:type="type:shoppingCartCustomerAddressEntity">';
+            customerXml = customerXml + '<item>';
+            customerXml = customerXml + '<mode xn:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">shipping</mode>';
+            customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
+            customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
+            customerXml = customerXml + '<company xs:type="type:string">' + customer.company + '</company>';
+            customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
+            customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
+            customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
+            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
+            customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
+            customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
+            customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
+            customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
+            customerXml = customerXml + '<is_default_billing xs:type="type:int">0</is_default_billing>';
+            customerXml = customerXml + '<is_default_shipping xs:type="type:int">1</is_default_shipping>';
+            customerXml = customerXml + '</item>';
+            customerXml = customerXml + '<item>';
+            customerXml = customerXml + '<mode xn:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">billing</mode>';
+            customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
+            customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
+            customerXml = customerXml + '<company xs:type="type:string">' + customer.company + '</company>';
+            customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
+            customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
+            customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
+            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
+            customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
+            customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
+            customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
+            customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
+            customerXml = customerXml + '<is_default_billing xs:type="type:int">1</is_default_billing>';
+            customerXml = customerXml + '<is_default_shipping xs:type="type:int">0</is_default_shipping>';
+            customerXml = customerXml + '</item>';
+            customerXml = customerXml + '</address>';
+            customerXml = customerXml + '</customer>';
+
+            return customerXml;
+        },
+
+        /**
+         * Description of method getProductsXmlForSaleOrder
+         * @param parameter
+         */
+        getProductsXmlForSaleOrder: function (items) {
+
+            var productXml = '';
+
+            productXml = productXml + '<products xsi:type="urn:shoppingCartProductEntityArray" soapenc:arrayType="urn:shoppingCartProductEntity[1]">';
+
+            for (var counter = 0; counter < items.length; counter++) {
+                var item = items[counter];
+                productXml = productXml + '<item><sku>' + item.sku  + '</sku><qty>' + item.quantity + '</qty></item>';
+            }
+
+            productXml = productXml + '</products>';
+
+            return productXml;
+        },
+
+        /**
+         * Description of method getShippingAndPaymentXml
+         * @param parameter
+         */
+        getShippingAndPaymentXml: function (shipmentMethod, paymentMethod) {
+
+            var shippingAndPaymentXml = '';
+
+            shippingAndPaymentXml = shippingAndPaymentXml + '<shippingmethod xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + shipmentMethod + '</shippingmethod>';
+            shippingAndPaymentXml = shippingAndPaymentXml + '<paymentmethod xsi:type="urn:shoppingCartPaymentMethodEntity" xs:type="type:shoppingCartPaymentMethodEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            shippingAndPaymentXml = shippingAndPaymentXml + '<method xsi:type="xsd:string" xs:type="type:string">' + paymentMethod + '</method>';
+            shippingAndPaymentXml = shippingAndPaymentXml + '</paymentmethod>';
+
+            return shippingAndPaymentXml;
+        },
+
+        /**
+         * Creates XML for Sales Order and returns
+         * @param orderCreationInfo
+         * @param sessionId
+         * @returns {string} XML String
+         */
+        getCreateSalesOrderXml: function (orderCreationInfo, sessionId) {
+            var orderXml;
+            var customer = orderCreationInfo.customer;
+            var items = orderCreationInfo.items;
+            var shipmentMethod = orderCreationInfo.shipmentMethod;
+            var paymentMethod = orderCreationInfo.paymentMethod;
+
+            orderXml = this.XmlHeader;
+
+            var customerXml = this.getCustomerXmlForSaleOrder(customer);
+            var productsXml = this.getProductsXmlForSaleOrder(items);
+            var shippingAndPaymentXml = this.getShippingAndPaymentXml(shipmentMethod, paymentMethod);
+
+            orderXml = orderXml + '<urn:folio3_salesOrderCreateSalesOrder soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            orderXml = orderXml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">341344c61e78abfe03d44d4564b9ad97</sessionId>';
+            orderXml = orderXml + '<storeId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">1</storeId>';
+            orderXml = orderXml + customerXml;
+            orderXml = orderXml + productsXml;
+            orderXml = orderXml + shippingAndPaymentXml;
+            orderXml = orderXml + '</urn:folio3_salesOrderCreateSalesOrder>';
+            orderXml = orderXml + this.XmlFooter;
+
+            return orderXml;
 
         }
 

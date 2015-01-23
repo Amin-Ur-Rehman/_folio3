@@ -342,6 +342,7 @@ function F3ClientBase() {
 
             var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, isGuest ? 'Guest' : magentoCustomerObj.customer_id, 'create', null);
 
+            rec.setFieldValue('subsidiary', ConnectorConstants.CurrentStore.entitySyncInfo.customer.subsidiary);
             rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
             rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
             rec.setFieldValue('email', magentoCustomerObj.email);

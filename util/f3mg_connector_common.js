@@ -804,6 +804,12 @@ var ConnectorCommon = (function () {
             magentoFormattedId = magentoFormattedId.replace('<MAGENTOID>', magentoId);
             return magentoFormattedId;
         },
+        /**
+         * Getting magento id from array of objects with specified storeId
+         * @param {object[],[]} magentoIdObjArr
+         * @param {string} storeId
+         * @return {string} Return magento id
+         */
         getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
             var magentoId = null;
             for (var i in magentoIdObjArr) {
@@ -855,6 +861,7 @@ var ConnectorCommon = (function () {
 
             return JSON.stringify(magentoIdObjArr);
         },
+<<<<<<< HEAD
         getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
             var magentoId = null;
             for (var i in magentoIdObjArr) {
@@ -933,6 +940,179 @@ var ConnectorCommon = (function () {
             return netsuiteAddressObject;
 
 
+=======
+        getRecordTypeOfTransaction: function (id) {
+            var type = null;
+            if (id) {
+                var fils = [];
+                fils.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
+                fils.push(new nlobjSearchFilter('internalid', null, 'anyof', [id], null));
+
+                var result = nlapiSearchRecord('transaction', null, fils, null) || [];
+
+                if (result.length > 0) {
+                    type = result[0].getRecordType();
+                }
+            }
+            return type;
+        },
+        // get array of items exist in fulfillment
+        getFulfillmentItems: function () {
+            var itemsIdArr = [];
+            var itemsQuantity = nlapiGetLineItemCount('item');
+            for (var line = 1; line <= itemsQuantity; line++) {
+                var itemId = nlapiGetLineItemValue('item', 'item', line);
+                if (itemsIdArr.indexOf(itemId) === -1) {
+                    itemsIdArr.push(itemId);
+                }
+            }
+            return itemsIdArr;
+        },
+        /**
+         * get magento item ids mapping
+         * @return {object}
+         */
+        getMagentoItemIds: function () {
+            var magentoItemIds = {};
+            // get all items data exist in fulfillment
+            var fulfillmentItems = this.getFulfillmentItems();
+
+            var fils = [];
+            var cols = [];
+            var result;
+
+            fils.push(new nlobjSearchFilter('internalid', null, 'anyof', fulfillmentItems, null));
+            cols.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId, null, null));
+
+            result = nlapiSearchRecord('item', null, fils, cols) || [];
+
+            if (result.length > 0) {
+                for (var i in result) {
+                    var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
+                    magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
+                    magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
+                    if (!Utility.isBlankOrNull(magentoId)) {
+                        magentoItemIds[result[i].getId()] = magentoId;
+                    }
+                }
+            }
+            return magentoItemIds;
+        },
+
+        // functions related to cybersource - need to move respective library
+        getCyberSourceCaptureXML: function (magentoSO) {
+            // required merchant id, secret key, refrence code, items and quantity mapping, currency, authentication id
+            var xml = '';
+            xml += '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:schemas-cybersource-com:transaction-data-1.104">';
+            xml += '    <soapenv:Header>';
+            xml += '        <wsse:Security soapenv:mustUnderstand="1" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">';
+            xml += '            <wsse:UsernameToken>';
+            xml += '                <wsse:Username>' + cyberSouceConfig.merchantId + '</wsse:Username>';
+            xml += '                <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wssusername-token-profile-1.0#PasswordText">' + cyberSouceConfig.secretId + '</wsse:Password>';
+            xml += '            </wsse:UsernameToken>';
+            xml += '        </wsse:Security>';
+            xml += '    </soapenv:Header>';
+            xml += '    <soapenv:Body>';
+            xml += '        <urn:requestMessage xmlns="urn:schemas-cybersource-com:transaction-data-1.104">';
+            xml += '            <urn:merchantID>' + cyberSouceConfig.merchantId + '</urn:merchantID>';
+            var soId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
+            xml += '           <urn:merchantReferenceCode>' + soId + '</urn:merchantReferenceCode>';
+
+            //xml += '<urn:clientApplication>Credit Card Settlement</urn:clientApplication>';
+
+            // magentoItemIds is a global object contains the magento item id
+            var itemId = '0';
+            var itemQty = '1';
+            var unitPrice = magentoSO.getFieldValue('total');
+            xml += '            <urn:item id="' + itemId + '">';
+            xml += '                <urn:unitPrice>' + unitPrice + '</urn:unitPrice>';
+            xml += '                <urn:quantity>' + itemQty + '</urn:quantity>';
+            xml += '            </urn:item>';
+
+            xml += '            <urn:purchaseTotals>';
+            xml += '                <urn:currency>USD</urn:currency>';
+            xml += '            </urn:purchaseTotals>';
+
+            xml += '<urn:ccCaptureService run="true">';
+            xml += '<urn:authRequestID>' + magentoSO.getFieldValue('pnrefnum') + '</urn:authRequestID>';
+            xml += '</urn:ccCaptureService>';
+
+            xml += '        </urn:requestMessage>';
+            xml += '    </soapenv:Body>';
+            xml += '</soapenv:Envelope>';
+
+            return xml;
+        },
+        // load the configuration from custom record and return as an object
+        getCyberSourceConfiguration: function () {
+            var config = {};
+            var rec;
+            try {
+                rec = nlapiLoadRecord('customrecord_cybersource_configuration', 1);
+                config.merchantId = rec.getFieldValue('custrecord_csc_merchant_id');
+                config.secretId = rec.getFieldValue('custrecord_csc_secret_key');
+                config.reportingUser = rec.getFieldValue('custrecord_csc_reporting_user');
+                config.reportingUserPass = rec.getFieldValue('custrecord_csc_reporting_user_pass');
+            } catch (ex) {
+                nlapiLogExecution('DEBUG', 'getCyberSourceConfiguration', ex.toString());
+            }
+            return config;
+        },
+        isValidResponse: function (resXML) {
+            var faultCode = nlapiSelectValue(resXML, "soap:Envelope/soap:Body/soap:Fault/faultcode");
+            var faultString = nlapiSelectValue(resXML, "soap:Envelope/soap:Body/soap:Fault/faultstring");
+
+            if (faultCode) {
+                nlapiLogExecution('ERROR', 'isValidResponse - faultCode: ' + faultCode, 'faultString: ' + faultString);
+                return false;
+            }
+
+            return true;
+        },
+        getCaptureCreditCardRes: function (resXML) {
+            //TODO: update if required
+            var resObj = {};
+            var replyMsg = nlapiSelectNode(resXML, "soap:Envelope/soap:Body/c:replyMessage");
+            var purchaseTotal = nlapiSelectNode(resXML, "soap:Envelope/soap:Body/c:replyMessage/c:purchaseTotals");
+            var ccCaptureReply = nlapiSelectNode(resXML, "soap:Envelope/soap:Body/c:replyMessage/c:ccCaptureReply");
+
+            resObj.merchantReferenceCode = nlapiSelectValue(replyMsg, 'c:merchantReferenceCode');
+            resObj.requestID = nlapiSelectValue(replyMsg, 'c:requestID');
+            resObj.decision = nlapiSelectValue(replyMsg, 'c:decision');
+            resObj.reasonCode = nlapiSelectValue(replyMsg, 'c:reasonCode');
+            resObj.requestToken = nlapiSelectValue(replyMsg, 'c:requestToken');
+
+            resObj.purchaseTotals = {};
+            resObj.purchaseTotals.currency = nlapiSelectValue(purchaseTotal, 'c:currency');
+
+            resObj.ccCaptureReply = {};
+            resObj.ccCaptureReply.reasonCode = nlapiSelectValue(ccCaptureReply, 'c:reasonCode');
+            resObj.ccCaptureReply.requestDateTime = nlapiSelectValue(ccCaptureReply, 'c:requestDateTime');
+            resObj.ccCaptureReply.amount = nlapiSelectValue(ccCaptureReply, 'c:amount');
+            resObj.ccCaptureReply.reconciliationID = nlapiSelectValue(ccCaptureReply, 'c:reconciliationID');
+
+            return resObj;
+        },
+        captureCreditCard: function (magentoSO) {
+            nlapiLogExecution('DEBUG', 'In captureCreditCard()');
+            var xml = this.getCyberSourceCaptureXML(magentoSO);
+            nlapiLogExecution('DEBUG', 'get request xml from getCyberSourceCaptureXML()', xml);
+            var resXML = this.soapRequestToCS(xml);
+            nlapiLogExecution('DEBUG', 'get response xml from cybersource' + nlapiXMLToString(resXML));
+
+            csResponse = resXML;
+            /*if (isValidResponse(resXML)) {
+             var captureCreditCardRes = getCaptureCreditCardRes(resXML);
+             nlapiLogExecution('DEBUG', 'captureCreditCardRes', JSON.stringify(captureCreditCardRes));
+             // set values in fulfillment ???
+             }*/
+            nlapiLogExecution('DEBUG', 'Out captureCreditCard()');
+        },
+        soapRequestToCS: function (xml) {
+            var res = nlapiRequestURL('https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.104.wsdl', xml);
+            var responseXML = res.getBody();
+            return responseXML;
+>>>>>>> 805a7813f40e533f9ecf69ddb9fa19267938c4c4
         }
 
 
