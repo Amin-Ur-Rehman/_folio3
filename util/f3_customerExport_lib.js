@@ -1,7 +1,7 @@
 CUSTOMER= {
 
 
-getCustomers : function(allStores,storeId)
+getCustomers : function()
 {
 
     var arrFils = new Array();
@@ -10,10 +10,7 @@ getCustomers : function(allStores,storeId)
     var arrCols = new Array();
     var resultObject;
 
-    if (!allStores)
-        arrFils.push(new nlobjSearchFilter('custentity_f3mg_magento_stores', null, 'is', storeId));
-
-    arrFils.push(new nlobjSearchFilter('internalid',null,'is','58914'));
+    arrFils.push(new nlobjSearchFilter('internalid',null,'is','1542'));
 
     arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -179,49 +176,35 @@ getCustomer :function(customerInternalId,storeInfo)
 
     },
 
-    getMagentoRequestXML :function(customerDataObject,sessionId)
+    getMagentoCreateCustomerRequestXML :function(customerDataObject,sessionId)
     {
         var xml='';
 
         if(customerDataObject!=null)
         {
             xml=xml+'<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">';
-            xml=xml+'                <soapenv:Header/>';
-            xml=xml+'   <soapenv:Body>';
-            xml=xml+'       <urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
-            xml=xml+'           <sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+sessionId+'</sessionId>';
-            xml=xml+'            <customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
-
-            xml=xml+'                <customer_id xsi:type="xsd:int" xs:type="type:int"/>';
-                            //<!--Optional:-->
-            xml=xml+'                            <email xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.email+'</email>';
-                            //<!--Optional:-->
-            xml=xml+'                            <firstname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.firstname+'</firstname>';
-                            //<!--Optional:-->
-            xml=xml+'                            <lastname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.lastname+'</lastname>';
-                            //<!--Optional:-->
-            xml=xml+'                <middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
-                            //<!--Optional:-->
-            xml=xml+'                <password xsi:type="xsd:string" xs:type="type:string"></password>';
-                            //<!--Optional:-->
-            xml=xml+'                            <website_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.website_id+'</website_id>';
-                            //<!--Optional:-->
-            xml=xml+'                            <store_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.store_id+'</store_id>';
-                            //<!--Optional:-->
-            xml=xml+'                            <group_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.group_id+'</group_id>';
-                            //<!--Optional:-->
-            xml=xml+'              <prefix xsi:type="xsd:string" xs:type="type:string"></prefix>';
-                            //<!--Optional:-->
-            xml=xml+'                            <suffix xsi:type="xsd:string" xs:type="type:string"></suffix>';
-                            //<!--Optional:-->
-            xml=xml+'                            <dob xsi:type="xsd:string" xs:type="type:string"></dob>';
-                            //<!--Optional:-->
-            xml=xml+'                            <taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>';
-                            //<!--Optional:-->
-            xml=xml+'                            <gender xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.gender+'</gender>';
-            xml=xml+'                        </customerData>';
-            xml=xml+'                    </urn:customerCustomerCreate>';
-            xml=xml+'    </soapenv:Body>';
+            xml=xml+'<soapenv:Header/>';
+            xml=xml+'<soapenv:Body>';
+            xml=xml+'<urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml=xml+'<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+sessionId+'</sessionId>';
+            xml=xml+'<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            xml=xml+'<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
+            xml=xml+'<email xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.email+'</email>';
+            xml=xml+'<firstname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.firstname+'</firstname>';
+            xml=xml+'<lastname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.lastname+'</lastname>';
+            xml=xml+'<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
+            xml=xml+'<password xsi:type="xsd:string" xs:type="type:string"></password>';
+            xml=xml+'<website_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.website_id+'</website_id>';
+            xml=xml+'<store_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.store_id+'</store_id>';
+            xml=xml+'<group_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.group_id+'</group_id>';
+            xml=xml+'<prefix xsi:type="xsd:string" xs:type="type:string"></prefix>';
+            xml=xml+'<suffix xsi:type="xsd:string" xs:type="type:string"></suffix>';
+            xml=xml+'<dob xsi:type="xsd:string" xs:type="type:string"></dob>';
+            xml=xml+'<taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>';
+            xml=xml+'<gender xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.gender+'</gender>';
+            xml=xml+'</customerData>';
+            xml=xml+'</urn:customerCustomerCreate>';
+            xml=xml+'</soapenv:Body>';
             xml=xml+'</soapenv:Envelope>';
 
         }
@@ -229,7 +212,44 @@ getCustomer :function(customerInternalId,storeInfo)
         return xml;
 
     }
+    ,
 
+    getMagentoUpdateCustomerRequestXML :function(customerDataObject,sessionId)
+    {
+        var xml = '';
+
+        if (customerDataObject != null) {
+
+            xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">';
+            xml = xml + '<soapenv:Header/>';
+            xml = xml + '<soapenv:Body>';
+            xml = xml + '<urn:customerCustomerUpdate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml = xml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionId + '</sessionId>';
+            xml = xml + '<customerId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + customerDataObject.magentoId + '</customerId>';
+            xml = xml + '<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            xml = xml + '<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
+            xml = xml + '<email xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.email + '</email>';
+            xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.firstname + '</firstname>';
+            xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.lastname + '</lastname>';
+            xml = xml + '<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
+            xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
+            xml = xml + '<website_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.website_id + '</website_id>';
+            xml = xml + '<store_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.store_id + '</store_id>';
+            xml = xml + '<group_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.group_id + '</group_id>';
+            xml = xml + '<prefix xsi:type="xsd:string" xs:type="type:string"></prefix>';
+            xml = xml + '<suffix xsi:type="xsd:string" xs:type="type:string"></suffix>';
+            xml = xml + '<dob xsi:type="xsd:string" xs:type="type:string"></dob>';
+            xml = xml + '<taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>';
+            xml = xml + '<gender xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.gender + '</gender>';
+            xml = xml + '</customerData>';
+            xml = xml + '</urn:customerCustomerUpdate>';
+            xml = xml + '</soapenv:Body>';
+            xml = xml + '</soapenv:Envelope>';
+        }
+
+        return xml;
+
+    }
 ,
 
     getMagentoAddressRequestXML :function(customerAddressObject,sessionId,magentoCustomerId) {
@@ -238,7 +258,6 @@ getCustomer :function(customerInternalId,storeInfo)
         var lastName;
         var names;
 
-        nlapiLogExecution('debug','magentoCustomerId',magentoCustomerId);
         if (customerAddressObject != null) {
 
 

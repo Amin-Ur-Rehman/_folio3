@@ -874,7 +874,7 @@ var ConnectorCommon = (function () {
 
             return JSON.stringify(magentoIdObjArr);
         },
-<<<<<<< HEAD
+
         getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
             var magentoId = null;
             for (var i in magentoIdObjArr) {
@@ -898,7 +898,7 @@ var ConnectorCommon = (function () {
                 if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
                     result = false;
 
-                    nlapiLogExecution('debug','block-1');
+
                 }
                 else {
                     //Will be handled via Custom Record to set the countries for which State is mandatory
@@ -906,16 +906,16 @@ var ConnectorCommon = (function () {
                         if (isBlankOrNull(netsuiteAddressObject.region)) {
                             result = false;
 
-                            nlapiLogExecution('debug','block-2');
+
 
                         }
                         else {
 
-                            nlapiLogExecution('debug','block-3-a' ,netsuiteAddressObject.region );
+
 
                             magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
 
-                            nlapiLogExecution('debug','block-3-b' ,netsuiteAddressObject.region );
+
 
                             if (!isBlankOrNull(magentoStateCode)) {
                                 netsuiteAddressObject.region = magentoStateCode;
@@ -923,7 +923,7 @@ var ConnectorCommon = (function () {
                             }
                             else {
                                 result = false;
-                                nlapiLogExecution('debug','block-3-c');
+
 
                             }
                         }

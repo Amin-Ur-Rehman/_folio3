@@ -755,14 +755,16 @@ XmlUtility = (function () {
             var faultCode="";
             var faultString;
             var responseMagento = {};
+            var magentoCustomerId;
+            var updated;
             responseMagento.status=true;
 
             try {
 
                 if(operation=="create") {
 
-                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
-                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
                     responseMagento.faultCode= faultCode;
                     responseMagento.faultString= faultString;
@@ -777,6 +779,38 @@ XmlUtility = (function () {
                         magentoCustomerId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerCreateResponse/result");
                         responseMagento.magentoCustomerId = magentoCustomerId;
                     }
+
+                }
+                else if (operation == "update") {
+
+
+
+                    //Temporary Code
+                    var logRec = nlapiCreateRecord('customrecord_dummaydata');
+
+                    if (!!requsetXML) {
+                        logRec.setFieldValue('custrecord_xmldata', xml);
+                        nlapiSubmitRecord(logRec);
+
+                    }
+
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    responseMagento.faultCode= faultCode;
+                    responseMagento.faultString= faultString;
+
+
+                    if(!!responseMagento.faultCode) {
+                        responseMagento.status=false;
+                    }
+
+                    if(responseMagento.status)
+                    {
+                        responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerUpdateResponse/result");
+
+                    }
+
 
                 }
 
@@ -809,7 +843,7 @@ XmlUtility = (function () {
 
                     if (responseMagento.status) {
                         magentoAddressId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
-                        responseMagento.magentoCustomerId = magentoAddressId;
+                        responseMagento.magentoAddressId = magentoAddressId;
                     }
 
                 }
