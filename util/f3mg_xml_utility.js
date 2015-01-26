@@ -30,6 +30,13 @@ XmlUtility = (function () {
             var responseXML = nlapiStringToXML(res.getBody());
             return responseXML;
         },
+        soapRequestToMagentoSpecificStore: function (xml,store) {
+            var res = nlapiRequestURL(store.endpoint, xml);
+
+            var responseXML = nlapiStringToXML(res.getBody());
+
+            return responseXML;
+        },
         getSessionIDFromMagento: function (userName, apiKey) {
             var sessionID = null;
             var loginXML = this.getLoginXml(userName, apiKey);
@@ -742,6 +749,80 @@ XmlUtility = (function () {
 
             return responseMagento;
         },
+
+        validateCustomerExportOperationResponse:function(xml,operation)
+        {
+            var faultCode="";
+            var faultString;
+            var responseMagento = {};
+            responseMagento.status=true;
+
+            try {
+
+                if(operation=="create") {
+
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    responseMagento.faultCode= faultCode;
+                    responseMagento.faultString= faultString;
+
+
+                    if(!!responseMagento.faultCode) {
+                        responseMagento.status=false;
+                    }
+
+                    if(responseMagento.status)
+                    {
+                        magentoCustomerId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerCreateResponse/result");
+                        responseMagento.magentoCustomerId = magentoCustomerId;
+                    }
+
+                }
+
+            } catch (ex) {
+            }
+
+            return responseMagento;
+
+        },
+
+        validateCustomerAddressExportOperationResponse:function(xml,operation) {
+            var faultCode = "";
+            var faultString;
+            var responseMagento = {};
+            responseMagento.status = true;
+
+            try {
+
+                if (operation == "create") {
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
+
+
+                    if (!!responseMagento.faultCode != "") {
+                        responseMagento.status = false;
+                    }
+
+                    if (responseMagento.status) {
+                        magentoAddressId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
+                        responseMagento.magentoCustomerId = magentoAddressId;
+                    }
+
+                }
+
+            } catch (ex) {
+            }
+
+
+            nlapiLogExecution('debug', 'responseMagento', JSON.stringify(responseMagento));
+
+            return responseMagento;
+        },
+
         validateTrackingCreateResponse: function (xml, operation) {
             nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
             var responseMagento = {};
@@ -962,6 +1043,9 @@ XmlUtility = (function () {
             orderXml = orderXml + this.XmlFooter;
 
             return orderXml;
+
         }
+
+
     };
 })();

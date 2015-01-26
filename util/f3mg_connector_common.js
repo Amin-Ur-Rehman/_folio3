@@ -874,6 +874,84 @@ var ConnectorCommon = (function () {
 
             return JSON.stringify(magentoIdObjArr);
         },
+<<<<<<< HEAD
+        getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
+            var magentoId = null;
+            for (var i in magentoIdObjArr) {
+                var magentoIdObj = magentoIdObjArr[i];
+                if (magentoIdObj.StoreId === storeId) {
+                    magentoId = magentoIdObj.MagentoId;
+                    break;
+                }
+            }
+            return magentoId;
+        },
+        getScannedAddressForMagento: function (netsuiteAddressObject) {
+
+            var result = true;
+            var magentoStateCode;
+
+            nlapiLogExecution('debug','netsuiteAddressObject',JSON.stringify(netsuiteAddressObject));
+
+            if (!!netsuiteAddressObject) {
+
+                if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
+                    result = false;
+
+                    nlapiLogExecution('debug','block-1');
+                }
+                else {
+                    //Will be handled via Custom Record to set the countries for which State is mandatory
+                    if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
+                        if (isBlankOrNull(netsuiteAddressObject.region)) {
+                            result = false;
+
+                            nlapiLogExecution('debug','block-2');
+
+                        }
+                        else {
+
+                            nlapiLogExecution('debug','block-3-a' ,netsuiteAddressObject.region );
+
+                            magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+
+                            nlapiLogExecution('debug','block-3-b' ,netsuiteAddressObject.region );
+
+                            if (!isBlankOrNull(magentoStateCode)) {
+                                netsuiteAddressObject.region = magentoStateCode;
+                                netsuiteAddressObject.region_text = '';
+                            }
+                            else {
+                                result = false;
+                                nlapiLogExecution('debug','block-3-c');
+
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        netsuiteAddressObject.region='';
+
+                    }
+
+                }
+
+
+            }
+            else
+                result = false;
+
+
+            if (!result)
+                netsuiteAddressObject = null;
+
+
+            nlapiLogExecution('debug','netsuiteAddressObject scanned',JSON.stringify(netsuiteAddressObject));
+
+
+            return netsuiteAddressObject;
+		},
         getRecordTypeOfTransaction: function (id) {
             var type = null;
             if (id) {
@@ -1073,6 +1151,5 @@ var ConnectorCommon = (function () {
             }
             return false;
         }
-
     };
 })();

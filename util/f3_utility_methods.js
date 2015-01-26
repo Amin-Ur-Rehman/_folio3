@@ -129,6 +129,9 @@ Utility = (function () {
         addslashes: function (str) {
             return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
         },
+
+
+
         /**
          * Calculate the size of object
          * @param {object} obj
