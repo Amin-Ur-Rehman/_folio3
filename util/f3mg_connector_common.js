@@ -192,7 +192,10 @@ var ConnectorCommon = (function () {
         },
         getCouponCode: function (orderIncrementId) {
             try {
-                var postData = {"isFetchCode": true, "data": JSON.stringify({"orderIncrementId": orderIncrementId})};
+                var postData = {
+                    "isFetchCode": true,
+                    "data": JSON.stringify({"orderIncrementId": orderIncrementId})
+                };
                 var response = nlapiRequestURL('<TODO: URL>', postData).getBody();
                 var data = JSON.parse(response);
                 Utility.logDebug('getCouponCode: data', JSON.stringify(data));
@@ -301,10 +304,10 @@ var ConnectorCommon = (function () {
         setAddresses: function (rec, addresses) {
             Utility.logDebug('in setAddresses() start', addresses.toSource());
 
-            this.removeAllLineItems(rec, 'addressbook');
+            //this.removeAllLineItems(rec, 'addressbook');
 
             for (var i in addresses) {
-                if (addresses[i].is_default_billing == true && addresses[i].is_default_shipping == true) {
+                if (addresses[i].is_default_billing && addresses[i].is_default_shipping) {
                     rec = this.setAddress(rec, addresses[i], 'T', 'T');
                     break;
                 }
@@ -355,6 +358,16 @@ var ConnectorCommon = (function () {
                 stAddr1 = stAddr;
                 stAddr2 = '';
             }
+
+            // check if address already exist
+            address.addressee = address.firstname + ' ' + address.lastname;
+            address.zip = address.postcode;
+            address.addr1 = stAddr1;
+            address.addr2 = stAddr2;
+            if (ConnectorCommon.addressExists(address, isBillAddr, isShipAddr, rec)) {
+                return;
+            }
+
 
             rec.setFieldValue('phone', address.telephone);
             rec.selectNewLineItem('addressbook');
@@ -1032,6 +1045,34 @@ var ConnectorCommon = (function () {
             var res = nlapiRequestURL('https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.104.wsdl', xml);
             var responseXML = res.getBody();
             return responseXML;
+        },
+        /**
+         * Check if address exist
+         * @param add
+         * @param isBilling
+         * @param isShipping
+         * @param rec
+         * @return {boolean}
+         */
+        addressExists: function (add, isBilling, isShipping, rec) {
+            for (var t = 1; t <= rec.getLineItemCount('addressbook'); t++) {
+                if (rec.getLineItemValue('addressbook', 'addr1', t) == add.addr1.replace(/"/g, '') &&
+                    rec.getLineItemValue('addressbook', 'addr2', t) == add.addr2.replace(/"/g, '') &&
+                    rec.getLineItemValue('addressbook', 'addressee', t) == add.addressee.replace(/"/g, '') &&
+                    rec.getLineItemValue('addressbook', 'city', t) == add.city.replace(/"/g, '') &&
+                    rec.getLineItemValue('addressbook', 'state', t) == add.state.replace(/"/g, '') &&
+                    rec.getLineItemValue('addressbook', 'zip', t) == add.zip.replace(/"/g, '')) {
+                    if (isShipping === 'T') {
+                        rec.setLineItemValue('addressbook', 'defaultshipping', t, isShipping);
+                    }
+                    if (isBilling === 'T') {
+                        rec.setLineItemValue('addressbook', 'defaultbilling', t, isBilling);
+                    }
+                    return true;
+                }
+            }
+            return false;
         }
+
     };
 })();

@@ -26,11 +26,11 @@ var OrderExportHelper = (function () {
             var resultObject;
 
             if (!allStores) {
-                filters.push(new nlobjSearchFilter('custentity_f3mg_magento_stores', null, 'is', storeId));
+                filters.push(new nlobjSearchFilter('custbody_f3mg_magento_stores', null, 'is', storeId));
             }
 
-            filters.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
-            arrCols.push(new nlobjSearchColumn('custentity_magento_orderid'));
+            filters.push(new nlobjSearchFilter('custbody_magentosync_dev', null, 'is', 'F'));
+            arrCols.push(new nlobjSearchColumn('custbody_magento_orderid'));
 
             records = nlapiSearchRecord('transaction', null, filters, arrCols);
 
@@ -40,7 +40,7 @@ var OrderExportHelper = (function () {
                     resultObject = {};
 
                     resultObject.internalId = records[i].getId();
-                    resultObject.magentoOrderIds = records[i].getValue('custentity_magento_orderid');
+                    resultObject.magentoOrderIds = records[i].getValue('custbody_magento_orderid');
 
                     result.push(resultObject);
                 }
@@ -91,7 +91,7 @@ var OrderExportHelper = (function () {
             try {
 
             } catch (e) {
-                Utility.logDebug('ERROR', 'Error during main setOrderMagentoId', e.toString());
+                Utility.logException('Error during main setOrderMagentoId', e);
             }
         },
 
@@ -102,10 +102,10 @@ var OrderExportHelper = (function () {
         setOrderMagentoSync: function (orderId) {
             var result = false;
             try {
-                nlapiSubmitField('transaction',orderId,'custentity_magentosync_dev','T');
+                nlapiSubmitField('transaction',orderId,'custbody_magentosync_dev','T');
                 result = true;
             } catch (e) {
-                Utility.logDebug('ERROR', 'Error during main setOrderMagentoSync', e.toString());
+                Utility.logException('Error during main setOrderMagentoSync', e);
             }
 
             return result;
@@ -211,13 +211,9 @@ var ExportSalesOrders = (function () {
                     return false;
                 }
 
-                // handle the script to run only between 1 am to 7 am inclusive
-                if (!this.isRunningTime()) {
-                    return false;
-                }
-
                 // initialize constants
                 ConnectorConstants.initialize();
+
                 // getting configuration
                 var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
                 var context = nlapiGetContext();

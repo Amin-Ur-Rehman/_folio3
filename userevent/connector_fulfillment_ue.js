@@ -1,3 +1,34 @@
+/**
+ * Created by zahmed on 16-Jan-15.
+ *
+ * Description:
+ * - This script is responsible for exporting fulfillmet to Magento store as Shipment
+ * -
+ * Referenced By:
+ * -
+ * Dependency:
+ * - Script Parameters:
+ *   -
+ * -
+ * - Script Id:
+ *   - customscript_magento_item_sync_sch
+ * -
+ * - Deployment Id:
+ *   - customdeploy_magento_item_sync_sch
+ * -
+ * - Scripts:
+ *   - folio3ConnectorLicenseVerification.js
+ *   - mc_sync_constants.js
+ *   - f3_inventory_sync_script_dao.js
+ *   - f3_utility_methods.js
+ *   - f3mg_connector_constants.js
+ *   - f3mg_connector_common.js
+ *   - f3mg_xml_utility.js
+ *   - f3_external_system_config_dao.js
+ *   - f3_client_factory.js
+ *   - f3mg_ns_mg_shipping_methods_map_dao.js
+ */
+
 // uservent start: creating shipment in Magento
 function setShipmentIdInFulFillment(shipmentId) {
     var rec = nlapiLoadRecord(nlapiGetRecordType(), nlapiGetRecordId(), null);
