@@ -66,6 +66,9 @@ var FC_ScrubHandler = (function() {
 
     return {
 
+        /*
+        Get List of Scrubs for all fields in provided records mapping(mappingRecords) of a particular record
+         */
         getAllScrubsList : function(mappingRecords) {
             var scrubsList = {};
             for (var i = 0; i < mappingRecords.length; i++) {
@@ -74,6 +77,11 @@ var FC_ScrubHandler = (function() {
             }
             return scrubsList;
         },
+
+        /*
+        Provide Scrubbed(cleaned) value of provided field
+        Its fetched scrub attributes from provided fieldsScrubsList for this particular field
+         */
         getScrubbedData : function(field, dataValue, fieldsScrubsList) {
 
             //nlapiLogExecution('DEBUG', 'getScrubbedData value of scrubsList', JSON.stringify(fieldsScrubsList));
@@ -85,6 +93,10 @@ var FC_ScrubHandler = (function() {
 
             return dataValue;
         },
+
+        /*
+         Apply data cleansing on data value on the basis of provided scrubbing attributes (strScrubbingAttrs)
+         */
         scrubValue : function(strScrubbingAttrs, dataValue) {
          	var scrubbedValue = '';
             var scrubbingAttr = null;
@@ -115,6 +127,13 @@ var FC_ScrubHandler = (function() {
             return (!!scrubbedValue ? scrubbedValue : dataValue);
         }
 
+        /*
+        Get mapped value of provided key of a given Object type from 'customrecord_fc_scrub' custom record
+         */
+        ,getMappedValue: function(objectType, key) {
+            var val = scrubDataByLookup(objectType, key);
+            return val;
+        }
 
     }
 
