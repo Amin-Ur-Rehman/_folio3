@@ -951,9 +951,7 @@ var ConnectorCommon = (function () {
 
 
             return netsuiteAddressObject;
-
-
-=======
+		},
         getRecordTypeOfTransaction: function (id) {
             var type = null;
             if (id) {
@@ -1125,12 +1123,6 @@ var ConnectorCommon = (function () {
             var res = nlapiRequestURL('https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.104.wsdl', xml);
             var responseXML = res.getBody();
             return responseXML;
-<<<<<<< HEAD
->>>>>>> 805a7813f40e533f9ecf69ddb9fa19267938c4c4
-        }
-
-
-=======
         },
         /**
          * Check if address exist
@@ -1159,7 +1151,5 @@ var ConnectorCommon = (function () {
             }
             return false;
         }
-
->>>>>>> 3e6d506a88a3b540561cda52aaa3c675e5a2a2b5
     };
 })();
