@@ -127,7 +127,7 @@ Utility = (function () {
             return str;
         },
         addslashes: function (str) {
-            return  (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+            return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
         },
 
 
@@ -145,13 +145,21 @@ Utility = (function () {
                 }
             }
             return size;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3e6d506a88a3b540561cda52aaa3c675e5a2a2b5
         },
         /**
          * Get Empty string for null
          * @param data
          * @return {data, ''}
+<<<<<<< HEAD
          */        getBlankForNull: function (data) {
+=======
+         */
+        getBlankForNull: function (data) {
+>>>>>>> 3e6d506a88a3b540561cda52aaa3c675e5a2a2b5
             var returnValue;
             if (this.isBlankOrNull(data)) {
                 returnValue = '';
@@ -164,16 +172,25 @@ Utility = (function () {
          * Check if NetSuite Account Type is One World
          * @return {boolean}
          */
+<<<<<<< HEAD
         isOneWorldAccount: function () {
+=======
+        isOneWorldAccount:function(){
+>>>>>>> 3e6d506a88a3b540561cda52aaa3c675e5a2a2b5
             return nlapiGetContext().getFeature('SUBSIDIARIES');
         },
         /**
          * Check if MultiLocation is enabled
          * @return {boolean}
          */
+<<<<<<< HEAD
         isMultiLocInvt: function () {
             return nlapiGetContext().getFeature('MULTILOCINVT');
 
+=======
+        isMultiLocInvt:function(){
+            return nlapiGetContext().getFeature('MULTILOCINVT');
+>>>>>>> 3e6d506a88a3b540561cda52aaa3c675e5a2a2b5
         }
 
     };
