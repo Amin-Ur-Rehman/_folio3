@@ -825,6 +825,7 @@ var ConnectorCommon = (function () {
          */
         getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
             var magentoId = null;
+            magentoIdObjArr = magentoIdObjArr instanceof Array ? magentoIdObjArr : !Utility.isBlankOrNull(magentoIdObjArr) ? JSON.parse(magentoIdObjArr) : [];
             for (var i in magentoIdObjArr) {
                 var magentoIdObj = magentoIdObjArr[i];
                 if (magentoIdObj.StoreId === storeId) {
@@ -874,31 +875,20 @@ var ConnectorCommon = (function () {
 
             return JSON.stringify(magentoIdObjArr);
         },
-<<<<<<< HEAD
-        getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
-            var magentoId = null;
-            for (var i in magentoIdObjArr) {
-                var magentoIdObj = magentoIdObjArr[i];
-                if (magentoIdObj.StoreId === storeId) {
-                    magentoId = magentoIdObj.MagentoId;
-                    break;
-                }
-            }
-            return magentoId;
-        },
+
         getScannedAddressForMagento: function (netsuiteAddressObject) {
 
             var result = true;
             var magentoStateCode;
 
-            nlapiLogExecution('debug','netsuiteAddressObject',JSON.stringify(netsuiteAddressObject));
+            nlapiLogExecution('debug', 'netsuiteAddressObject', JSON.stringify(netsuiteAddressObject));
 
             if (!!netsuiteAddressObject) {
 
                 if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
                     result = false;
 
-                    nlapiLogExecution('debug','block-1');
+                    nlapiLogExecution('debug', 'block-1');
                 }
                 else {
                     //Will be handled via Custom Record to set the countries for which State is mandatory
@@ -906,16 +896,16 @@ var ConnectorCommon = (function () {
                         if (isBlankOrNull(netsuiteAddressObject.region)) {
                             result = false;
 
-                            nlapiLogExecution('debug','block-2');
+                            nlapiLogExecution('debug', 'block-2');
 
                         }
                         else {
 
-                            nlapiLogExecution('debug','block-3-a' ,netsuiteAddressObject.region );
+                            nlapiLogExecution('debug', 'block-3-a', netsuiteAddressObject.region);
 
                             magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
 
-                            nlapiLogExecution('debug','block-3-b' ,netsuiteAddressObject.region );
+                            nlapiLogExecution('debug', 'block-3-b', netsuiteAddressObject.region);
 
                             if (!isBlankOrNull(magentoStateCode)) {
                                 netsuiteAddressObject.region = magentoStateCode;
@@ -923,15 +913,14 @@ var ConnectorCommon = (function () {
                             }
                             else {
                                 result = false;
-                                nlapiLogExecution('debug','block-3-c');
+                                nlapiLogExecution('debug', 'block-3-c');
 
                             }
                         }
 
                     }
-                    else
-                    {
-                        netsuiteAddressObject.region='';
+                    else {
+                        netsuiteAddressObject.region = '';
 
                     }
 
@@ -947,11 +936,11 @@ var ConnectorCommon = (function () {
                 netsuiteAddressObject = null;
 
 
-            nlapiLogExecution('debug','netsuiteAddressObject scanned',JSON.stringify(netsuiteAddressObject));
+            nlapiLogExecution('debug', 'netsuiteAddressObject scanned', JSON.stringify(netsuiteAddressObject));
 
 
             return netsuiteAddressObject;
-		},
+        },
         getRecordTypeOfTransaction: function (id) {
             var type = null;
             if (id) {
@@ -981,32 +970,34 @@ var ConnectorCommon = (function () {
         },
         /**
          * get magento item ids mapping
+         * @param itemIdsArr
          * @return {object}
          */
-        getMagentoItemIds: function () {
+        getMagentoItemIds: function (itemIdsArr) {
             var magentoItemIds = {};
-            // get all items data exist in fulfillment
-            var fulfillmentItems = this.getFulfillmentItems();
 
-            var fils = [];
-            var cols = [];
-            var result;
+            if (itemIdsArr.length > 0) {
+                var fils = [];
+                var cols = [];
+                var result;
 
-            fils.push(new nlobjSearchFilter('internalid', null, 'anyof', fulfillmentItems, null));
-            cols.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId, null, null));
+                fils.push(new nlobjSearchFilter('internalid', null, 'anyof', itemIdsArr, null));
+                cols.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId, null, null));
 
-            result = nlapiSearchRecord('item', null, fils, cols) || [];
+                result = nlapiSearchRecord('item', null, fils, cols) || [];
 
-            if (result.length > 0) {
-                for (var i in result) {
-                    var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
-                    magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
-                    magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
-                    if (!Utility.isBlankOrNull(magentoId)) {
-                        magentoItemIds[result[i].getId()] = magentoId;
+                if (result.length > 0) {
+                    for (var i in result) {
+                        var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
+                        magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
+                        magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
+                        if (!Utility.isBlankOrNull(magentoId)) {
+                            magentoItemIds[result[i].getId()] = magentoId;
+                        }
                     }
                 }
             }
+
             return magentoItemIds;
         },
 
@@ -1150,6 +1141,18 @@ var ConnectorCommon = (function () {
                 }
             }
             return false;
+        },
+
+        createLogRec: function (order, xml) {
+            try {
+                var rec = nlapiCreateRecord('customrecord_xml_log', null);
+                rec.setFieldValue('custrecord_xml', xml);
+                rec.setFieldValue('custrecord_order', order);
+                nlapiSubmitRecord(rec, true);
+            }
+            catch (e) {
+                Utility.logException('createLogRec', e);
+            }
         }
     };
 })();

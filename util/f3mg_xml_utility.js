@@ -30,7 +30,7 @@ XmlUtility = (function () {
             var responseXML = nlapiStringToXML(res.getBody());
             return responseXML;
         },
-        soapRequestToMagentoSpecificStore: function (xml,store) {
+        soapRequestToMagentoSpecificStore: function (xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
 
             var responseXML = nlapiStringToXML(res.getBody());
@@ -749,31 +749,28 @@ XmlUtility = (function () {
 
             return responseMagento;
         },
-
-        validateCustomerExportOperationResponse:function(xml,operation)
-        {
-            var faultCode="";
+        validateCustomerExportOperationResponse: function (xml, operation) {
+            var faultCode = "";
             var faultString;
             var responseMagento = {};
-            responseMagento.status=true;
+            responseMagento.status = true;
 
             try {
 
-                if(operation=="create") {
+                if (operation == "create") {
 
-                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
-                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
-                    responseMagento.faultCode= faultCode;
-                    responseMagento.faultString= faultString;
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
 
 
-                    if(!!responseMagento.faultCode) {
-                        responseMagento.status=false;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
                     }
 
-                    if(responseMagento.status)
-                    {
+                    if (responseMagento.status) {
                         magentoCustomerId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerCreateResponse/result");
                         responseMagento.magentoCustomerId = magentoCustomerId;
                     }
@@ -786,8 +783,7 @@ XmlUtility = (function () {
             return responseMagento;
 
         },
-
-        validateCustomerAddressExportOperationResponse:function(xml,operation) {
+        validateCustomerAddressExportOperationResponse: function (xml, operation) {
             var faultCode = "";
             var faultString;
             var responseMagento = {};
@@ -822,7 +818,6 @@ XmlUtility = (function () {
 
             return responseMagento;
         },
-
         validateTrackingCreateResponse: function (xml, operation) {
             nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
             var responseMagento = {};
@@ -912,6 +907,44 @@ XmlUtility = (function () {
 
             return responseMagento;
         },
+        /**
+         * Validate the xml and fetch the data using passed method/function
+         * @param xml
+         * @param {function} method - this method will always retrun an object
+         * @return {object}
+         */
+        validateAndTransformResponse: function (xml, method) {
+            var responseMagento = {};
+            var faultCode;
+            var faultString;
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                responseMagento.data = method(xml);
+            } catch (ex) {
+                // unhandled exception -
+            }
+
+            if (!Utility.isBlankOrNull(faultCode)) {
+                responseMagento.status = false;
+                responseMagento.faultCode = faultCode;
+                responseMagento.faultString = faultString;
+                Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+            }
+            else if (responseMagento.hasOwnProperty('data') && Utility.objectSize(responseMagento.data) > 0) {
+                responseMagento.status = true;
+                responseMagento.result = responseMagento.data;
+            }
+            else {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+            }
+
+            return responseMagento;
+        },
 
         /**
          * Description of method getCustomerXmlForSaleOrder
@@ -922,8 +955,8 @@ XmlUtility = (function () {
 
             customerXml = customerXml + '<customer xsi:type="urn:customCustomerEntity" xs:type="type:customCustomerEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             customerXml = customerXml + '<entity xsi:type="urn:shoppingCartCustomerEntity" xs:type="type:shoppingCartCustomerAddressEntity">';
-            customerXml = customerXml + '<mode xsi:type="xsd:string" xs:type="type:string">shipping</mode>';
-            customerXml = customerXml + '<customer_id xsi:type="xsd:int" xs:type="type:int">' + customer.customerId +'</customer_id>';
+            customerXml = customerXml + '<mode xsi:type="xsd:string" xs:type="type:string">' + customer.mode + '</mode>';
+            customerXml = customerXml + '<customer_id xsi:type="xsd:int" xs:type="type:int">' + customer.customerId + '</customer_id>';
             customerXml = customerXml + '<email xsi:type="xsd:string" xs:type="type:string">' + customer.email + '</email>';
             customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
             customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
@@ -931,47 +964,37 @@ XmlUtility = (function () {
             customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
             customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
             customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
-            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
+            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.stateId + '</region_id>';
             customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
             customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
             customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
             customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
-            customerXml = customerXml + '<is_default_billing xs:type="type:int">0</is_default_billing>';
-            customerXml = customerXml + '<is_default_shipping xs:type="type:int">1</is_default_shipping>';
+            customerXml = customerXml + '<is_default_billing xs:type="type:int">' + customer.isDefaultBilling + '</is_default_billing>';
+            customerXml = customerXml + '<is_default_shipping xs:type="type:int">' + customer.isDefaultShipping + '</is_default_shipping>';
             customerXml = customerXml + '</entity>';
-            customerXml = customerXml + '<address xsi:type="urn:shoppingCartCustomerAddressEntityArray" soapenc:arrayType="urn:shoppingCartCustomerAddressEntity[2]" xs:type="type:shoppingCartCustomerAddressEntity">';
-            customerXml = customerXml + '<item>';
-            customerXml = customerXml + '<mode xn:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">shipping</mode>';
-            customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
-            customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
-            customerXml = customerXml + '<company xs:type="type:string">' + customer.company + '</company>';
-            customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
-            customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
-            customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
-            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
-            customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
-            customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
-            customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
-            customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
-            customerXml = customerXml + '<is_default_billing xs:type="type:int">0</is_default_billing>';
-            customerXml = customerXml + '<is_default_shipping xs:type="type:int">1</is_default_shipping>';
-            customerXml = customerXml + '</item>';
-            customerXml = customerXml + '<item>';
-            customerXml = customerXml + '<mode xn:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">billing</mode>';
-            customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customer.firstName + '</firstname>';
-            customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customer.lastName + '</lastname>';
-            customerXml = customerXml + '<company xs:type="type:string">' + customer.company + '</company>';
-            customerXml = customerXml + '<street xs:type="type:string">' + customer.street + '</street>';
-            customerXml = customerXml + '<city xs:type="type:string">' + customer.city + '</city>';
-            customerXml = customerXml + '<region xs:type="type:string">' + customer.state + '</region>';
-            customerXml = customerXml + '<region_id xs:type="type:string">' + customer.state + '</region_id>';
-            customerXml = customerXml + '<postcode xs:type="type:string">' + customer.zipCode + '</postcode>';
-            customerXml = customerXml + '<country_id xs:type="type:string">' + customer.country + '</country_id>';
-            customerXml = customerXml + '<telephone xs:type="type:string">' + customer.telephone + '</telephone>';
-            customerXml = customerXml + '<fax xs:type="type:string">' + customer.fax + '</fax>';
-            customerXml = customerXml + '<is_default_billing xs:type="type:int">1</is_default_billing>';
-            customerXml = customerXml + '<is_default_shipping xs:type="type:int">0</is_default_shipping>';
-            customerXml = customerXml + '</item>';
+
+            customerXml = customerXml + '<address xsi:type="urn:shoppingCartCustomerAddressEntityArray" soapenc:arrayType="urn:shoppingCartCustomerAddressEntity[' + customer.addresses.length + ']" xs:type="type:shoppingCartCustomerAddressEntity">';
+
+            for (var i in customer.addresses) {
+                var address = customer.addresses[i];
+                customerXml = customerXml + '<item>';
+                customerXml = customerXml + '<mode xsi:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">' + address.mode + '</mode>';
+                customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + address.firstName + '</firstname>';
+                customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + address.lastName + '</lastname>';
+                customerXml = customerXml + '<company xs:type="type:string">' + address.company + '</company>';
+                customerXml = customerXml + '<street xs:type="type:string">' + address.street + '</street>';
+                customerXml = customerXml + '<city xs:type="type:string">' + address.city + '</city>';
+                customerXml = customerXml + '<region xs:type="type:string">' + address.state + '</region>';
+                customerXml = customerXml + '<region_id xs:type="type:string">' + address.state + '</region_id>';
+                customerXml = customerXml + '<postcode xs:type="type:string">' + address.zipCode + '</postcode>';
+                customerXml = customerXml + '<country_id xs:type="type:string">' + address.country + '</country_id>';
+                customerXml = customerXml + '<telephone xs:type="type:string">' + address.telephone + '</telephone>';
+                customerXml = customerXml + '<fax xs:type="type:string">' + address.fax + '</fax>';
+                customerXml = customerXml + '<is_default_billing xs:type="type:int">' + address.isDefaultBilling + '</is_default_billing>';
+                customerXml = customerXml + '<is_default_shipping xs:type="type:int">' + address.isDefaultShipping + '</is_default_shipping>';
+                customerXml = customerXml + '</item>';
+            }
+
             customerXml = customerXml + '</address>';
             customerXml = customerXml + '</customer>';
 
@@ -990,7 +1013,7 @@ XmlUtility = (function () {
 
             for (var counter = 0; counter < items.length; counter++) {
                 var item = items[counter];
-                productXml = productXml + '<item><sku>' + item.sku  + '</sku><qty>' + item.quantity + '</qty></item>';
+                productXml = productXml + '<item><sku>' + item.sku + '</sku><qty>' + item.quantity + '</qty></item>';
             }
 
             productXml = productXml + '</products>';
@@ -1015,6 +1038,31 @@ XmlUtility = (function () {
         },
 
         /**
+         * Shipping information XML
+         * @param shipmentInfo
+         * @return {string}
+         */
+        getShippingXml: function (shipmentInfo) {
+            var shippingXml = '';
+            shippingXml += '<shippingmethod xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + shipmentInfo.shipmentMethod + '</shippingmethod>';
+            return shippingXml;
+        },
+        /**
+         * Payment information XML
+         * @param paymentInfo
+         * @return {string}
+         */
+        getPaymentXml: function (paymentInfo) {
+            var paymentXml = '';
+
+            paymentXml += '<paymentmethod xsi:type="urn:shoppingCartPaymentMethodEntity" xs:type="type:shoppingCartPaymentMethodEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            paymentXml += '<method xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.paymentMethod + '</method>';
+            paymentXml += '</paymentmethod>';
+
+            return paymentXml;
+        },
+
+        /**
          * Creates XML for Sales Order and returns
          * @param orderCreationInfo
          * @param sessionId
@@ -1022,30 +1070,49 @@ XmlUtility = (function () {
          */
         getCreateSalesOrderXml: function (orderCreationInfo, sessionId) {
             var orderXml;
+            var storeId = orderCreationInfo.storeId;
             var customer = orderCreationInfo.customer;
             var items = orderCreationInfo.items;
-            var shipmentMethod = orderCreationInfo.shipmentMethod;
-            var paymentMethod = orderCreationInfo.paymentMethod;
-
-            orderXml = this.XmlHeader;
+            var shipmentInfo = orderCreationInfo.shipmentInfo;
+            var paymentInfo = orderCreationInfo.paymentInfo;
 
             var customerXml = this.getCustomerXmlForSaleOrder(customer);
             var productsXml = this.getProductsXmlForSaleOrder(items);
-            var shippingAndPaymentXml = this.getShippingAndPaymentXml(shipmentMethod, paymentMethod);
+            var shippingXml = this.getShippingXml(shipmentInfo);
+            var paymentXml = this.getPaymentXml(paymentInfo);
 
+            orderXml = this.XmlHeader;
             orderXml = orderXml + '<urn:folio3_salesOrderCreateSalesOrder soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
-            orderXml = orderXml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">341344c61e78abfe03d44d4564b9ad97</sessionId>';
-            orderXml = orderXml + '<storeId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">1</storeId>';
+            orderXml = orderXml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionId + '</sessionId>';
+            orderXml = orderXml + '<storeId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + storeId + '</storeId>';
             orderXml = orderXml + customerXml;
             orderXml = orderXml + productsXml;
-            orderXml = orderXml + shippingAndPaymentXml;
+            orderXml = orderXml + shippingXml;
+            orderXml = orderXml + paymentXml;
             orderXml = orderXml + '</urn:folio3_salesOrderCreateSalesOrder>';
             orderXml = orderXml + this.XmlFooter;
 
             return orderXml;
 
+        },
+
+        /**
+         * This function transform create sales order response into object
+         * @param xml
+         * @return {object}
+         */
+        transformCreateSalesOrderResponse: function (xml) {
+            var obj = {};
+            var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/result/item");
+
+            for (var i in itemNodes) {
+                var itemNode = itemNodes[i];
+                var fieldId = nlapiSelectValue(itemNode, 'field_id');
+                var fieldValue = nlapiSelectValue(itemNode, 'field_value');
+                obj[fieldId] = fieldValue;
+            }
+
+            return obj;
         }
-
-
     };
 })();

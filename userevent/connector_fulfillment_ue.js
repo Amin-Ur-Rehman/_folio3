@@ -41,7 +41,7 @@ function syncFulfillmentsMagento(sessionID, magentoSO) {
     var fulfillmentXML;
     var responseMagento;
     var magentoSOId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
-    var magentoItemIds = ConnectorCommon.getMagentoItemIds();
+    var magentoItemIds = ConnectorCommon.getMagentoItemIds(ConnectorCommon.getFulfillmentItems());
 
     // getting xml for creating fulfillemnt/shipment in Magento
     fulfillmentXML = XmlUtility.getCreateFulfillmentXML(sessionID, magentoItemIds, magentoSOId);

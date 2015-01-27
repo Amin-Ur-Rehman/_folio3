@@ -16,7 +16,10 @@
 var OrderExportHelper = (function () {
     return {
         /**
-         * Gets Order based on the the Store Id
+         * Gets Orders based on the the Store Id
+         * @param allStores
+         * @param storeId
+         * @return {object[],[]}
          */
         getOrders: function (allStores, storeId) {
             var filters = [];
@@ -26,26 +29,199 @@ var OrderExportHelper = (function () {
             var resultObject;
 
             if (!allStores) {
-                filters.push(new nlobjSearchFilter('custbody_f3mg_magento_stores', null, 'is', storeId));
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+            } else {
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
 
-            filters.push(new nlobjSearchFilter('custbody_magentosync_dev', null, 'is', 'F'));
-            arrCols.push(new nlobjSearchColumn('custbody_magento_orderid'));
+            filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
+            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
+            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
 
-            records = nlapiSearchRecord('transaction', null, filters, arrCols);
+            records = nlapiSearchRecord('transaction', null, filters, arrCols) || [];
 
-            if (records != null && records.length > 0) {
+            if (records.length > 0) {
 
                 for (var i = 0; i < records.length; i++) {
                     resultObject = {};
 
                     resultObject.internalId = records[i].getId();
-                    resultObject.magentoOrderIds = records[i].getValue('custbody_magento_orderid');
+                    resultObject.magentoOrderIds = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoId, null, null);
+                    resultObject.magentoStore = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoStore, null, null);
 
                     result.push(resultObject);
                 }
             }
             return result;
+        },
+        /**
+         * Append customer data in orderDataObject for exporting sales order
+         * @param orderRecord
+         * @param orderDataObject
+         */
+        appendCustomerInDataObject: function (orderRecord, orderDataObject) {
+            var obj = {};
+
+            var entityId = parseInt(orderRecord.getFieldValue('entity'));
+            var customerRec = null;
+            try {
+                customerRec = nlapiLoadRecord('customer', entityId, null);
+            }
+            catch (e) {
+                Utility.logException('appendCustomerInDataObject', e);
+            }
+
+            if (Utility.isBlankOrNull(customerRec)) {
+                return;
+            }
+
+            /* Customer Creation Data */
+
+            // We only cater existing customer in Magento so far
+            obj.mode = 'guest';// it can be guest, register & customer
+            obj.customerId = ConnectorCommon.getMagentoIdFromObjArray(customerRec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId), ConnectorConstants.CurrentStore.systemId);
+            obj.email = customerRec.getFieldValue('email') || '';
+            obj.firstName = customerRec.getFieldValue('firstname') || '';
+            obj.lastName = customerRec.getFieldValue('lastname') || '';
+            obj.company = '';
+            obj.street = '';
+            obj.city = '';
+            obj.state = '';
+            obj.stateId = '';
+            obj.country = '';
+            obj.telephone = '';
+            obj.fax = '';
+            obj.isDefaultBilling = '';
+            obj.isDefaultShipping = '';
+            obj.zipCode = '';
+
+            // cater billing and shipping addresses
+            obj.addresses = [];
+
+            var shippingAddressId = orderRecord.getFieldValue('shipaddresslist');
+            var shipAddr = {};
+            var billingAddressId = orderRecord.getFieldValue('billaddresslist');
+            var billAddr = {};
+            var line;
+
+            if (!Utility.isBlankOrNull(shippingAddressId)) {
+                line = customerRec.findLineItemValue('addressbook', 'internalid', shippingAddressId);
+
+                shipAddr.mode = 'shipping';
+                shipAddr.firstName = customerRec.getFieldValue('firstname') || '';
+                shipAddr.lastName = customerRec.getFieldValue('lastname') || '';
+                shipAddr.company = customerRec.getFieldValue('companyname') || '';
+                shipAddr.street = ( customerRec.getLineItemValue('addressbook', 'addr1', line) + ' ' + customerRec.getLineItemValue('addressbook', 'addr2', line) ) || '';
+                shipAddr.city = customerRec.getLineItemValue('addressbook', 'city', line) || '';
+                shipAddr.state = customerRec.getLineItemValue('addressbook', 'state', line) || '';
+                shipAddr.stateId = customerRec.getLineItemValue('addressbook', 'state', line) || '';
+                shipAddr.country = customerRec.getLineItemValue('addressbook', 'addr1', line) || '';
+                shipAddr.telephone = customerRec.getFieldValue('phone') || '';
+                shipAddr.fax = customerRec.getFieldValue('fax') || '';
+                shipAddr.isDefaultBilling = '0';
+                shipAddr.isDefaultShipping = '1';
+                shipAddr.zipCode = customerRec.getLineItemValue('addressbook', 'zip', line) || '';
+
+                obj.addresses.push(shipAddr);
+
+            } else {
+                //todo: write logic here
+            }
+
+            if (!Utility.isBlankOrNull(billingAddressId)) {
+                line = customerRec.findLineItemValue('addressbook', 'internalid', billingAddressId);
+
+                billAddr.mode = 'billing';
+                billAddr.firstName = customerRec.getFieldValue('firstname') || '';
+                billAddr.lastName = customerRec.getFieldValue('lastname') || '';
+                billAddr.company = customerRec.getFieldValue('companyname') || '';
+                billAddr.street = ( customerRec.getLineItemValue('addressbook', 'addr1', line) + ' ' + customerRec.getLineItemValue('addressbook', 'addr2', line) ) || '';
+                billAddr.city = customerRec.getLineItemValue('addressbook', 'city', line) || '';
+                billAddr.state = customerRec.getLineItemValue('addressbook', 'state', line) || '';
+                billAddr.stateId = customerRec.getLineItemValue('addressbook', 'state', line) || '';
+                billAddr.country = customerRec.getLineItemValue('addressbook', 'addr1', line) || '';
+                billAddr.telephone = customerRec.getFieldValue('phone') || '';
+                billAddr.fax = customerRec.getFieldValue('fax') || '';
+                billAddr.isDefaultBilling = '1';
+                billAddr.isDefaultShipping = '0';
+                billAddr.zipCode = customerRec.getLineItemValue('addressbook', 'zip', line) || '';
+
+                obj.addresses.push(billAddr);
+
+            } else {
+                //todo: write logic here
+            }
+
+            orderDataObject.customer = obj;
+        },
+        /**
+         * Append items data in orderDataObject for exporting sales order
+         * @param orderRecord
+         * @param orderDataObject
+         */
+        appendItemsInDataObject: function (orderRecord, orderDataObject) {
+            var arr = [];
+
+            try {
+                var itemId;
+                var itemQty;
+                var line;
+                var itemIdsArr = [];
+                var totalLines = orderRecord.getLineItemCount('item');
+
+                for (line = 1; line <= totalLines; line++) {
+                    itemId = orderRecord.getLineItemValue('item', 'item', line);
+                    if (!Utility.isBlankOrNull(itemId) && itemIdsArr.indexOf(itemId) === -1) {
+                        itemIdsArr.push(itemId);
+                    }
+                }
+
+                // need to cater non-synced items
+                var magentoItemsMap = ConnectorCommon.getMagentoItemIds(itemIdsArr);
+
+                for (line = 1; line <= totalLines; line++) {
+                    itemId = orderRecord.getLineItemValue('item', 'item', line);
+                    itemId = magentoItemsMap[itemId] || '';
+                    itemQty = orderRecord.getLineItemValue('item', 'item', line) || 0;
+
+                    var obj = {
+                        sku: itemId,
+                        quantity: itemQty
+                    };
+                    arr.push(obj);
+                }
+            }
+            catch (e) {
+                Utility.logException('appendItemsInDataObject', e);
+            }
+
+            orderDataObject.items = arr;
+        },
+        /**
+         * Append Shipping information in orderDataObject for exporting sales order
+         * @param orderRecord
+         * @param orderDataObject
+         */
+        appendShippingInfoInDataObject: function (orderRecord, orderDataObject) {
+            var obj = {};
+
+            obj.shipmentMethod = 'flatrate_flatrate';
+
+            orderDataObject.shipmentInfo = obj;
+        },
+
+        /**
+         * Append Shipping information in orderDataObject for exporting sales order
+         * @param orderRecord
+         * @param orderDataObject
+         */
+        appendPaymentInfoInDataObject: function (orderRecord, orderDataObject) {
+            var obj = {};
+
+            obj.paymentMethod = 'checkmo';
+
+            orderDataObject.paymentInfo = obj;
         },
 
         /**
@@ -53,28 +229,20 @@ var OrderExportHelper = (function () {
          * @param parameter
          */
         getOrder: function (orderInternalId, storeInfo) {
+            var orderDataObject = null;
             try {
-                var orderRecord = nlapiLoadRecord('transaction ', orderInternalId);
-                var orderDataObject = null;
+                var orderRecord = nlapiLoadRecord('salesorder', orderInternalId, null);
 
-                if (orderRecord != null)  {
-
+                if (orderRecord !== null) {
                     orderDataObject = {};
 
-                    orderDataObject.email = orderRecord.getFieldValue('email');
-                    orderDataObject.firstname = orderRecord.getFieldValue('firstname');
-                    orderDataObject.middlename = orderRecord.getFieldValue('middlename');
-                    orderDataObject.lastname = orderRecord.getFieldValue('lastname');
-                    orderDataObject.password = orderRecord.getFieldValue('password');
-                    orderDataObject.website_id = "";
-                    orderDataObject.store_id = storeInfo.systemId;
-                    orderDataObject.group_id = "";
-                    orderDataObject.prefix = orderRecord.getFieldValue('salutation');
-                    orderDataObject.suffix = "";
-                    orderDataObject.dob = "";
-                    orderDataObject.taxvat = "";
-                    orderDataObject.gender = "";
+                    orderDataObject.storeId = '1';
                     orderDataObject.nsObj = orderRecord;
+
+                    this.appendCustomerInDataObject(orderRecord, orderDataObject);
+                    this.appendItemsInDataObject(orderRecord, orderDataObject);
+                    this.appendShippingInfoInDataObject(orderRecord, orderDataObject);
+                    this.appendPaymentInfoInDataObject(orderRecord, orderDataObject);
                 }
             } catch (e) {
                 Utility.logException('Error during main getOrder', e);
@@ -89,9 +257,9 @@ var OrderExportHelper = (function () {
          */
         setOrderMagentoId: function (magentoId, orderId) {
             try {
-
+                nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {
-                Utility.logException('Error during main setOrderMagentoId', e);
+                Utility.logException('setOrderMagentoId', e);
             }
         },
 
@@ -102,7 +270,7 @@ var OrderExportHelper = (function () {
         setOrderMagentoSync: function (orderId) {
             var result = false;
             try {
-                nlapiSubmitField('transaction',orderId,'custbody_magentosync_dev','T');
+                nlapiSubmitField('transaction', orderId, 'custbody_magentosync_dev', 'T');
                 result = true;
             } catch (e) {
                 Utility.logException('Error during main setOrderMagentoSync', e);
@@ -130,7 +298,7 @@ var OrderExportHelper = (function () {
 var ExportSalesOrders = (function () {
     return {
 
-        startTime: null,
+        startTime: (new Date()).getTime(),
         minutesAfterReschedule: 15,
 
         /**
@@ -152,6 +320,8 @@ var ExportSalesOrders = (function () {
                 externalSystemArr.push(store);
 
             });
+
+            return externalSystemArr;
         },
 
         /**
@@ -163,9 +333,9 @@ var ExportSalesOrders = (function () {
         processOrder: function (orderObject, store) {
 
             var magentoIdObjArrStr,
-              nsOrderUpdateStatus,
-              requestXml,
-              responseMagento;
+                nsOrderUpdateStatus,
+                requestXml,
+                responseMagento;
 
             var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
 
@@ -179,19 +349,18 @@ var ExportSalesOrders = (function () {
 
             requestXml = OrderExportHelper.getMagentoRequestXml(orderRecord, store.sessionID);
 
+            ConnectorCommon.createLogRec(orderObject.internalId, requestXml);
+
             Utility.logDebug('store.endpoint', store.endpoint);
 
-            responseMagento = XmlUtility.soapRequestToMagento(requestXml);
+            responseMagento = XmlUtility.validateAndTransformResponse(XmlUtility.soapRequestToMagento(requestXml), XmlUtility.transformCreateSalesOrderResponse);
 
             Utility.logDebug('debug', 'Step-5c');
 
-            if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
+            if (responseMagento.status) {
                 Utility.logDebug('debug', 'Step-6');
 
-                //Update Netsuite Customer with Netsuite Customer Id and Store Id
-                magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoOrderId, 'create', null);
-
-                nsOrderUpdateStatus = OrderExportHelper.setOrderMagentoId(magentoIdObjArrStr, orderObject.internalId);
+                OrderExportHelper.setOrderMagentoId(responseMagento.data.orderIncrementId, orderObject.internalId);
 
             } else {
                 //Log error with fault code that this customer is not synched with magento
@@ -228,23 +397,24 @@ var ExportSalesOrders = (function () {
                     return false;
                 }
 
-                this.startTime = (new Date()).getTime();
-
                 try {
+                    var that = this;
                     externalSystemArr.forEach(function (store) {
+
+                        ConnectorConstants.CurrentStore = store;
 
                         Utility.logDebug('debug', 'Step-2');
 
-                        orderIds = OrderExportHelper.getOrders(false, store.internalId);
+                        orderIds = OrderExportHelper.getOrders(false, store.systemId);
 
                         Utility.logDebug('debug', 'Step-3');
 
-                        if (orderIds != null && orderIds.length > 0) {
+                        if (orderIds.length > 0) {
                             for (var c = 0; c < orderIds.length; c++) {
 
                                 var orderObject = orderIds[c];
 
-                                this.processOrder(orderObject, store);
+                                that.processOrder(orderObject, store);
 
                                 usageRemaining = context.getRemainingUsage();
 
@@ -350,7 +520,7 @@ var ExportSalesOrders = (function () {
                 var endTime = (new Date()).getTime();
 
                 var minutes = Math.round(((endTime - this.startTime) / (1000 * 60)) * 100) / 100;
-                Utility.logDebug('DEBUG', 'Time', 'Minutes: ' + minutes + ' , endTime = ' + endTime + ' , startTime = ' + this.startTime);
+                Utility.logDebug('Time', 'Minutes: ' + minutes + ' , endTime = ' + endTime + ' , startTime = ' + this.startTime);
                 // if script run time greater than 50 mins then reschedule the script to prevent time limit exceed error
 
                 if (minutes > this.minutesAfterReschedule) {
@@ -359,7 +529,7 @@ var ExportSalesOrders = (function () {
                 }
 
             } catch (e) {
-                Utility.logDebug('ERROR', 'Error during schedule: ', +JSON.stringify(e) + ' , usageRemaining = ' + usageRemaining);
+                Utility.logException('ExportSalesOrders.rescheduleIfNeeded', e);
             }
             return false;
         },
@@ -370,12 +540,12 @@ var ExportSalesOrders = (function () {
         processRecords: function (records) {
             var context = nlapiGetContext();
 
-            Utility.logDebug('DEBUG', 'inside processRecords', 'processRecords');
+            Utility.logDebug('inside processRecords', 'processRecords');
 
             //HACK: Need to remove this
             var count = records.length;
 
-            Utility.logDebug('DEBUG', 'value of count', count);
+            Utility.logDebug('value of count', count);
 
             for (var i = 0; i < count; i++) {
                 try {
@@ -390,7 +560,7 @@ var ExportSalesOrders = (function () {
                     }
 
                 } catch (e) {
-                    Utility.logDebug('ERROR', 'Error during processRecords', e.toString());
+                    Utility.logException('ExportSalesOrders.processRecords', e);
                 }
             }
         },
