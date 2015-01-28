@@ -62,13 +62,10 @@ function customerExport() {
 
                 for (var c = 0; c < customerIds.length; c++) {
 
-
-
+                    if(c==50)
+                    return;
 
                     externalSystemArr.forEach(function(store) {
-
-
-
 
                         magentoReferences = customerIds[c].magentoCustomerIds;
 
@@ -97,10 +94,13 @@ function customerExport() {
                                 customerSynched = createCustomerInMagento(customerIds[c], store, magentoReferences);
 
                             } else {
+
                                 Utility.logDebug('Customer Update Block ');
 
                                 //Update Customer for Current Store
                                 customerSynched = updateCustomerInMagento(customerIds[c], store, magentoStoreAndCustomer[store.systemId], magentoReferences);
+
+                                Utility.logDebug('End Update Block ');
 
 
                             }
@@ -177,7 +177,12 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
 
         requsetXML = CUSTOMER.getMagentoCreateCustomerRequestXML(customerRecord, store.sessionID);
-        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagento(requsetXML), 'create');
+
+
+
+
+
+        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store), 'create');
 
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
@@ -190,7 +195,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
             //Address Sync
             if (nsCustomerUpdateStatus) {
-                customerSynched = createAddressesInMagento(customerRecord.nsObj, store, responseMagento.magentoCustomerId);
+                customerSynched = createAddressesInMagento(customerRecord, store, responseMagento.magentoCustomerId);
             }
 
         } else {
@@ -217,21 +222,21 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
         customerRecord.magentoId = magentoId;
         requsetXML = CUSTOMER.getMagentoUpdateCustomerRequestXML(customerRecord, store.sessionID);
 
+        //Temporary Code
+        //var logRec = nlapiCreateRecord('customrecord_dummaydata');
+
+        //if (!!requsetXML) {
+        //    logRec.setFieldValue('custrecord_xmldata', 'Update Customer   ' + requsetXML);
+        //    nlapiSubmitRecord(logRec);
+
+        //}
 
 
+        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store), 'update');
 
-        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagento(requsetXML), 'update');
-
-
-        Utility.logDebug('responseMagento.updated',(responseMagento.updated)  );
-
-        Utility.logDebug('responseMagento.updated',(responseMagento.updated == true));
-
-        if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated==true) {
+        if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated=="true") {
 
             magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
-
-
 
             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
@@ -264,8 +269,18 @@ function createAddressesInMagento(customerRecordObject, store, magentoCustomerId
 
         if (scannedAddressForMagento) {
 
+
             //Address is valid for magento
             requsetXML = CUSTOMER.getMagentoAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
+
+            //Temporary Code
+            //var logRec = nlapiCreateRecord('customrecord_dummaydata');
+
+           // if (!!requsetXML) {
+           //     logRec.setFieldValue('custrecord_xmldata', 'Create Address   ' + requsetXML);
+           //     nlapiSubmitRecord(logRec);
+
+           // }
 
             responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
 

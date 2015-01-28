@@ -10,7 +10,7 @@ getCustomers : function()
     var arrCols = new Array();
     var resultObject;
 
-    arrFils.push(new nlobjSearchFilter('internalid',null,'is','1542'));
+    //arrFils.push(new nlobjSearchFilter('internalid',null,'anyof',['1542','1249','155']));
 
     arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -90,6 +90,10 @@ getCustomer :function(customerInternalId,storeInfo)
 
         customerDataObject.companyName=getBlankForNull(customerRecord.getFieldValue('companyname'));
 
+        customerDataObject.entityid=getBlankForNull(customerRecord.getFieldValue('entityid'));
+
+
+
 
         if(customerDataObject.isPerson=="T")
         {
@@ -99,6 +103,12 @@ getCustomer :function(customerInternalId,storeInfo)
         }
         else
         {
+
+            if(customerDataObject.companyName=="")
+            {
+                customerDataObject.companyName=customerDataObject.entityid;
+            }
+
             names=getFirstNameLastName(customerDataObject.companyName);
 
             customerDataObject.firstname = names['firstName'];
@@ -107,7 +117,7 @@ getCustomer :function(customerInternalId,storeInfo)
         }
 
         customerDataObject.password="";
-        customerDataObject.website_id="";
+        customerDataObject.website_id="1";
         customerDataObject.store_id=storeInfo.systemId;
         customerDataObject.group_id="";
         customerDataObject.prefix=getBlankForNull(customerRecord.getFieldValue('salutation'));
@@ -123,26 +133,38 @@ getCustomer :function(customerInternalId,storeInfo)
 
 },
 
-    getNSCustomerAddresses :function(customerRecord)
+    getNSCustomerAddresses :function(customerRecordObject)
     {
         var customerAddresses=new Array();
         var addressObject;
         var names;
+        var customerRecord=customerRecordObject.nsObj;
 
         for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
         {
             addressObject=new Object();
             addressObject.defaultshipping=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultshipping',i));
             addressObject.defaultbilling=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultbilling',i));
-            addressObject.country=getBlankForNull(customerRecord.getLineItemValue('addressbook','country',i));
+            addressObject.country=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','country',i)));
 
 
 
-            addressObject.firstname=getBlankForNull(customerRecord.getLineItemValue('addressbook','addressee',i));
+            addressObject.firstname=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addressee',i)));
+
+
 
             names=getFirstNameLastName(addressObject.firstname);
-            addressObject.firstname=names['firstName'];
-            addressObject.lastname=names['lastName'];
+
+
+
+            addressObject.firstname=nlapiEscapeXML(names['firstName']);
+            addressObject.lastname=nlapiEscapeXML(names['lastName']);
+
+            if(addressObject.firstname=="")
+                addressObject.firstname=customerRecordObject.firstname;
+
+            if(addressObject.lastname=="")
+                addressObject.lastname=customerRecordObject.lastname;
 
             addressObject.middlename='';
             addressObject.suffix='';
@@ -154,16 +176,16 @@ getCustomer :function(customerInternalId,storeInfo)
 
 
             addressObject.telephone=getBlankForNull(customerRecord.getLineItemValue('addressbook','phone',i));
-            addressObject.city=getBlankForNull(customerRecord.getLineItemValue('addressbook','city',i));
-            addressObject.street1=getBlankForNull(customerRecord.getLineItemValue('addressbook','addr1',i));
-            addressObject.street2=getBlankForNull(customerRecord.getLineItemValue('addressbook','addr2',i));
+            addressObject.city=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','city',i)));
+            addressObject.street1=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addr1',i)));
+            addressObject.street2=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addr2',i)));
 
 
-            addressObject.region=getBlankForNull(customerRecord.getLineItemValue('addressbook','state',i));
+            addressObject.region=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','state',i)));
             addressObject.region_text=addressObject.region;
 
 
-            addressObject.postcode=getBlankForNull(customerRecord.getLineItemValue('addressbook','zip',i));
+            addressObject.postcode=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','zip',i)));
 
 
 
@@ -189,9 +211,9 @@ getCustomer :function(customerInternalId,storeInfo)
             xml=xml+'<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+sessionId+'</sessionId>';
             xml=xml+'<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             xml=xml+'<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
-            xml=xml+'<email xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.email+'</email>';
-            xml=xml+'<firstname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.firstname+'</firstname>';
-            xml=xml+'<lastname xsi:type="xsd:string" xs:type="type:string">'+customerDataObject.lastname+'</lastname>';
+            xml=xml+'<email xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.email)+'</email>';
+            xml=xml+'<firstname xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.firstname)+'</firstname>';
+            xml=xml+'<lastname xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.lastname)+'</lastname>';
             xml=xml+'<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
             xml=xml+'<password xsi:type="xsd:string" xs:type="type:string"></password>';
             xml=xml+'<website_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.website_id+'</website_id>';
@@ -228,9 +250,9 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '<customerId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + customerDataObject.magentoId + '</customerId>';
             xml = xml + '<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             xml = xml + '<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
-            xml = xml + '<email xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.email + '</email>';
-            xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.firstname + '</firstname>';
-            xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + customerDataObject.lastname + '</lastname>';
+            xml = xml + '<email xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.email) + '</email>';
+            xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.firstname) + '</firstname>';
+            xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.lastname) + '</lastname>';
             xml = xml + '<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
             xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
             xml = xml + '<website_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.website_id + '</website_id>';

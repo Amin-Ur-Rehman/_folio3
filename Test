@@ -1,28 +1,28 @@
 <soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                                     xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">
-<soapenv:Header/>
-<soapenv:Body>
-    <urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-        <sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">
-            06d04ed4795cc6db578021a27af4f8fc
-        </sessionId>
-        <customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate"
-                      xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">
-            <customer_id xsi:type="xsd:int" xs:type="type:int"/>
-            <email xsi:type="xsd:string" xs:type="type:string">aa@fake-email.com</email>
-            <firstname xsi:type="xsd:string" xs:type="type:string">Aaron</firstname>
-            <lastname xsi:type="xsd:string" xs:type="type:string">Abbott (Edit)</lastname>
-            <middlename xsi:type="xsd:string" xs:type="type:string"></middlename>
-            <password xsi:type="xsd:string" xs:type="type:string"></password>
-            <website_id xsi:type="xsd:int" xs:type="type:int"></website_id>
-            <store_id xsi:type="xsd:int" xs:type="type:int">2</store_id>
-            <group_id xsi:type="xsd:int" xs:type="type:int"></group_id>
-            <prefix xsi:type="xsd:string" xs:type="type:string"></prefix>
-            <suffix xsi:type="xsd:string" xs:type="type:string"></suffix>
-            <dob xsi:type="xsd:string" xs:type="type:string"></dob>
-            <taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>
-            <gender xsi:type="xsd:int" xs:type="type:int"></gender>
-        </customerData>
-    </urn:customerCustomerCreate>
-</soapenv:Body>
+                  xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+            <sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">
+                05c36fe89c097256d7d5472ec4b06da0
+            </sessionId>
+            <customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate"
+                          xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">
+                <customer_id xsi:type="xsd:int" xs:type="type:int"/>
+                <email xsi:type="xsd:string" xs:type="type:string">amy@kall.com</email>
+                <firstname xsi:type="xsd:string" xs:type="type:string"></firstname>
+                <lastname xsi:type="xsd:string" xs:type="type:string"></lastname>
+                <middlename xsi:type="xsd:string" xs:type="type:string"></middlename>
+                <password xsi:type="xsd:string" xs:type="type:string"></password>
+                <website_id xsi:type="xsd:int" xs:type="type:int"></website_id>
+                <store_id xsi:type="xsd:int" xs:type="type:int">1</store_id>
+                <group_id xsi:type="xsd:int" xs:type="type:int"></group_id>
+                <prefix xsi:type="xsd:string" xs:type="type:string"></prefix>
+                <suffix xsi:type="xsd:string" xs:type="type:string"></suffix>
+                <dob xsi:type="xsd:string" xs:type="type:string"></dob>
+                <taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>
+                <gender xsi:type="xsd:int" xs:type="type:int"></gender>
+            </customerData>
+        </urn:customerCustomerCreate>
+    </soapenv:Body>
 </soapenv:Envelope>

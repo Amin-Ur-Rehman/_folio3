@@ -760,6 +760,9 @@ XmlUtility = (function () {
 
             responseMagento.status = true;
 
+            nlapiLogExecution('debug','operation',operation);
+
+
 
             try {
 
@@ -784,17 +787,6 @@ XmlUtility = (function () {
                 }
                 else if (operation == "update") {
 
-
-
-                    //Temporary Code
-                    var logRec = nlapiCreateRecord('customrecord_dummaydata');
-
-                    if (!!requsetXML) {
-                        logRec.setFieldValue('custrecord_xmldata', xml);
-                        nlapiSubmitRecord(logRec);
-
-                    }
-
                     faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                     faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
@@ -816,6 +808,8 @@ XmlUtility = (function () {
                 }
 
             } catch (ex) {
+
+
             }
 
             return responseMagento;
