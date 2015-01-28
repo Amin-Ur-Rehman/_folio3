@@ -44,7 +44,7 @@ XmlUtility = (function () {
                 var responseXML = this.soapRequestToMagento(loginXML);
                 sessionID = nlapiSelectValue(responseXML, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:loginResponse/loginReturn");
             } catch (ex) {
-                Utility.logException('ConnectorCommon.getSessionIDFromMagento', ex);
+                Utility.logException('XmlUtility.getSessionIDFromMagento', ex);
             }
 
             return sessionID;
@@ -659,6 +659,7 @@ XmlUtility = (function () {
 
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateItemExportResponse', ex);
             }
 
 
@@ -698,6 +699,7 @@ XmlUtility = (function () {
 
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateGetIDResponse', ex);
             }
 
             if (!Utility.isBlankOrNull(faultCode)) {
@@ -778,6 +780,7 @@ XmlUtility = (function () {
                 }
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateCustomerExportOperationResponse', ex);
             }
 
             return responseMagento;
@@ -811,6 +814,7 @@ XmlUtility = (function () {
                 }
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateCustomerAddressExportOperationResponse', ex);
             }
 
 
@@ -837,6 +841,7 @@ XmlUtility = (function () {
 
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateTrackingCreateResponse', ex);
             }
 
 
@@ -881,6 +886,7 @@ XmlUtility = (function () {
 
 
             } catch (ex) {
+                Utility.logException('XmlUtility.validateFulfillmentExportResponse', ex);
             }
 
 
@@ -923,7 +929,7 @@ XmlUtility = (function () {
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 responseMagento.data = method(xml);
             } catch (ex) {
-                // unhandled exception -
+                Utility.logException('XmlUtility.validateAndTransformResponse', ex);
             }
 
             if (!Utility.isBlankOrNull(faultCode)) {
@@ -1013,7 +1019,13 @@ XmlUtility = (function () {
 
             for (var counter = 0; counter < items.length; counter++) {
                 var item = items[counter];
-                productXml = productXml + '<item><sku>' + item.sku + '</sku><qty>' + item.quantity + '</qty></item>';
+
+                productXml += '<item>';
+                productXml += '<sku>' + item.sku + '</sku>';
+                productXml += '<qty>' + item.quantity + '</qty>';
+                productXml += '<customprice>' + item.price + '</customprice>';
+                productXml += '</item>';
+
             }
 
             productXml = productXml + '</products>';

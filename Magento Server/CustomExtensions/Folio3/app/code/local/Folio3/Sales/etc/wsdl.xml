@@ -309,6 +309,7 @@
                     <element name="product_id" type="xsd:string" minOccurs="0"/>
                     <element name="sku" type="xsd:string" minOccurs="0"/>
                     <element name="qty" type="xsd:double" minOccurs="0"/>
+                    <element name="customprice" type="xsd:double" minOccurs="0"/>
                     <element name="options" type="typens:associativeArray" minOccurs="0"/>
                     <element name="bundle_option" type="typens:associativeArray" minOccurs="0"/>
                     <element name="bundle_option_qty" type="typens:associativeArray" minOccurs="0"/>

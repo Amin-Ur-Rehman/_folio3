@@ -5,6 +5,14 @@ require_once 'Folio3/Common/CustomAttributeEntity.php';
 
 class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
+    private $storeId;
+    private $customer;
+    private $addresses;
+    private $products;
+    private $shippingMehtod;
+    private $paymentData;
+    private $quote;
+
     /**
      * Retrieve Sales Order data
      *
@@ -45,136 +53,24 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * @return array
      */
     public function createSalesOrder($storeId, $customer, $products, $shippingmethod, $paymentmethod) {
-        /*
-         * http://stackoverflow.com/questions/4878634/magento-catching-exceptions-and-rolling-back-database-transactions
-          $transactionSave = Mage::getModel('core/resource_transaction');
-          $transactionSave->addObject($model_one);
-          $transactionSave->addObject($model_two);
-          $transactionSave->save();
-         */
+
+        // initialize members variables for quote
+        $this->initDataForQuote($storeId, $customer, $products, $shippingmethod, $paymentmethod);
 
         $quoteId = null;
-
         try {
-            //http://magento.stackexchange.com/questions/18267/how-to-create-order-programmatically-with-downloadable-products
-            $transactionSave = Mage::getModel('core/resource_transaction');
+            // create quote
+            $quoteId = $this->createQuote();
+            Mage::log('quote: ' . $quoteId, null, 'success.log', true);
 
-            /* Mage::log('storeId: ' . json_encode($storeId), null, 'success.log', true);
-              Mage::log('customer: ' . json_encode($customer), null, 'success.log', true);
-              Mage::log('productsEntityArray: ' . json_encode($products), null, 'success.log', true);
-              Mage::log('shippingmethod: ' . json_encode($shippingmethod), null, 'success.log', true);
-              Mage::log('paymentmethod: ' . json_encode($paymentmethod), null, 'success.log', true); */
-
-            $id = $customer->entity->customer_id; // get Customer Id - TODO: generalize for guest, new and existing customers
-            $customerRec = Mage::getModel('customer/customer')->load($id);
-
-            //$storeId = $customer->getStoreId();// todo: test store id for multiple views of same magento store
-
-            $quote = Mage::getModel('sales/quote')->setStoreId($storeId);
-
-            $quote->assignCustomer($customerRec);
-
-
-            foreach ($products as $p) {
-
-                // add product(s)
-                $product = Mage::getModel('catalog/product');
-                $product = $product->load($product->getIdBySku($p->sku));
-                $buyInfo = array(
-                    'qty' => $p->qty,
-                    'price' => 0
-                        // custom option id => value id
-                        // or
-                        // configurable attribute id => value id
-                );
-                $params = array();
-                //$links = Mage::getModel('downloadable/product_type')->getLinks($product);
-                //$linkId = 0;
-                //foreach ($links as $link) {
-                //   $linkId = $link->getId();
-                //}
-                //$params['product'] = $product;
-                $params['qty'] = $p->qty;
-                //$params['links'] = array($linkId);
-                $request = new Varien_Object();
-
-                $request->setData($params);
-                //$quoteObj->addProduct($productObj , $request);
-
-                /* [adamw] Bundled product options would look like this:
-
-                  $buyInfo = array(
-                  "qty" => 1,
-                  "bundle_option" = array(
-                  "123" => array(456), //optionid => array( selectionid )
-                  "124" => array(235)
-                  )
-                  );
-
-                 */
-                //$class_name = get_class($quote);
-                //Zend_Debug::dump($class_name);
-
-                $quote->addProduct($product, $request);
-            }
-
-            // TODO: getting shipping and billing data from request if found else fetch it from customer else throw error
-
-            $shippingAddress = null;
-            $addresses = $customer->address;
-
-            foreach ($addresses as $address) {
-
-                $addressData = array(
-                    'firstname' => $address->firstname,
-                    'lastname' => $address->lastname,
-                    'street' => $address->street,
-                    'city' => $address->city,
-                    'postcode' => $address->postcode,
-                    'telephone' => $address->telephone,
-                    'country_id' => $address->country_id,
-                    'region_id' => $address->region_id, // id from directory_country_region table
-                );
-
-                if ($address->mode == "billing") {
-                    $billingAddress = $quote->getBillingAddress()->addData($addressData);
-                } else if ($address->mode == "shipping") {
-                    $shippingAddress = $quote->getShippingAddress()->addData($addressData);
-                } else {
-                    // TODO: handle if mode is not defined
-                    //shippingAddress = $quote->getShippingAddress()->addData($addressData);
-                    //$billingAddress = $quote->getBillingAddress()->addData($addressData);
-                }
-            }
-
-            if ($shippingmethod == 'freeshipping_freeshipping') {
-                $shippingAddress->setFreeShipping(true)
-                        ->setCollectShippingRates(true)->collectShippingRates()
-                        ->setShippingMethod('freeshipping_freeshipping')
-                        ->setPaymentMethod('checkmo');
-            } else {
-                $shippingAddress->setCollectShippingRates(true)->collectShippingRates()
-                        ->setShippingMethod('flatrate_flatrate')
-                        ->setPaymentMethod('checkmo');
-            }
-
-            //$quote->setCouponCode('ABCD'); TODO: undo if necessory
-
-            $quote->getPayment()->importData(array('method' => 'checkmo'));
-
-            $quote->collectTotals()->save();
-
-            $quoteId = $quote->getId();
-
-            Mage::log('quote: ' . $quote->getId(), null, 'success.log', true);
-
-            $service = Mage::getModel('sales/service_quote', $quote);
+            // create sales order from quote
+            $service = Mage::getModel('sales/service_quote', $this->quote);
             $service->submitAll();
 
+            // getting created order
             $order = $service->getOrder();
 
-            //printf("Created order %s\n", $order->getIncrementId());
-
+            // set order increment id in web service response
             $customAttribute = new CustomAttributeEntity();
             $customAttribute->field_id = 'orderIncrementId';
             $customAttribute->field_value = $order->getIncrementId();
@@ -184,19 +80,173 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
             return $result;
         } catch (Exception $e) {
+            // TODO: handle quote rollback - future
+            $this->delteQuote($quoteId);
+            throw $e;
+        }
+    }
 
-            // delete quote if sales order is not created
-            if (!empty($quoteId)) {
-                try {
-                    $quote = Mage::getModel("sales/quote")->load($quoteId);
-                    $quote->setIsActive(false);
-                    $quote->delete();
-                } catch (Exception $e) {
-                    
-                }
+    /**
+     * Initialize member varibles for quote
+     * @param string $storeId
+     * @param object $customerData
+     * @param object $products
+     * @param string $shippingMethod
+     * @param object $paymentData
+     * @return void
+     */
+    private function initDataForQuote($storeId, $customerData, $products, $shippingMethod, $paymentData) {
+        $this->storeId = $storeId;
+        $this->customer = $customerData->entity;
+        $this->addresses = $customerData->address;
+        $this->products = $products;
+        $this->shippingMehtod = $shippingMethod;
+        $this->paymentData = $paymentData;
+    }
+
+    /**
+     * Create a Quote
+     * @return string $quoteId
+     */
+    private function createQuote() {
+        $this->quote = $this->getQuoteModel();
+
+        $this->setStoreId();
+        $this->setCustomer();
+        $this->addProducts();
+        $this->setAddressesAndPaymentInfo();
+        $this->quote->save();
+        $quoteId = $this->quote->getId();
+
+        return $quoteId;
+    }
+
+    /**
+     * Set Store Id in Quote
+     */
+    private function setStoreId() {
+        $this->quote->setStoreId($this->storeId);
+    }
+
+    /**
+     * Get Quote Model
+     * @return  Mage_Core_Model_Abstract|false
+     */
+    private function getQuoteModel() {
+        return Mage::getModel('sales/quote');
+    }
+
+    /**
+     * Assign/Set Customer in the Quote
+     */
+    private function setCustomer() {
+        // get Customer Id - TODO: generalize for guest, new and existing customers
+        $id = $this->customer->customer_id;
+        $customer = Mage::getModel('customer/customer')->load($id);
+        //$storeId = $customer->getStoreId();// todo: test store id for multiple views of same magento store
+        $this->quote->assignCustomer($customer);
+    }
+
+    /**
+     * Add products in the Quote
+     */
+    private function addProducts() {
+        $products = $this->products;
+        foreach ($products as $p) {
+            // add product(s)
+            $product = Mage::getModel('catalog/product');
+
+            // if identifier type is sku then get product id using sku
+            if (!empty($p->sku)) {
+                $productId = $product->getIdBySku($p->sku);
+            } else {
+                $productId = $p->product_id;
             }
 
-            throw $e;
+            $product = $product->load($productId);
+            
+            $customPrice = $p->customprice;
+
+            $params = array();
+            $params['qty'] = $p->qty;
+            $request = new Varien_Object();
+            $request->setData($params);
+
+            if (!isset($customPrice)) {
+                $this->quote->addProduct($product, $request);
+            } else {
+                // we need (setOriginalCustomPrice) since Magento 1.4
+                $this->quote->addProduct($product, $request)->setOriginalCustomPrice($customPrice); //custom price
+            }
+        }
+    }
+
+    /**
+     * Set Shipping & Billing Addresses and Shipping & Payment information in the Quote
+     */
+    private function setAddressesAndPaymentInfo() {
+        // TODO: getting shipping and billing data from request if found else fetch it from customer else throw error
+        $shippingAddress = null;
+        $addresses = $this->addresses;
+
+        foreach ($addresses as $address) {
+            // create address array
+            $addressData = array(
+                'firstname' => $address->firstname,
+                'lastname' => $address->lastname,
+                'street' => $address->street,
+                'city' => $address->city,
+                'postcode' => $address->postcode,
+                'telephone' => $address->telephone,
+                'country_id' => $address->country_id,
+                'region_id' => $address->region_id, // id from directory_country_region table
+            );
+
+            if ($address->mode == "billing") {
+                $billingAddress = $this->quote->getBillingAddress()->addData($addressData);
+            } else if ($address->mode == "shipping") {
+                $shippingAddress = $this->quote->getShippingAddress()->addData($addressData);
+            } else {
+                // TODO: handle if mode is not defined
+                //shippingAddress = $quote->getShippingAddress()->addData($addressData);
+                //$billingAddress = $quote->getBillingAddress()->addData($addressData);
+            }
+        }
+
+        // set Shipping and Payment Information
+        if ($this->shippingMehtod == 'freeshipping_freeshipping') {
+            $shippingAddress->setFreeShipping(true)
+                    ->setCollectShippingRates(true)->collectShippingRates()
+                    ->setShippingMethod('freeshipping_freeshipping')
+                    ->setPaymentMethod('checkmo');
+        } else {
+            $shippingAddress->setCollectShippingRates(true)->collectShippingRates()
+                    ->setShippingMethod('flatrate_flatrate')
+                    ->setPaymentMethod('checkmo');
+        }
+
+        // set coupon code if necessory
+        //$quote->setCouponCode('ABCD');
+        $this->quote->getPayment()->importData(array('method' => 'checkmo'));
+        $this->quote->collectTotals()->save();
+    }
+
+    /**
+     * Delete Quote
+     * @param string $quoteId
+     */
+    private function delteQuote($quoteId) {
+        // delete quote if sales order is not created
+        if (!empty($quoteId)) {
+            try {
+                $quote = Mage::getModel("sales/quote")->load($quoteId);
+                $quote->setIsActive(false);
+                $quote->delete();
+            } catch (Exception $e) {
+                // we are not handling this extecption 
+                // as the order is not created from quote
+                // so no need to check the quote
+            }
         }
     }
 
