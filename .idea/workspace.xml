@@ -2,13 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="64dfb4b4-4c0d-45be-8219-c774e4e8e726" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test" afterPath="$PROJECT_DIR$/Test" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util/f3_customerExport_lib.js" afterPath="$PROJECT_DIR$/util/f3_customerExport_lib.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dao/f3_external_system_config_dao.js" afterPath="$PROJECT_DIR$/dao/f3_external_system_config_dao.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scheduled/connection_export_so_sch.js" afterPath="$PROJECT_DIR$/scheduled/connection_export_so_sch.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/userevent/connector_fulfillment_ue.js" afterPath="$PROJECT_DIR$/userevent/connector_fulfillment_ue.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util/f3mg_connector_common.js" afterPath="$PROJECT_DIR$/util/f3mg_connector_common.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js" afterPath="$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/util/f3mg_xml_utility.js" afterPath="$PROJECT_DIR$/util/f3mg_xml_utility.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" afterPath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="f3-ns-mg-connector.iws" />
@@ -35,7 +32,7 @@
       <file leaf-file-name="f3mg_customerexport_sch.js" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.39506173" vertical-offset="3486" max-vertical-offset="4675">
+            <state vertical-scroll-proportion="0.60493827" vertical-offset="3333" max-vertical-offset="4675">
               <caret line="222" column="63" selection-start-line="222" selection-start-column="63" selection-end-line="222" selection-end-column="63" />
               <folding>
                 <element signature="n#!!block;n#createAddressesInMagento#0" expanded="false" />
@@ -64,10 +61,10 @@
         <option value="$PROJECT_DIR$/util/f3_client_factory.js" />
         <option value="$PROJECT_DIR$/util/f3_utility_methods.js" />
         <option value="$PROJECT_DIR$/dao/f3_external_system_config_dao.js" />
-        <option value="$PROJECT_DIR$/util/f3mg_connector_common.js" />
         <option value="$PROJECT_DIR$/util/f3_customerExport_lib.js" />
         <option value="$PROJECT_DIR$/Test" />
         <option value="$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js" />
+        <option value="$PROJECT_DIR$/util/f3mg_connector_common.js" />
         <option value="$PROJECT_DIR$/util/f3mg_xml_utility.js" />
       </list>
     </option>
@@ -146,20 +143,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="scheduled" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="f3-ns-mg-connector" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="f3-ns-mg-connector" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="dao" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -175,6 +158,14 @@
     <property name="FullScreen" value="false" />
   </component>
   <component name="RunManager">
+    <configuration default="true" type="DartUnitRunConfigurationType" factoryName="DartUnit">
+      <option name="VMOptions" />
+      <option name="arguments" />
+      <option name="filePath" />
+      <option name="scope" value="ALL" />
+      <option name="testName" />
+      <method />
+    </configuration>
     <configuration default="true" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application">
       <option name="VMOptions" />
       <option name="arguments" />
@@ -185,12 +176,14 @@
       <option name="showConsoleOnStdOut" value="false" />
       <method />
     </configuration>
-    <configuration default="true" type="DartUnitRunConfigurationType" factoryName="DartUnit">
-      <option name="VMOptions" />
-      <option name="arguments" />
+    <configuration default="true" type="CucumberJavaScriptRunConfigurationType" factoryName="Cucumber.js">
+      <option name="cucumberJsArguments" />
+      <option name="executablePath" />
       <option name="filePath" />
-      <option name="scope" value="ALL" />
-      <option name="testName" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerKarma" factoryName="Karma" config-file="">
+      <envs />
       <method />
     </configuration>
     <configuration default="true" type="JSTestDriver:ConfigurationType" factoryName="JsTestDriver">
@@ -198,16 +191,6 @@
       <setting name="settingsFile" value="" />
       <setting name="serverType" value="INTERNAL" />
       <setting name="preferredDebugBrowser" value="Chrome" />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavaScriptTestRunnerKarma" factoryName="Karma" config-file="">
-      <envs />
-      <method />
-    </configuration>
-    <configuration default="true" type="CucumberJavaScriptRunConfigurationType" factoryName="Cucumber.js">
-      <option name="cucumberJsArguments" />
-      <option name="executablePath" />
-      <option name="filePath" />
       <method />
     </configuration>
     <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
@@ -232,12 +215,11 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3294271" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21375" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -247,10 +229,11 @@
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3294271" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
     </layout>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -273,6 +256,18 @@
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="3486" max-vertical-offset="4675">
+          <caret line="222" column="63" selection-start-line="222" selection-start-column="63" selection-end-line="222" selection-end-column="63" />
+          <folding>
+            <element signature="n#!!block;n#createAddressesInMagento#0" expanded="false" />
+            <element signature="n#!!block;n#rescheduleIfRequired#0" expanded="false" />
+            <element signature="n#!!block;n#customerExport_deprecated_26012015#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="187" max-vertical-offset="3621">
@@ -443,7 +438,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2941">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -467,7 +461,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-2.551213" vertical-offset="1893" max-vertical-offset="2635">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -475,7 +468,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.09327846" vertical-offset="0" max-vertical-offset="4403">
           <caret line="4" column="7" selection-start-line="4" selection-start-column="0" selection-end-line="9" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -499,15 +491,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.1981132" vertical-offset="839" max-vertical-offset="1581">
           <caret line="58" column="80" selection-start-line="58" selection-start-column="80" selection-end-line="58" selection-end-column="80" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/util/f3mg_connector_common.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.6131687" vertical-offset="13969" max-vertical-offset="19720">
-          <caret line="848" column="34" selection-start-line="848" selection-start-column="34" selection-end-line="848" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -515,7 +498,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="3140" max-vertical-offset="6239">
           <caret line="178" column="4" selection-start-line="178" selection-start-column="4" selection-end-line="178" selection-end-column="4" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -527,27 +509,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/util/f3mg_connector_common.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-1.4691358" vertical-offset="17119" max-vertical-offset="20264">
+          <caret line="944" column="0" selection-start-line="944" selection-start-column="0" selection-end-line="944" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/util/f3mg_xml_utility.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.84636486" vertical-offset="11844" max-vertical-offset="17680">
-          <caret line="783" column="35" selection-start-line="783" selection-start-column="35" selection-end-line="783" selection-end-column="35" />
+        <state vertical-scroll-proportion="-1.7654321" vertical-offset="13476" max-vertical-offset="18989">
+          <caret line="761" column="0" selection-start-line="761" selection-start-column="0" selection-end-line="761" selection-end-column="0" />
           <folding>
             <element signature="e#0#201#0" expanded="false" />
             <element signature="e#252#290#0" expanded="false" />
             <element signature="e#323#335#0" expanded="false" />
             <element signature="e#693#885#0" expanded="false" />
-            <element signature="e#951#1119#0" expanded="false" />
-            <element signature="e#1182#1660#0" expanded="false" />
-            <element signature="e#1297#1507#0" expanded="false" />
-            <element signature="e#1519#1619#0" expanded="false" />
-            <element signature="e#1711#2333#0" expanded="false" />
+            <element signature="e#1183#1661#0" expanded="false" />
+            <element signature="e#1298#1508#0" expanded="false" />
+            <element signature="e#1520#1620#0" expanded="false" />
+            <element signature="e#1712#2334#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/scheduled/f3mg_customerexport_sch.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.39506173" vertical-offset="3486" max-vertical-offset="4675">
+        <state vertical-scroll-proportion="0.60493827" vertical-offset="3333" max-vertical-offset="4675">
           <caret line="222" column="63" selection-start-line="222" selection-start-column="63" selection-end-line="222" selection-end-column="63" />
           <folding>
             <element signature="n#!!block;n#createAddressesInMagento#0" expanded="false" />
