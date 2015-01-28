@@ -1,9 +1,9 @@
 /**
  * Created by ubaig on 01/23/2015.
- * TODO:
+ * Description:
+ * - This script is reponsible for exporting sales orders from Magento to NetSuite
  * -
  * Referenced By:
- * -
  * -
  * Dependencies:
  * -
@@ -36,12 +36,13 @@ var OrderExportHelper = (function () {
 
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'anyof', '@NONE@', null));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
 
-            records = nlapiSearchRecord('transaction', null, filters, arrCols) || [];
+            records = nlapiSearchRecord('transaction', null, filters, arrCols);
 
-            if (records.length > 0) {
+            if (!Utility.isBlankOrNull(records) && records.length > 0) {
 
                 for (var i = 0; i < records.length; i++) {
                     resultObject = {};
@@ -69,7 +70,7 @@ var OrderExportHelper = (function () {
                 customerRec = nlapiLoadRecord('customer', entityId, null);
             }
             catch (e) {
-                Utility.logException('appendCustomerInDataObject', e);
+                Utility.logException('OrderExportHelper.appendCustomerInDataObject', e);
             }
 
             if (Utility.isBlankOrNull(customerRec)) {
@@ -79,7 +80,7 @@ var OrderExportHelper = (function () {
             /* Customer Creation Data */
 
             // We only cater existing customer in Magento so far
-            obj.mode = 'guest';// it can be guest, register & customer
+            obj.mode = 'customer';// it can be guest, register & customer
             obj.customerId = ConnectorCommon.getMagentoIdFromObjArray(customerRec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId), ConnectorConstants.CurrentStore.systemId);
             obj.email = customerRec.getFieldValue('email') || '';
             obj.firstName = customerRec.getFieldValue('firstname') || '';
@@ -166,6 +167,7 @@ var OrderExportHelper = (function () {
             try {
                 var itemId;
                 var itemQty;
+                var itemPrice;
                 var line;
                 var itemIdsArr = [];
                 var totalLines = orderRecord.getLineItemCount('item');
@@ -184,16 +186,18 @@ var OrderExportHelper = (function () {
                     itemId = orderRecord.getLineItemValue('item', 'item', line);
                     itemId = magentoItemsMap[itemId] || '';
                     itemQty = orderRecord.getLineItemValue('item', 'item', line) || 0;
+                    itemPrice = orderRecord.getLineItemValue('item', 'item', line) || 0;
 
                     var obj = {
                         sku: itemId,
-                        quantity: itemQty
+                        quantity: itemQty,
+                        price: itemPrice
                     };
                     arr.push(obj);
                 }
             }
             catch (e) {
-                Utility.logException('appendItemsInDataObject', e);
+                Utility.logException('OrderExportHelper.appendItemsInDataObject', e);
             }
 
             orderDataObject.items = arr;
@@ -245,7 +249,7 @@ var OrderExportHelper = (function () {
                     this.appendPaymentInfoInDataObject(orderRecord, orderDataObject);
                 }
             } catch (e) {
-                Utility.logException('Error during main getOrder', e);
+                Utility.logException('OrderExportHelper.getOrder', e);
             }
 
             return orderDataObject;
@@ -259,7 +263,7 @@ var OrderExportHelper = (function () {
             try {
                 nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {
-                Utility.logException('setOrderMagentoId', e);
+                Utility.logException('OrderExportHelper.setOrderMagentoId', e);
             }
         },
 
@@ -273,7 +277,7 @@ var OrderExportHelper = (function () {
                 nlapiSubmitField('transaction', orderId, 'custbody_magentosync_dev', 'T');
                 result = true;
             } catch (e) {
-                Utility.logException('Error during main setOrderMagentoSync', e);
+                Utility.logException('OrderExportHelper.setOrderMagentoSync', e);
             }
 
             return result;
@@ -434,12 +438,12 @@ var ExportSalesOrders = (function () {
                         return;
                     });
                 } catch (e) {
-                    Utility.logException('customerExport', e);
+                    Utility.logException('ExportSalesOrders.scheduled - Iterating Orders', e);
                 }
                 Utility.logDebug(' Ends', '');
 
             } catch (e) {
-                Utility.logException('Error during  Script working: ', e);
+                Utility.logException('ExportSalesOrders.scheduled', e);
             }
         },
 
