@@ -1,17 +1,17 @@
-var FC_ScrubHandler = (function() {
+var FC_ScrubHandler = (function () {
 
     //region Private
 
-    var ScrubbingTypes =  {
-        Lookup : 'lookup',
-        Default : 'default',
-        DefaultIfEmpty : 'defaultIfEmpty'
+    var ScrubbingTypes = {
+        Lookup: 'lookup',
+        Default: 'default',
+        DefaultIfEmpty: 'defaultIfEmpty'
     };
 
     var DefaultIfEmptyScrubbingTypes = {
         Unique: 'unique',
         NonUnique: 'nonUnique'
-    }
+    };
 
     var guid = (function () {
         function s4() {
@@ -37,27 +37,37 @@ var FC_ScrubHandler = (function() {
     /*
      Search lookup key with it corresponding value in 'customrecord_fc_scrub' custom record and return its value
      */
-    function scrubDataByLookup(lookupValue, dataValue) {
+    function scrubDataByLookup(lookupValue, dataValue, isByValue) {
 
         var scrubbedValue = '';
 
+        var key, value;
+
+        if (!!isByValue) {
+            key = 'custrecord_fc_scrub_value';
+            value = 'custrecord_fc_scrub_key';
+        } else {
+            key = 'custrecord_fc_scrub_key';
+            value = 'custrecord_fc_scrub_value';
+        }
+
         var filters = [];
-        var filter = new nlobjSearchFilter('formulatext', null, 'is', lookupValue);
+        var filter = new nlobjSearchFilter('formulatext', null, 'is', lookupValue, null);
         filter.setFormula('{custrecord_fc_scrub_type}');
         filters.push(filter);
-        filters.push(new nlobjSearchFilter('custrecord_fc_scrub_key', null, 'is', dataValue));
+
+        filters.push(new nlobjSearchFilter(key, null, 'is', dataValue, null));
 
         var columns = [];
-        columns.push(new nlobjSearchColumn('custrecord_fc_scrub_value'));
+        columns.push(new nlobjSearchColumn(value, null, null));
 
         var res = nlapiSearchRecord('customrecord_fc_scrub', null, filters, columns);
-        if(!!res && res.length > 0) {
-            scrubbedValue = res[0].getValue('custrecord_fc_scrub_value');
+        if (!!res && res.length > 0) {
+            scrubbedValue = res[0].getValue(value, null, null);
         }
 
         return (!!scrubbedValue ? scrubbedValue : dataValue);
     }
-
 
 
     //endregion
@@ -67,9 +77,9 @@ var FC_ScrubHandler = (function() {
     return {
 
         /*
-        Get List of Scrubs for all fields in provided records mapping(mappingRecords) of a particular record
+         Get List of Scrubs for all fields in provided records mapping(mappingRecords) of a particular record
          */
-        getAllScrubsList : function(mappingRecords) {
+        getAllScrubsList: function (mappingRecords) {
             var scrubsList = {};
             for (var i = 0; i < mappingRecords.length; i++) {
                 var mappingRecord = mappingRecords[i];
@@ -79,15 +89,15 @@ var FC_ScrubHandler = (function() {
         },
 
         /*
-        Provide Scrubbed(cleaned) value of provided field
-        Its fetched scrub attributes from provided fieldsScrubsList for this particular field
+         Provide Scrubbed(cleaned) value of provided field
+         Its fetched scrub attributes from provided fieldsScrubsList for this particular field
          */
-        getScrubbedData : function(field, dataValue, fieldsScrubsList) {
+        getScrubbedData: function (field, dataValue, fieldsScrubsList) {
 
             //nlapiLogExecution('DEBUG', 'getScrubbedData value of scrubsList', JSON.stringify(fieldsScrubsList));
 
             var scrubAttrs = fieldsScrubsList[field];
-            if(!!scrubAttrs) {
+            if (!!scrubAttrs) {
                 return this.scrubValue(scrubAttrs, dataValue);
             }
 
@@ -97,48 +107,54 @@ var FC_ScrubHandler = (function() {
         /*
          Apply data cleansing on data value on the basis of provided scrubbing attributes (strScrubbingAttrs)
          */
-        scrubValue : function(strScrubbingAttrs, dataValue) {
-         	var scrubbedValue = '';
+        scrubValue: function (strScrubbingAttrs, dataValue) {
+            var scrubbedValue = '';
             var scrubbingAttr = null;
             var scrubbingAttrs = getScrubbingAttrs(strScrubbingAttrs);
 
 
-            if(!!scrubbingAttrs[ScrubbingTypes.Lookup]) {
+            if (!!scrubbingAttrs[ScrubbingTypes.Lookup]) {
                 scrubbingAttr = scrubbingAttrs[ScrubbingTypes.Lookup];
                 scrubbedValue = scrubDataByLookup(scrubbingAttr.value, dataValue);
             }
 
-            if(!!scrubbingAttrs[ScrubbingTypes.Default]) {
+            if (!!scrubbingAttrs[ScrubbingTypes.Default]) {
                 scrubbingAttr = scrubbingAttrs[ScrubbingTypes.Default];
                 scrubbedValue = scrubbingAttr.value;
             }
 
-            if(!!scrubbingAttrs[ScrubbingTypes.DefaultIfEmpty] && !dataValue) {
+            if (!!scrubbingAttrs[ScrubbingTypes.DefaultIfEmpty] && !dataValue) {
                 scrubbingAttr = scrubbingAttrs[ScrubbingTypes.DefaultIfEmpty];
-                if(scrubbingAttr.type == DefaultIfEmptyScrubbingTypes.NonUnique) {
+                if (scrubbingAttr.type == DefaultIfEmptyScrubbingTypes.NonUnique) {
                     scrubbedValue = scrubbingAttr.value;
                 }
-                else if(scrubbingAttr.type == DefaultIfEmptyScrubbingTypes.Unique) {
+                else if (scrubbingAttr.type == DefaultIfEmptyScrubbingTypes.Unique) {
                     scrubbedValue = guid();
                 }
 
             }
 
             return (!!scrubbedValue ? scrubbedValue : dataValue);
-        }
+        },
 
         /*
-        Get mapped value of provided key of a given Object type from 'customrecord_fc_scrub' custom record
+         Get mapped value of provided key of a given Object type from 'customrecord_fc_scrub' custom record
          */
-        ,getMappedValue: function(objectType, key) {
+        getMappedValue: function (objectType, key) {
             var val = scrubDataByLookup(objectType, key);
+            return val;
+        },
+        /*
+         Get mapped key of provided value of a given Object type from 'customrecord_fc_scrub' custom record
+         */
+        getMappedKeyByValue: function (objectType, value) {
+            var val = scrubDataByLookup(objectType, value, true);
             return val;
         }
 
-    }
+    };
 
     //endregion
-
 
 
 })();
