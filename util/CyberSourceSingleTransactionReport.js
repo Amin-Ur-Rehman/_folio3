@@ -3,7 +3,7 @@
  */
 
 
-var CyberSourceSingleTransactionReport = new (function () {
+CyberSourceSingleTransactionReport = new (function () {
     this.credentials = null;
     this.headers = null;
     this.isSetup = false;

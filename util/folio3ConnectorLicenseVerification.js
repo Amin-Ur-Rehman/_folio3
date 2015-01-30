@@ -12,7 +12,7 @@
  * Folio3 Connector License Verification class is responsible for validating license of
  * users who uses Folio3 Connectors.
  */
-var Folio3ConnectorLicenseVerification = (function () {
+Folio3ConnectorLicenseVerification = (function () {
     var _serverUrl = 'http://202.142.150.38:3000/validate_license.json';
 
     /**
