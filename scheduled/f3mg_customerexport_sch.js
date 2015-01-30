@@ -24,7 +24,7 @@ function customerExport() {
         var nsCustomerUpdateStatus;
         var customerAddresses;
         var allAddressedSynched;
-        var externalSystemArr = new Array();
+        var externalSystemArr = [];
         var scannedAddressForMagento;
         var magentoReferences;
         var customerSynched;
@@ -60,12 +60,13 @@ function customerExport() {
 
                 for (var c = 0; c < customerIds.length; c++) {
 
+
+                    nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Started');
+
                     Utility.logDebug('Customer ' + customerIds[c].internalId);
 
 
                     try {
-
-
                         externalSystemArr.forEach(function(store) {
 
                             try {
@@ -109,9 +110,9 @@ function customerExport() {
                             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoSync(customerIds[c].internalId);
                         }
 
-                        if (rescheduleIfRequired(null))
+                        if (rescheduleIfRequired(null)) {
                             return;
-
+                        }
 
                     } catch (ex) {
 
@@ -119,6 +120,8 @@ function customerExport() {
                         Utility.logDebug('Internal Catch Block, Iternation failed for Customer : ' + customerIds[c].internalId, ex.toString());
 
                     }
+
+                    nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Ended');
 
                 }
             }
@@ -389,12 +392,12 @@ function rescheduleIfRequired(params) {
     minutes = Math.round(((endTime - ScheduledScriptConstant.StartTime) / (1000 * 60)) * 100) / 100;
 
     if (context.getRemainingUsage() < ScheduledScriptConstant.RemainingUsage) {
-        nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
+        //nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
         return true;
     }
 
     if (minutes > ScheduledScriptConstant.Minutes) {
-        nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
+        //nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
         return true;
     }
 

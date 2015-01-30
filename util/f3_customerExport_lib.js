@@ -3,13 +3,13 @@ CUSTOMER = {
 
     getCustomers: function() {
 
-        var arrFils = new Array();
+        var arrFils = [];
         var recs;
-        var result = new Array();
-        var arrCols = new Array();
+        var result = [];
+        var arrCols = [];
         var resultObject;
 
-        arrFils.push(new nlobjSearchFilter('internalid', null, 'anyof', ['155']));
+        //arrFils.push(new nlobjSearchFilter('internalid', null, 'anyof', ['155']));
 
         arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -124,7 +124,7 @@ CUSTOMER = {
     },
 
     getNSCustomerAddresses: function(customerRecordObject) {
-        var customerAddresses = new Array();
+        var customerAddresses = [];
         var addressObject;
         var names;
         var customerRecord = customerRecordObject.nsObj;
@@ -405,7 +405,7 @@ function getFirstNameLastName(data) {
     var array = data.split(' ');
     var firstName = '';
     var lastName;
-    var result = new Array();
+    var result = [];
 
     lastName = array[array.length - 1];
 
