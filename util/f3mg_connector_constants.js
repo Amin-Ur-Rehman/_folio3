@@ -13,6 +13,7 @@
 ConnectorConstants = (function () {
     return {
         MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
+        DefaultAddressId: '-1',
         ExternalSystemConfig: [],
         CurrentStore: {},
         Client: null,
@@ -41,6 +42,9 @@ ConnectorConstants = (function () {
                 MagentoSync: 'custitem_magentosyncdev',
                 MagentoStores: 'custitem_f3mg_magento_stores'// multiselect
             }
+        },
+        OtherCustom: {
+            MagentoId: 'custrecord_magento_id'// JSON
         },
         ShippingMethod: {
             UPS: 'ups',

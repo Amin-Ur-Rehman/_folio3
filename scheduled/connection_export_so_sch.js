@@ -36,7 +36,8 @@ var OrderExportHelper = (function () {
 
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'anyof', '@NONE@', null));
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
+            
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
 
@@ -55,6 +56,92 @@ var OrderExportHelper = (function () {
                 }
             }
             return result;
+        },
+        /**
+         * Get Bill/Ship Address either from customer or sales order for sales order export
+         * @param orderRecord
+         * @param customerRec
+         * @param {string} type {shippingaddress, billingaddress}
+         * @param addressId
+         * @return {object}
+         */
+        getAddress: function (orderRecord, customerRec, type, addressId) {
+
+            var address = {};
+            var line;
+            var addressRec;
+
+            if (type === 'shippingaddress') {
+                address.mode = 'shipping';
+                address.isDefaultBilling = '0';
+                address.isDefaultShipping = '1';
+            } else if (type === 'billingaddress') {
+                address.mode = 'billing';
+                address.isDefaultBilling = '1';
+                address.isDefaultShipping = '0';
+            }
+
+            address.firstName = customerRec.getFieldValue('firstname') || '';
+            address.lastName = customerRec.getFieldValue('lastname') || '';
+            address.company = customerRec.getFieldValue('companyname') || '';
+            address.fax = customerRec.getFieldValue('fax') || '';
+
+            if (!Utility.isBlankOrNull(addressId)) {
+                line = customerRec.findLineItemValue('addressbook', 'internalid', addressId);
+
+                // load  customer subrecord(address)
+                addressRec = customerRec.viewLineItemSubrecord('addressbook', 'addressbookaddress', line);
+
+                address.street = ( addressRec.getFieldValue('addr1') + ' ' + addressRec.getFieldValue('addr2')  ) || '';
+                address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || '';
+                address.attention = addressRec.getFieldValue('attention') || '';
+                address.addressee = addressRec.getFieldValue('addressee') || '';
+                address.city = addressRec.getFieldValue('city') || '';
+                address.state = addressRec.getFieldValue('state') || '';
+                address.stateId = addressRec.getFieldValue('state') || '';
+                address.country = addressRec.getFieldValue('country') || '';
+                address.zipCode = addressRec.getFieldValue('zip') || '';
+                address.addressId = '';
+
+            } else {
+
+                // load  sales order subrecord(shippingaddress)
+                addressRec = orderRecord.viewSubrecord(type);
+
+                address.street = ( addressRec.getFieldValue('addr1') + ' ' + addressRec.getFieldValue('addr2') ) || '';
+                address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || '';
+                address.attention = addressRec.getFieldValue('attention') || '';
+                address.addressee = addressRec.getFieldValue('addressee') || '';
+                address.city = addressRec.getFieldValue('city') || '';
+                address.state = addressRec.getFieldValue('state') || '';
+                address.stateId = addressRec.getFieldValue('state') || '';
+                address.country = addressRec.getFieldValue('country') || '';
+                address.zipCode = addressRec.getFieldValue('zip') || '';
+                address.addressId = '';
+            }
+
+            // get magento mapped value
+            address.state = FC_ScrubHandler.getMappedValue('State', address.state);
+
+            return address;
+
+        },
+        /**
+         * Get Addresses either from customer or sales order for sales order export
+         * @param orderRecord
+         * @param customerRec
+         * @return {Array}
+         */
+        getAddresses: function (orderRecord, customerRec) {
+            var addresses = [];
+
+            var shippingAddressId = orderRecord.getFieldValue('shipaddresslist');
+            var billingAddressId = orderRecord.getFieldValue('billaddresslist');
+
+            addresses.push(this.getAddress(orderRecord, customerRec, 'shippingaddress', shippingAddressId));
+            addresses.push(this.getAddress(orderRecord, customerRec, 'billingaddress', billingAddressId));
+
+            return addresses;
         },
         /**
          * Append customer data in orderDataObject for exporting sales order
@@ -81,7 +168,9 @@ var OrderExportHelper = (function () {
 
             // We only cater existing customer in Magento so far
             obj.mode = 'customer';// it can be guest, register & customer
-            obj.customerId = ConnectorCommon.getMagentoIdFromObjArray(customerRec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId), ConnectorConstants.CurrentStore.systemId);
+            var magentoId = customerRec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId);
+            var storeId = ConnectorConstants.CurrentStore.systemId;
+            obj.customerId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, storeId);
             obj.email = customerRec.getFieldValue('email') || '';
             obj.firstName = customerRec.getFieldValue('firstname') || '';
             obj.lastName = customerRec.getFieldValue('lastname') || '';
@@ -98,61 +187,7 @@ var OrderExportHelper = (function () {
             obj.zipCode = '';
 
             // cater billing and shipping addresses
-            obj.addresses = [];
-
-            var shippingAddressId = orderRecord.getFieldValue('shipaddresslist');
-            var shipAddr = {};
-            var billingAddressId = orderRecord.getFieldValue('billaddresslist');
-            var billAddr = {};
-            var line;
-
-            if (!Utility.isBlankOrNull(shippingAddressId)) {
-                line = customerRec.findLineItemValue('addressbook', 'internalid', shippingAddressId);
-
-                shipAddr.mode = 'shipping';
-                shipAddr.firstName = customerRec.getFieldValue('firstname') || '';
-                shipAddr.lastName = customerRec.getFieldValue('lastname') || '';
-                shipAddr.company = customerRec.getFieldValue('companyname') || '';
-                shipAddr.street = ( customerRec.getLineItemValue('addressbook', 'addr1', line) + ' ' + customerRec.getLineItemValue('addressbook', 'addr2', line) ) || '';
-                shipAddr.city = customerRec.getLineItemValue('addressbook', 'city', line) || '';
-                shipAddr.state = customerRec.getLineItemValue('addressbook', 'state', line) || '';
-                shipAddr.stateId = customerRec.getLineItemValue('addressbook', 'state', line) || '';
-                shipAddr.country = customerRec.getLineItemValue('addressbook', 'addr1', line) || '';
-                shipAddr.telephone = customerRec.getFieldValue('phone') || '';
-                shipAddr.fax = customerRec.getFieldValue('fax') || '';
-                shipAddr.isDefaultBilling = '0';
-                shipAddr.isDefaultShipping = '1';
-                shipAddr.zipCode = customerRec.getLineItemValue('addressbook', 'zip', line) || '';
-
-                obj.addresses.push(shipAddr);
-
-            } else {
-                //todo: write logic here
-            }
-
-            if (!Utility.isBlankOrNull(billingAddressId)) {
-                line = customerRec.findLineItemValue('addressbook', 'internalid', billingAddressId);
-
-                billAddr.mode = 'billing';
-                billAddr.firstName = customerRec.getFieldValue('firstname') || '';
-                billAddr.lastName = customerRec.getFieldValue('lastname') || '';
-                billAddr.company = customerRec.getFieldValue('companyname') || '';
-                billAddr.street = ( customerRec.getLineItemValue('addressbook', 'addr1', line) + ' ' + customerRec.getLineItemValue('addressbook', 'addr2', line) ) || '';
-                billAddr.city = customerRec.getLineItemValue('addressbook', 'city', line) || '';
-                billAddr.state = customerRec.getLineItemValue('addressbook', 'state', line) || '';
-                billAddr.stateId = customerRec.getLineItemValue('addressbook', 'state', line) || '';
-                billAddr.country = customerRec.getLineItemValue('addressbook', 'addr1', line) || '';
-                billAddr.telephone = customerRec.getFieldValue('phone') || '';
-                billAddr.fax = customerRec.getFieldValue('fax') || '';
-                billAddr.isDefaultBilling = '1';
-                billAddr.isDefaultShipping = '0';
-                billAddr.zipCode = customerRec.getLineItemValue('addressbook', 'zip', line) || '';
-
-                obj.addresses.push(billAddr);
-
-            } else {
-                //todo: write logic here
-            }
+            obj.addresses = this.getAddresses(orderRecord, customerRec);
 
             orderDataObject.customer = obj;
         },
@@ -232,7 +267,7 @@ var OrderExportHelper = (function () {
          * Gets a single Order
          * @param parameter
          */
-        getOrder: function (orderInternalId, storeInfo) {
+        getOrder: function (orderInternalId) {
             var orderDataObject = null;
             try {
                 var orderRecord = nlapiLoadRecord('salesorder', orderInternalId, null);
@@ -304,6 +339,7 @@ var ExportSalesOrders = (function () {
 
         startTime: (new Date()).getTime(),
         minutesAfterReschedule: 15,
+        usageLimit: 500,
 
         /**
          * Extracts external System Information from the database
@@ -341,7 +377,7 @@ var ExportSalesOrders = (function () {
                 requestXml,
                 responseMagento;
 
-            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
+            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId);
 
             Utility.logDebug('debug', 'Step-4');
 
@@ -381,7 +417,7 @@ var ExportSalesOrders = (function () {
 
                 if (!MC_SYNC_CONSTANTS.isValidLicense()) {
                     Utility.logDebug('LICENSE', 'Your license has been expired.');
-                    return false;
+                    return null;
                 }
 
                 // initialize constants
@@ -390,20 +426,22 @@ var ExportSalesOrders = (function () {
                 // getting configuration
                 var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
                 var context = nlapiGetContext();
-                var orderIds, usageRemaining, externalSystemArr;
+                var orderIds, externalSystemArr;
 
                 Utility.logDebug('Starting', '');
 
                 externalSystemArr = this.extractExternalSystems(externalSystemConfig);
 
                 if (externalSystemArr.length <= 0) {
-                    Utility.logDebug('Customer Export Script', 'Customer Export is not enabled');
-                    return false;
+                    Utility.logDebug('Customer Export Script', 'Store(s) is/are not active');
+                    return null;
                 }
 
                 try {
-                    var that = this;
-                    externalSystemArr.forEach(function (store) {
+
+                    for (var i in externalSystemArr) {
+
+                        var store = externalSystemArr[i];
 
                         ConnectorConstants.CurrentStore = store;
 
@@ -418,25 +456,19 @@ var ExportSalesOrders = (function () {
 
                                 var orderObject = orderIds[c];
 
-                                that.processOrder(orderObject, store);
+                                this.processOrder(orderObject, store);
 
-                                usageRemaining = context.getRemainingUsage();
-
-                                if (usageRemaining < 500) {
-                                    nlapiScheduleScript(context.getScriptId(), context.getDeploymentId());
-                                    return true;
+                                if (this.rescheduleIfNeeded(context, null)) {
+                                    return null;
                                 }
                             }
                         }
 
-                        usageRemaining = context.getRemainingUsage();
-                        if (usageRemaining < 500) {
-                            nlapiScheduleScript(context.getScriptId(), context.getDeploymentId());
-                            return true;
+                        if (this.rescheduleIfNeeded(context, null)) {
+                            return null;
                         }
+                    }
 
-                        return;
-                    });
                 } catch (e) {
                     Utility.logException('ExportSalesOrders.scheduled - Iterating Orders', e);
                 }
@@ -516,7 +548,7 @@ var ExportSalesOrders = (function () {
             try {
                 var usageRemaining = context.getRemainingUsage();
 
-                if (usageRemaining < 4500) {
+                if (usageRemaining < this.usageLimit) {
                     this.rescheduleScript(context, params);
                     return true;
                 }
