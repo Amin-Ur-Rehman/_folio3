@@ -1,197 +1,185 @@
-CUSTOMER= {
+CUSTOMER = {
 
 
-getCustomers : function()
-{
+    getCustomers: function() {
 
-    var arrFils = new Array();
-    var recs;
-    var result = new Array();
-    var arrCols = new Array();
-    var resultObject;
+        var arrFils = new Array();
+        var recs;
+        var result = new Array();
+        var arrCols = new Array();
+        var resultObject;
 
-    arrFils.push(new nlobjSearchFilter('internalid',null,'anyof',['155']));
+        arrFils.push(new nlobjSearchFilter('internalid', null, 'anyof', ['155']));
 
-    arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
+        arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
-    arrCols.push(new nlobjSearchColumn('custentity_magento_custid'));
-
-
-    recs = nlapiSearchRecord('customer', null, arrFils, arrCols);
+        arrCols.push(new nlobjSearchColumn('custentity_magento_custid'));
 
 
-    if (recs != null && recs.length > 0) {
-
-        for (var i = 0; i < recs.length; i++) {
-            resultObject = new Object();
-
-            resultObject.internalId = recs[i].getId();
-            resultObject.magentoCustomerIds = recs[i].getValue('custentity_magento_custid');
-
-            result.push(resultObject);
-
-        }
-
-    }
+        recs = nlapiSearchRecord('customer', null, arrFils, arrCols);
 
 
-    return result;
-},
+        if (recs != null && recs.length > 0) {
 
-    setCustomerMagentoId : function(magentoId,customerId)
-{
-        var result=false;
+            for (var i = 0; i < recs.length; i++) {
+                resultObject = new Object();
 
-        try {
+                resultObject.internalId = recs[i].getId();
+                resultObject.magentoCustomerIds = recs[i].getValue('custentity_magento_custid');
 
-            nlapiSubmitField('customer',customerId,'custentity_magento_custid',magentoId);
-            result=true;
+                result.push(resultObject);
 
-        }catch (ex) {}
-
-
-        return result;
-
-},
-
-    setCustomerMagentoSync : function(customerId)
-    {
-        var result=false;
-
-        try {
-
-            nlapiSubmitField('customer',customerId,'custentity_magentosync_dev','T');
-
-        }catch (ex) {}
-
-
-        return result;
-
-    }
-,
-getCustomer :function(customerInternalId,storeInfo)
-{
-
-    var customerRecord=nlapiLoadRecord('customer',customerInternalId);
-    var customerDataObject;
-    var customerAddresses;
-    var customerAddressObject;
-    var names;
-
-
-    if(customerRecord!=null)
-    {
-        customerDataObject=new Object();
-
-
-        customerDataObject.isPerson=customerRecord.getFieldValue('isperson');
-
-        customerDataObject.email=getBlankForNull(customerRecord.getFieldValue('email'));
-
-        customerDataObject.companyName=getBlankForNull(customerRecord.getFieldValue('companyname'));
-
-        customerDataObject.entityid=getBlankForNull(customerRecord.getFieldValue('entityid'));
-
-
-
-
-        if(customerDataObject.isPerson=="T")
-        {
-            customerDataObject.firstname = customerRecord.getFieldValue('firstname');
-            customerDataObject.middlename = getBlankForNull(customerRecord.getFieldValue('middlename'));
-            customerDataObject.lastname = customerRecord.getFieldValue('lastname');
-        }
-        else
-        {
-
-            if(customerDataObject.companyName=="")
-            {
-                customerDataObject.companyName=customerDataObject.entityid;
             }
 
-            names=getFirstNameLastName(customerDataObject.companyName);
-
-            customerDataObject.firstname = names['firstName'];
-            customerDataObject.middlename = "";
-            customerDataObject.lastname = names['lastName'];
         }
 
-        customerDataObject.password="";
-        customerDataObject.website_id="1";
-        customerDataObject.store_id=storeInfo.systemId;
-        customerDataObject.group_id="";
-        customerDataObject.prefix=getBlankForNull(customerRecord.getFieldValue('salutation'));
-        customerDataObject.suffix="";
-        customerDataObject.dob="";
-        customerDataObject.taxvat="";
-        customerDataObject.gender="";
-        customerDataObject.nsObj=customerRecord;
 
-    }
+        return result;
+    },
 
-    return customerDataObject;
+    setCustomerMagentoId: function(magentoId, customerId) {
+        var result = false;
 
-},
+        try {
 
-    getNSCustomerAddresses :function(customerRecordObject)
-    {
-        var customerAddresses=new Array();
+            nlapiSubmitField('customer', customerId, 'custentity_magento_custid', magentoId);
+            result = true;
+
+        } catch (ex) {}
+
+
+        return result;
+
+    },
+
+    setCustomerMagentoSync: function(customerId) {
+        var result = false;
+
+        try {
+
+            nlapiSubmitField('customer', customerId, 'custentity_magentosync_dev', 'T');
+
+        } catch (ex) {}
+
+
+        return result;
+
+    },
+    getCustomer: function(customerInternalId, storeInfo) {
+
+        var customerRecord = nlapiLoadRecord('customer', customerInternalId);
+        var customerDataObject;
+        var customerAddresses;
+        var customerAddressObject;
+        var names;
+
+
+        if (customerRecord != null) {
+            customerDataObject = new Object();
+
+
+            customerDataObject.isPerson = customerRecord.getFieldValue('isperson');
+
+            customerDataObject.email = getBlankForNull(customerRecord.getFieldValue('email'));
+
+            customerDataObject.companyName = getBlankForNull(customerRecord.getFieldValue('companyname'));
+
+            customerDataObject.entityid = getBlankForNull(customerRecord.getFieldValue('entityid'));
+
+
+
+
+            if (customerDataObject.isPerson == "T") {
+                customerDataObject.firstname = customerRecord.getFieldValue('firstname');
+                customerDataObject.middlename = getBlankForNull(customerRecord.getFieldValue('middlename'));
+                customerDataObject.lastname = customerRecord.getFieldValue('lastname');
+            } else {
+
+                if (customerDataObject.companyName == "") {
+                    customerDataObject.companyName = customerDataObject.entityid;
+                }
+
+                names = getFirstNameLastName(customerDataObject.companyName);
+
+                customerDataObject.firstname = names['firstName'];
+                customerDataObject.middlename = "";
+                customerDataObject.lastname = names['lastName'];
+            }
+
+            customerDataObject.password = "";
+            customerDataObject.website_id = "1";
+            customerDataObject.store_id = storeInfo.systemId;
+            customerDataObject.group_id = "";
+            customerDataObject.prefix = getBlankForNull(customerRecord.getFieldValue('salutation'));
+            customerDataObject.suffix = "";
+            customerDataObject.dob = "";
+            customerDataObject.taxvat = "";
+            customerDataObject.gender = "";
+            customerDataObject.nsObj = customerRecord;
+
+        }
+
+        return customerDataObject;
+
+    },
+
+    getNSCustomerAddresses: function(customerRecordObject) {
+        var customerAddresses = new Array();
         var addressObject;
         var names;
-        var customerRecord=customerRecordObject.nsObj;
+        var customerRecord = customerRecordObject.nsObj;
         var addressSubRecord;
 
-        for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
-        {
-            addressObject=new Object();
-            addressObject.defaultshipping=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultshipping',i));
-            addressObject.defaultbilling=getBlankForNull(customerRecord.getLineItemValue('addressbook','defaultbilling',i));
-            addressObject.country=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','country',i)));
+        for (var i = 1; i <= customerRecord.getLineItemCount('addressbook'); i++) {
+            addressObject = new Object();
+            addressObject.defaultshipping = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'defaultshipping', i));
+            addressObject.defaultbilling = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'defaultbilling', i));
+            addressObject.country = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'country', i)));
 
 
 
-            addressObject.firstname=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addressee',i)));
+            addressObject.firstname = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addressee', i)));
 
 
 
-            names=getFirstNameLastName(addressObject.firstname);
+            names = getFirstNameLastName(addressObject.firstname);
 
 
 
-            addressObject.firstname=nlapiEscapeXML(names['firstName']);
-            addressObject.lastname=nlapiEscapeXML(names['lastName']);
+            addressObject.firstname = nlapiEscapeXML(names['firstName']);
+            addressObject.lastname = nlapiEscapeXML(names['lastName']);
 
-            if(addressObject.firstname=="")
-                addressObject.firstname=customerRecordObject.firstname;
+            if (addressObject.firstname == "")
+                addressObject.firstname = customerRecordObject.firstname;
 
-            if(addressObject.lastname=="")
-                addressObject.lastname=customerRecordObject.lastname;
+            if (addressObject.lastname == "")
+                addressObject.lastname = customerRecordObject.lastname;
 
-            addressObject.middlename='';
-            addressObject.suffix='';
-            addressObject.prefix='';
-            addressObject.company='';
-            addressObject.prefix='';
-            addressObject.fax='';
-            addressObject.vatnumber='';
-
-
-            addressObject.telephone=getBlankForNull(customerRecord.getLineItemValue('addressbook','phone',i));
-            addressObject.city=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','city',i)));
-            addressObject.street1=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addr1',i)));
-            addressObject.street2=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','addr2',i)));
+            addressObject.middlename = '';
+            addressObject.suffix = '';
+            addressObject.prefix = '';
+            addressObject.company = '';
+            addressObject.prefix = '';
+            addressObject.fax = '';
+            addressObject.vatnumber = '';
 
 
-            addressObject.region=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','state',i)));
-            addressObject.region_text=addressObject.region;
+            addressObject.telephone = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'phone', i));
+            addressObject.city = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'city', i)));
+            addressObject.street1 = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addr1', i)));
+            addressObject.street2 = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addr2', i)));
 
 
-            addressObject.postcode=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','zip',i)));
+            addressObject.region = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'state', i)));
+            addressObject.region_text = addressObject.region;
+
+
+            addressObject.postcode = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'zip', i)));
 
 
             customerRecord.selectLineItem('addressbook', i);
-            addressSubRecord = customerRecord.viewCurrentLineItemSubrecord('addressbook','addressbookaddress');
-            addressObject.magentoIdStoreRef=getBlankForNull(addressSubRecord.getFieldValue('custrecord_magento_id'));
+            addressSubRecord = customerRecord.viewCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
+            addressObject.magentoIdStoreRef = getBlankForNull(addressSubRecord.getFieldValue('custrecord_magento_id'));
 
             customerAddresses.push(addressObject);
 
@@ -201,46 +189,42 @@ getCustomer :function(customerInternalId,storeInfo)
 
     },
 
-    getMagentoCreateCustomerRequestXML :function(customerDataObject,sessionId)
-    {
-        var xml='';
+    getMagentoCreateCustomerRequestXML: function(customerDataObject, sessionId) {
+        var xml = '';
 
-        if(customerDataObject!=null)
-        {
-            xml=xml+'<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">';
-            xml=xml+'<soapenv:Header/>';
-            xml=xml+'<soapenv:Body>';
-            xml=xml+'<urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
-            xml=xml+'<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+sessionId+'</sessionId>';
-            xml=xml+'<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
-            xml=xml+'<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
-            xml=xml+'<email xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.email)+'</email>';
-            xml=xml+'<firstname xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.firstname)+'</firstname>';
-            xml=xml+'<lastname xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.lastname)+'</lastname>';
-            xml=xml+'<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
-            xml=xml+'<password xsi:type="xsd:string" xs:type="type:string"></password>';
-            xml=xml+'<website_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.website_id+'</website_id>';
-            xml=xml+'<store_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.store_id+'</store_id>';
-            xml=xml+'<group_id xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.group_id+'</group_id>';
-            xml=xml+'<prefix xsi:type="xsd:string" xs:type="type:string"></prefix>';
-            xml=xml+'<suffix xsi:type="xsd:string" xs:type="type:string"></suffix>';
-            xml=xml+'<dob xsi:type="xsd:string" xs:type="type:string"></dob>';
-            xml=xml+'<taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>';
-            xml=xml+'<gender xsi:type="xsd:int" xs:type="type:int">'+customerDataObject.gender+'</gender>';
-            xml=xml+'</customerData>';
-            xml=xml+'</urn:customerCustomerCreate>';
-            xml=xml+'</soapenv:Body>';
-            xml=xml+'</soapenv:Envelope>';
+        if (customerDataObject != null) {
+            xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">';
+            xml = xml + '<soapenv:Header/>';
+            xml = xml + '<soapenv:Body>';
+            xml = xml + '<urn:customerCustomerCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml = xml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionId + '</sessionId>';
+            xml = xml + '<customerData xsi:type="urn:customerCustomerEntityToCreate" xs:type="type:customerCustomerEntityToCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            xml = xml + '<customer_id xsi:type="xsd:int" xs:type="type:int"/>';
+            xml = xml + '<email xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.email) + '</email>';
+            xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.firstname) + '</firstname>';
+            xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.lastname) + '</lastname>';
+            xml = xml + '<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
+            xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
+            xml = xml + '<website_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.website_id + '</website_id>';
+            xml = xml + '<store_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.store_id + '</store_id>';
+            xml = xml + '<group_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.group_id + '</group_id>';
+            xml = xml + '<prefix xsi:type="xsd:string" xs:type="type:string"></prefix>';
+            xml = xml + '<suffix xsi:type="xsd:string" xs:type="type:string"></suffix>';
+            xml = xml + '<dob xsi:type="xsd:string" xs:type="type:string"></dob>';
+            xml = xml + '<taxvat xsi:type="xsd:string" xs:type="type:string"></taxvat>';
+            xml = xml + '<gender xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.gender + '</gender>';
+            xml = xml + '</customerData>';
+            xml = xml + '</urn:customerCustomerCreate>';
+            xml = xml + '</soapenv:Body>';
+            xml = xml + '</soapenv:Envelope>';
 
         }
 
         return xml;
 
-    }
-    ,
+    },
 
-    getMagentoUpdateCustomerRequestXML :function(customerDataObject,sessionId)
-    {
+    getMagentoUpdateCustomerRequestXML: function(customerDataObject, sessionId) {
         var xml = '';
 
         if (customerDataObject != null) {
@@ -274,10 +258,9 @@ getCustomer :function(customerInternalId,storeInfo)
 
         return xml;
 
-    }
-,
+    },
 
-    getMagentoCreateAddressRequestXML :function(customerAddressObject,sessionId,magentoCustomerId) {
+    getMagentoCreateAddressRequestXML: function(customerAddressObject, sessionId, magentoCustomerId) {
         var xml = '';
         var firstName;
         var lastName;
@@ -296,11 +279,11 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '            <addressData xsi:type="urn:customerAddressEntityCreate" xs:type="type:customerAddressEntityCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             //                <!--You may enter the following 16 items in any order-->
             //                <!--Optional:-->
-            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.city+'</city>';
+            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.city + '</city>';
             //                <!--Optional:-->
-            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.company+'</company>';
+            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.company + '</company>';
             //                <!--Optional:-->
-            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.country+'</country_id>';
+            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.country + '</country_id>';
             //                <!--Optional:-->
             xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>>';
             //                <!--Optional:-->
@@ -342,10 +325,9 @@ getCustomer :function(customerInternalId,storeInfo)
         }
 
         return xml;
-    }
-    ,
+    },
 
-    getMagentoUpdateAddressRequestXML :function(customerAddressObject,sessionId,magentoAddressId) {
+    getMagentoUpdateAddressRequestXML: function(customerAddressObject, sessionId, magentoAddressId) {
         var xml = '';
         var firstName;
         var lastName;
@@ -360,15 +342,15 @@ getCustomer :function(customerInternalId,storeInfo)
             xml = xml + '<soapenv:Body>';
             xml = xml + '<urn:customerAddressUpdate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
             xml = xml + '            <sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionId + '</sessionId>';
-            xml = xml + '            <addressId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+magentoAddressId+'</addressId>';
+            xml = xml + '            <addressId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + magentoAddressId + '</addressId>';
             xml = xml + '            <addressData xsi:type="urn:customerAddressEntityCreate" xs:type="type:customerAddressEntityCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             //                <!--You may enter the following 16 items in any order-->
             //                <!--Optional:-->
-            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.city+'</city>';
+            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.city + '</city>';
             //                <!--Optional:-->
-            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.company+'</company>';
+            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.company + '</company>';
             //                <!--Optional:-->
-            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.country+'</country_id>';
+            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.country + '</country_id>';
             //                <!--Optional:-->
             xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>>';
             //                <!--Optional:-->
@@ -418,35 +400,32 @@ getCustomer :function(customerInternalId,storeInfo)
 
 
 
-
-
-
 function getFirstNameLastName(data) {
 
-    var array=data.split(' ');
-    var firstName='';
+    var array = data.split(' ');
+    var firstName = '';
     var lastName;
-    var result=new Array();
+    var result = new Array();
 
-    lastName=array[array.length-1];
+    lastName = array[array.length - 1];
 
-    for(var i=0;i<array.length-1;i++) {
-        firstName = firstName + array[i] +' ';
+    for (var i = 0; i < array.length - 1; i++) {
+        firstName = firstName + array[i] + ' ';
 
     }
 
-    firstName=firstName.trim();
+    firstName = firstName.trim();
 
-    result['firstName']=firstName;
-    result['lastName']=lastName;
+    result['firstName'] = firstName;
+    result['lastName'] = lastName;
 
-    if(isBlankOrNull(result['firstName'])) {
+    if (isBlankOrNull(result['firstName'])) {
         result['firstName'] = result['lastName'];
     }
 
 
-    if(isBlankOrNull(result['lastName']))
-        result['lastName']='';
+    if (isBlankOrNull(result['lastName']))
+        result['lastName'] = '';
 
 
     return result;

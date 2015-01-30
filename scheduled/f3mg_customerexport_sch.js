@@ -31,7 +31,7 @@ function customerExport() {
         var magentoStoreAndCustomer;
 
 
-        externalSystemConfig.forEach(function (store) {
+        externalSystemConfig.forEach(function(store) {
             ConnectorConstants.CurrentStore = store;
             var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
             if (!sessionID) {
@@ -66,7 +66,7 @@ function customerExport() {
                     try {
 
 
-                        externalSystemArr.forEach(function (store) {
+                        externalSystemArr.forEach(function(store) {
 
                             try {
 
@@ -326,7 +326,7 @@ function createSingleAddressInMagento(customerRecordObject, customerAddressObj, 
     var otherStoreAddressInfo;
     var thisStoreAddressInfo;
     var currentAddressSubRecord;
-    var createOrUpdateMagentoJSONRef='create';
+    var createOrUpdateMagentoJSONRef = 'create';
 
     requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
 
@@ -341,7 +341,7 @@ function createSingleAddressInMagento(customerRecordObject, customerAddressObj, 
         if (!!isBlankOrNull(otherStoreAddressInfo))
             createOrUpdateMagentoJSONRef = 'update';
 
-        Utility.logDebug('address store info  ' , 'store.systemId  ' +store.systemId +  '    ' + responseMagento.magentoAddressId +'    '+createOrUpdateMagentoJSONRef  +'    ' + JSON.stringify(otherStoreAddressInfo));
+        Utility.logDebug('address store info  ', 'store.systemId  ' + store.systemId + '    ' + responseMagento.magentoAddressId + '    ' + createOrUpdateMagentoJSONRef + '    ' + JSON.stringify(otherStoreAddressInfo));
 
 
         thisStoreAddressInfo = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoAddressId, createOrUpdateMagentoJSONRef, otherStoreAddressInfo);
@@ -400,5 +400,3 @@ function rescheduleIfRequired(params) {
 
     return false;
 }
-
-
