@@ -819,7 +819,7 @@ var ConnectorCommon = (function () {
         },
         /**
          * Getting magento id from array of objects with specified storeId
-         * @param {object[],[]} magentoIdObjArr
+         * @param {object[],[],string} magentoIdObjArr
          * @param {string} storeId
          * @return {string} Return magento id
          */
@@ -835,6 +835,14 @@ var ConnectorCommon = (function () {
             }
             return magentoId;
         },
+        /**
+         * Get Magento Id from JSON
+         * @param storeId
+         * @param magentoId
+         * @param type
+         * @param existingId
+         * @return {*}
+         */
         getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId) {
 
             var magentoIdObjArr = [];
@@ -876,19 +884,6 @@ var ConnectorCommon = (function () {
             return JSON.stringify(magentoIdObjArr);
         },
 
-
-        getMagentoIdFromObjArray: function (magentoIdObjArr, storeId) {
-            var magentoId = null;
-            for (var i in magentoIdObjArr) {
-                var magentoIdObj = magentoIdObjArr[i];
-                if (magentoIdObj.StoreId === storeId) {
-                    magentoId = magentoIdObj.MagentoId;
-                    break;
-                }
-            }
-            return magentoId;
-        },
-
         getScannedAddressForMagento: function (netsuiteAddressObject) {
 
             var result = true;
@@ -927,30 +922,30 @@ var ConnectorCommon = (function () {
 
 
                 //Will be handled via Custom Record to set the countries for which State is mandatory
-                    if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
+                if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
 
-                        if (isBlankOrNull(netsuiteAddressObject.region)) {
-                            //result = false;
-                            netsuiteAddressObject.region=DEFAULT_STATE;
-                        }
-
-
-                            //magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"},"default": {"value":"NJ"}}', netsuiteAddressObject.region);
-                            magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
-
-                            if (!isBlankOrNull(magentoStateCode) && magentoStateCode!=netsuiteAddressObject.region) {
-                                netsuiteAddressObject.region = magentoStateCode;
-                                netsuiteAddressObject.region_text = '';
-                            }
-                            else {
-                                //result = false;
-                                netsuiteAddressObject.region = DEFAULT_STATE;
-                            }
-
-
+                    if (isBlankOrNull(netsuiteAddressObject.region)) {
+                        //result = false;
+                        netsuiteAddressObject.region=DEFAULT_STATE;
                     }
-                    else
-                        netsuiteAddressObject.region = '';
+
+
+                    //magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"},"default": {"value":"NJ"}}', netsuiteAddressObject.region);
+                    magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+
+                    if (!isBlankOrNull(magentoStateCode) && magentoStateCode!=netsuiteAddressObject.region) {
+                        netsuiteAddressObject.region = magentoStateCode;
+                        netsuiteAddressObject.region_text = '';
+                    }
+                    else {
+                        //result = false;
+                        netsuiteAddressObject.region = DEFAULT_STATE;
+                    }
+
+
+                }
+                else
+                    netsuiteAddressObject.region = '';
 
 
             }

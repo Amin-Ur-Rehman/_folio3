@@ -7,16 +7,16 @@
  */
 
 /**
- * Magento Id Format: [{"<StoreName>":"","MagentoId":""},{"StoreName":"","MagentoId":""}]
+ * Magento Id Format: [{"<StoreName>":"","MagentoId":""},{"<StoreName>":"","MagentoId":""}]
  */
 
 ConnectorConstants = (function () {
     return {
         MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
-        ExternalSystemConfig: null,
-        CurrentStore: null,
+        ExternalSystemConfig: [],
+        CurrentStore: {},
         Client: null,
-        NSToMGShipMap: null,
+        NSToMGShipMap: {},
         DummyItem: {
             ItemId: 'unmatched_magento_item',
             Id: null
@@ -41,6 +41,9 @@ ConnectorConstants = (function () {
                 MagentoSync: 'custitem_magentosyncdev',
                 MagentoStores: 'custitem_f3mg_magento_stores'// multiselect
             }
+        },
+        OtherCustom: {
+            MagentoId: 'custrecord_magento_id'// JSON
         },
         ShippingMethod: {
             UPS: 'ups',

@@ -62,7 +62,7 @@ function customerExport() {
 
                 for (var c = 0; c < customerIds.length; c++) {
 
-                    if(c==50)
+                    if(c==2)
                     return;
 
                     externalSystemArr.forEach(function(store) {
@@ -76,6 +76,7 @@ function customerExport() {
                             Utility.logDebug('Not Synched With Any Store', 'Going to Call Create Customer');
 
                             customerSynched = createCustomerInMagento(customerIds[c], store);
+
 
                             Utility.logDebug('Synched Result', customerSynched);
 
@@ -162,6 +163,9 @@ function getStoreCustomerIdAssociativeArray(data) {
 }
 
 
+
+
+
 function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferenceInfo) {
 
     var customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
@@ -178,25 +182,33 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
         requsetXML = CUSTOMER.getMagentoCreateCustomerRequestXML(customerRecord, store.sessionID);
 
-
-
-
-
         responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store), 'create');
 
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
+
+
             if (!!existingMagentoReferenceInfo)
                 createOrUpdateMagentoJSONRef = 'update';
+
+
 
             magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, createOrUpdateMagentoJSONRef, existingMagentoReferenceInfo);
             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
+            customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
+
+
 
             //Address Sync
             if (nsCustomerUpdateStatus) {
+
                 customerSynched = createAddressesInMagento(customerRecord, store, responseMagento.magentoCustomerId);
             }
+
+            nlapiSubmitRecord(customerRecord.nsObj);
+
+
 
         } else {
             Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
@@ -234,18 +246,26 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
 
         responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML,store), 'update');
 
-        if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated=="true") {
+        if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated=="true")
+        {
 
             magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
 
             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
+            customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
+
+
             if (nsCustomerUpdateStatus)
-                customerSynched = true;
+            {
+                //Address Sync
+                 customerSynched=updateAddressesInMagento(customerRecord, store, magentoId);
+            }
 
-            //Address Sync
+            nlapiSubmitRecord(customerRecord.nsObj);
 
-
+        }else {
+            Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
     }
@@ -257,21 +277,34 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
 
 function createAddressesInMagento(customerRecordObject, store, magentoCustomerId) {
 
+
     var customerAddresses = CUSTOMER.getNSCustomerAddresses(customerRecordObject);
+
     var scannedAddressForMagento;
     var requsetXML;
     var responseMagento;
     var allAddressedSynched = true;
+    var currentAddressSubRecord;
+    var otherStoreAddressInfo;
+    var createOrUpdateMagentoJSONRef='create';
+    var thisStoreAddressInfo;
+
+
 
 
     for (var adr = 0; adr < customerAddresses.length; adr++) {
+
+
+
+
+
         scannedAddressForMagento = ConnectorCommon.getScannedAddressForMagento(customerAddresses[adr]);
 
         if (scannedAddressForMagento) {
 
 
             //Address is valid for magento
-            requsetXML = CUSTOMER.getMagentoAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
+            requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
 
             //Temporary Code
             //var logRec = nlapiCreateRecord('customrecord_dummaydata');
@@ -287,6 +320,29 @@ function createAddressesInMagento(customerRecordObject, store, magentoCustomerId
             if (!responseMagento.status) {
                 allAddressedSynched = false;
             }
+            else
+            {
+                otherStoreAddressInfo=customerAddresses[adr].magentoIdStoreRef;
+
+                if(!!isBlankOrNull(otherStoreAddressInfo))
+                    createOrUpdateMagentoJSONRef='update';
+
+                thisStoreAddressInfo=ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoAddressId, createOrUpdateMagentoJSONRef, otherStoreAddressInfo);
+
+
+
+
+                customerRecordObject.nsObj.selectLineItem('addressbook', (adr+1));
+
+                currentAddressSubRecord = customerRecordObject.nsObj.editCurrentLineItemSubrecord('addressbook','addressbookaddress');
+                currentAddressSubRecord.setFieldValue(ConnectorConstants.OtherCustom.MagentoId, thisStoreAddressInfo);
+                currentAddressSubRecord.commit();
+
+                customerRecordObject.nsObj.commitLineItem('addressbook');
+
+
+
+            }
         }
 
 
@@ -297,9 +353,141 @@ function createAddressesInMagento(customerRecordObject, store, magentoCustomerId
 }
 
 
-function updateAddressesInMagento(customerRecordObject, store) {
+function updateAddressesInMagento(customerRecordObject, store,magentoCustomerId) {
 
 
+    var customerAddresses = CUSTOMER.getNSCustomerAddresses(customerRecordObject);
+    var scannedAddressForMagento;
+    var requsetXML;
+    var responseMagento;
+    var allAddressedSynched = true;
+    var currentAddressSubRecord;
+    var otherStoreAddressInfo;
+    var createOrUpdateMagentoJSONRef = 'create';
+    var thisStoreAddressInfo;
+    var currentAddressStoresInfo;
+
+    Utility.logDebug('debug','address update stop-1');
+
+    for (var adr = 0; adr < customerAddresses.length; adr++) {
+
+
+        Utility.logDebug('debug','adr '+adr);
+
+        scannedAddressForMagento = ConnectorCommon.getScannedAddressForMagento(customerAddresses[adr]);
+
+        if (scannedAddressForMagento) {
+
+            Utility.logDebug('debug','Not Synched with any store ');
+
+            //magentoStoreAndCustomer = getStoreCustomerIdAssociativeArray(magentoReferences);
+
+            if(isBlankOrNull(customerAddresses[adr].magentoIdStoreRef)) //Create
+            {
+                requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
+
+                responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
+
+                if (!responseMagento.status) {
+                    allAddressedSynched = false;
+                }
+                else {
+                    otherStoreAddressInfo = customerAddresses[adr].magentoIdStoreRef;
+
+                    if (!!isBlankOrNull(otherStoreAddressInfo))
+                        createOrUpdateMagentoJSONRef = 'update';
+
+                    thisStoreAddressInfo = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoAddressId, createOrUpdateMagentoJSONRef, otherStoreAddressInfo);
+
+
+                    customerRecordObject.nsObj.selectLineItem('addressbook', (adr + 1));
+
+                    currentAddressSubRecord = customerRecordObject.nsObj.editCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
+                    currentAddressSubRecord.setFieldValue(ConnectorConstants.OtherCustom.MagentoId, thisStoreAddressInfo);
+                    currentAddressSubRecord.commit();
+
+                    customerRecordObject.nsObj.commitLineItem('addressbook');
+
+
+                }
+
+
+            }
+            else
+            {
+                Utility.logDebug('debug','Synched with some store ');
+
+                currentAddressStoresInfo = getStoreCustomerIdAssociativeArray(customerAddresses[adr].magentoIdStoreRef);
+
+                if (isBlankOrNull(currentAddressStoresInfo[store.systemId]) || currentAddressStoresInfo[store.systemId] === '0')
+                {
+                    Utility.logDebug('Address Create Block , Synching with other store ');
+
+
+                    //Address Create
+
+                    requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
+
+                    responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
+
+                    if (!responseMagento.status) {
+                        allAddressedSynched = false;
+                    }
+                    else {
+
+                        otherStoreAddressInfo = customerAddresses[adr].magentoIdStoreRef;
+
+                        if (!!isBlankOrNull(otherStoreAddressInfo))
+                            createOrUpdateMagentoJSONRef = 'update';
+
+                        thisStoreAddressInfo = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoAddressId, createOrUpdateMagentoJSONRef, otherStoreAddressInfo);
+
+
+                        customerRecordObject.nsObj.selectLineItem('addressbook', (adr + 1));
+
+                        currentAddressSubRecord = customerRecordObject.nsObj.editCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
+                        currentAddressSubRecord.setFieldValue(ConnectorConstants.OtherCustom.MagentoId, thisStoreAddressInfo);
+                        currentAddressSubRecord.commit();
+
+                        customerRecordObject.nsObj.commitLineItem('addressbook');
+
+
+                    }
+
+                } else {
+
+                    //Address Update
+
+                    Utility.logDebug('debug','Synched with current store ');
+
+                    Utility.logDebug('Address Update Block , Synching with other store ');
+
+
+                    //Address Create
+
+                    requsetXML = CUSTOMER.getMagentoUpdateAddressRequestXML(scannedAddressForMagento, store.sessionID, currentAddressStoresInfo[store.systemId]);
+
+                    responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
+
+                    if (!responseMagento.status) {
+                        allAddressedSynched = false;
+                    }
+
+
+
+                }
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+    return allAddressedSynched;
 
 
 }

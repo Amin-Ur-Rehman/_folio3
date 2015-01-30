@@ -10,7 +10,7 @@ getCustomers : function()
     var arrCols = new Array();
     var resultObject;
 
-    //arrFils.push(new nlobjSearchFilter('internalid',null,'anyof',['1542','1249','155']));
+    arrFils.push(new nlobjSearchFilter('internalid',null,'anyof',['155']));
 
     arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -139,6 +139,7 @@ getCustomer :function(customerInternalId,storeInfo)
         var addressObject;
         var names;
         var customerRecord=customerRecordObject.nsObj;
+        var addressSubRecord;
 
         for(var i=1;i<=customerRecord.getLineItemCount('addressbook');i++)
         {
@@ -188,7 +189,9 @@ getCustomer :function(customerInternalId,storeInfo)
             addressObject.postcode=nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook','zip',i)));
 
 
-
+            customerRecord.selectLineItem('addressbook', i);
+            addressSubRecord = customerRecord.viewCurrentLineItemSubrecord('addressbook','addressbookaddress');
+            addressObject.magentoIdStoreRef=getBlankForNull(addressSubRecord.getFieldValue('custrecord_magento_id'));
 
             customerAddresses.push(addressObject);
 
@@ -274,7 +277,7 @@ getCustomer :function(customerInternalId,storeInfo)
     }
 ,
 
-    getMagentoAddressRequestXML :function(customerAddressObject,sessionId,magentoCustomerId) {
+    getMagentoCreateAddressRequestXML :function(customerAddressObject,sessionId,magentoCustomerId) {
         var xml = '';
         var firstName;
         var lastName;
@@ -340,7 +343,74 @@ getCustomer :function(customerInternalId,storeInfo)
 
         return xml;
     }
+    ,
 
+    getMagentoUpdateAddressRequestXML :function(customerAddressObject,sessionId,magentoAddressId) {
+        var xml = '';
+        var firstName;
+        var lastName;
+        var names;
+
+        if (customerAddressObject != null) {
+
+
+
+            xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml = xml + '<soapenv:Header/>';
+            xml = xml + '<soapenv:Body>';
+            xml = xml + '<urn:customerAddressUpdate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml = xml + '            <sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionId + '</sessionId>';
+            xml = xml + '            <addressId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">'+magentoAddressId+'</addressId>';
+            xml = xml + '            <addressData xsi:type="urn:customerAddressEntityCreate" xs:type="type:customerAddressEntityCreate" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
+            //                <!--You may enter the following 16 items in any order-->
+            //                <!--Optional:-->
+            xml = xml + '                <city xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.city+'</city>';
+            //                <!--Optional:-->
+            xml = xml + '                <company xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.company+'</company>';
+            //                <!--Optional:-->
+            xml = xml + '                <country_id xsi:type="xsd:string" xs:type="type:string">'+customerAddressObject.country+'</country_id>';
+            //                <!--Optional:-->
+            xml = xml + '                <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>>';
+            //                <!--Optional:-->
+            xml = xml + '                <firstname xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.firstname + '</firstname>';
+            //                <!--Optional:-->
+            xml = xml + '                <lastname xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.lastname + '</lastname>';
+            //                <!--Optional:-->
+            xml = xml + '                <middlename xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.middlename + '</middlename>>';
+            //                <!--Optional:-->
+            xml = xml + '                <postcode xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.postcode + '</postcode>';
+            //                <!--Optional:-->
+            xml = xml + '                <prefix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.prefix + '</prefix>';
+            //                <!--Optional:-->
+            xml = xml + '                <region_id xsi:type="xsd:int" xs:type="type:int">' + customerAddressObject.region + '</region_id>';
+            //                <!--Optional:-->
+            xml = xml + '                <region xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.region_text + '</region>';
+            //                <!--Optional:-->
+
+            xml = xml + '<street xsi:type="urn:ArrayOfString" soapenc:arrayType="xsd:string[]" xs:type="type:string">';
+            xml = xml + '    <item>' + customerAddressObject.street1 + '</item>';
+            xml = xml + '    <item>' + customerAddressObject.street2 + '</item>';
+            xml = xml + '</street>';
+            xml = xml + ' <suffix xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.suffix + '</suffix>';
+            xml = xml + ' <fax xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.fax + '</fax>';
+
+
+            //                <!--Optional:-->
+            xml = xml + '                <telephone xsi:type="xsd:string" xs:type="type:string">' + customerAddressObject.telephone + '</telephone>';
+            //                <!--Optional:-->
+            xml = xml + '                <is_default_billing xsi:type="xsd:boolean" xs:type="type:boolean">' + customerAddressObject.defaultbilling + '</is_default_billing>';
+            //                <!--Optional:-->
+            xml = xml + '                <is_default_shipping xsi:type="xsd:boolean" xs:type="type:boolean">' + customerAddressObject.defaultshipping + '</is_default_shipping>';
+            xml = xml + '            </addressData>';
+            xml = xml + '        </urn:customerAddressUpdate>';
+            xml = xml + '    </soapenv:Body>';
+            xml = xml + '</soapenv:Envelope>';
+
+
+        }
+
+        return xml;
+    }
 
 
 };
