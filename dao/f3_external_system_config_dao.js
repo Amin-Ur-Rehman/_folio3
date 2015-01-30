@@ -56,7 +56,7 @@ ExternalSystemConfig = (function () {
          */
         getConfig: function () {
             var systemConfig = [];
-            var res = this.lookup(null);
+            var res = this.lookup(new nlobjSearchFilter('isinactive',null,'is','F'));
 
             for (var i in res) {
                 var config = res[i];

@@ -13,6 +13,7 @@
 ConnectorConstants = (function () {
     return {
         MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
+
         DefaultAddressId: '-1',
         ExternalSystemConfig: [],
         CurrentStore: {},

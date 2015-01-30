@@ -4,15 +4,6 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-<<<<<<< HEAD
   </component>
 </module>
 
-=======
-    <orderEntry type="library" name="jQuery UI-1.10.2" level="application" />
-    <orderEntry type="library" name="jQuery-2.0.0" level="application" />
-    <orderEntry type="library" name="js_libs" level="application" />
-    <orderEntry type="library" name="NetSuiteLibrary" level="application" />
-  </component>
-</module>
->>>>>>> 805a7813f40e533f9ecf69ddb9fa19267938c4c4

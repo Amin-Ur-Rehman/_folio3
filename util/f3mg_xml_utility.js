@@ -755,7 +755,16 @@ XmlUtility = (function () {
             var faultCode = "";
             var faultString;
             var responseMagento = {};
+
+            var magentoCustomerId;
+            var updated;
+            responseMagento.status=true;
+
             responseMagento.status = true;
+
+            nlapiLogExecution('debug','operation',operation);
+
+
 
             try {
 
@@ -778,9 +787,35 @@ XmlUtility = (function () {
                     }
 
                 }
+                else if (operation == "update") {
+
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    responseMagento.faultCode= faultCode;
+                    responseMagento.faultString= faultString;
+
+
+                    if(!!responseMagento.faultCode) {
+                        responseMagento.status=false;
+                    }
+
+                    if(responseMagento.status)
+                    {
+                        responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerUpdateResponse/result");
+
+                    }
+
+
+                }
 
             } catch (ex) {
+
+
+
+
                 Utility.logException('XmlUtility.validateCustomerExportOperationResponse', ex);
+
             }
 
             return responseMagento;
@@ -808,7 +843,26 @@ XmlUtility = (function () {
 
                     if (responseMagento.status) {
                         magentoAddressId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressCreateResponse/result");
-                        responseMagento.magentoCustomerId = magentoAddressId;
+                        responseMagento.magentoAddressId = magentoAddressId;
+                    }
+
+                }else if (operation == "update") {
+
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+
+                    responseMagento.faultCode= faultCode;
+                    responseMagento.faultString= faultString;
+
+
+                    if(!!responseMagento.faultCode) {
+                        responseMagento.status=false;
+                    }
+
+                    if(responseMagento.status)
+                    {
+                        responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressUpdateResponse/result");
+
                     }
 
                 }
@@ -987,6 +1041,7 @@ XmlUtility = (function () {
                 customerXml = customerXml + '<mode xsi:type="http://www.w3.org/2001/XMLSchema" xmlns:xn="http://www.w3.org/2000/xmlns/">' + address.mode + '</mode>';
                 customerXml = customerXml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + address.firstName + '</firstname>';
                 customerXml = customerXml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + address.lastName + '</lastname>';
+                customerXml = customerXml + '<address_id xsi:type="xsd:string" xs:type="type:string">' + address.addressId + '</address_id>';
                 customerXml = customerXml + '<company xs:type="type:string">' + address.company + '</company>';
                 customerXml = customerXml + '<street xs:type="type:string">' + address.street + '</street>';
                 customerXml = customerXml + '<city xs:type="type:string">' + address.city + '</city>';
