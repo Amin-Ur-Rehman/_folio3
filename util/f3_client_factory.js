@@ -322,11 +322,16 @@ function F3ClientBase() {
                 if (!Utility.isBlankOrNull(addresses)) {
                     rec = ConnectorCommon.setAddresses(rec, addresses);
                 }
+
+                // setting sales order addresses
+                addresses = magentoCustomerObj.addresses;
+                rec = ConnectorCommon.setAddresses(rec, addresses, 'order');
+
             } else {
                 // if guest customer comes
 
                 if (!Utility.isBlankOrNull(addresses)) {
-                    rec = ConnectorCommon.setAddresses(rec, magentoCustomerObj.addresses);
+                    rec = ConnectorCommon.setAddresses(rec, magentoCustomerObj.addresses, 'order');
                 }
             }
 
@@ -397,7 +402,7 @@ function F3ClientBase() {
 
             responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
 
-            if (responseMagento.status == false) {
+            if (!responseMagento.status) {
                 result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
                 Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' + magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
                 return result;
@@ -408,6 +413,9 @@ function F3ClientBase() {
             if (!Utility.isBlankOrNull(addresses)) {
                 rec = ConnectorCommon.setAddresses(rec, addresses);
             }
+            // setting magento addresses from sales order
+            addresses = magentoCustomerObj.addresses;
+            rec = ConnectorCommon.setAddresses(rec, addresses, 'order');
 
             // zee: get customer address list: end
             var id = nlapiSubmitRecord(rec, true, true);
@@ -459,10 +467,6 @@ function F3ClientBase() {
  */
 function F3PurestColloidsClient() {
     var currentClient = F3ClientBase();
-
-
-
-
 
 
     return currentClient;

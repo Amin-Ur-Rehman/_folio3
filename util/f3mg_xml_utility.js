@@ -812,6 +812,10 @@ XmlUtility = (function () {
             } catch (ex) {
 
 
+
+
+                Utility.logException('XmlUtility.validateCustomerExportOperationResponse', ex);
+
             }
 
             return responseMagento;

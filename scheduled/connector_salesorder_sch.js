@@ -149,6 +149,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
                     var customer = ConnectorModels.getCustomerObject(orders[i]);
+                    // adding shipping and billing address in customer object getting from sales order
+                    customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
                     var customerNSInternalId = null;
                     var customerSearchObj = {};
                     var customerIndex = 0;
@@ -159,7 +161,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         Utility.logDebug('Guest Customer Exists', '');
 
                         // adding shipping and billing address in customer object getting from sales order
-                        customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
+                        //customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
 
                         // searching customer record in NetSuite
                         customerSearchObj = ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, null);
@@ -225,16 +227,19 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         result.infoMsg = 'Reschedule';
                         return result;
                     }
+
+
+                    // set script complate percentage
+                    context.setPercentComplete(Math.round(((100 * i) / orders.length) * 100) / 100);  // calculate the results
+
+                    // displays the percentage complete in the %Complete column on
+                    // the Scheduled Script Status page
+                    context.getPercentComplete();
+
                 }
                 catch (ex) {
                     Utility.logException('SO of Order ID ' + orders[i].increment_id + ' Failed', ex);
                 }
-                // set script complate percentage
-                context.setPercentComplete(Math.round(((100 * i) / orders.length) * 100) / 100);  // calculate the results
-
-                // displays the percentage complete in the %Complete column on
-                // the Scheduled Script Status page
-                context.getPercentComplete();
             }
         }
         else {

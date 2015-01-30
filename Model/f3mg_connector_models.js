@@ -69,9 +69,9 @@ ConnectorModels = (function () {
 
             customer.customer_id = order.customer_id;
             customer.email = order.email;
-            customer.firstname = order.firstname;
-            customer.middlename = !!order.middlename ? order.middlename : ' ';
-            customer.lastname = order.lastname;
+            customer.firstname = order.customer_firstname;
+            customer.middlename = !!order.customer_middlename ? order.customer_middlename : ' ';
+            customer.lastname = order.customer_lastname;
             customer.group_id = order.customer_group_id;
             customer.prefix = order.customer_prefix;
             customer.suffix = order.customer_suffix;
@@ -90,55 +90,38 @@ ConnectorModels = (function () {
         getAddressesFromOrder: function (shippingAddress, billingAddress) {
             var result = [];
             var address = {};
-            // checking if both addresses are same
-            if (ConnectorCommon.isSame(shippingAddress, billingAddress)) {
 
-                address.city = shippingAddress.city;
-                address.country_id = shippingAddress.country;
-                address.firstname = shippingAddress.firstname;
-                address.lastname = shippingAddress.lastname;
-                address.postcode = shippingAddress.zip;
-                address.region = shippingAddress.state;
-                address.region_id = shippingAddress.region_id;
-                address.street = shippingAddress.street;
-                address.telephone = shippingAddress.phone;
-                address.is_default_billing = true;
-                address.is_default_shipping = true;
+            address.address_id = shippingAddress.address_id;
+            address.city = shippingAddress.city;
+            address.country_id = shippingAddress.country;
+            address.firstname = shippingAddress.firstname;
+            address.lastname = shippingAddress.lastname;
+            address.postcode = shippingAddress.zip;
+            address.region = shippingAddress.state;
+            address.region_id = shippingAddress.region_id;
+            address.street = shippingAddress.street;
+            address.telephone = shippingAddress.phone;
+            address.is_default_billing = false;
+            address.is_default_shipping = true;
 
-                result[result.length] = address;
-            } else {
-                address = {};
+            result[result.length] = address;
 
-                address.city = shippingAddress.city;
-                address.country_id = shippingAddress.country;
-                address.firstname = shippingAddress.firstname;
-                address.lastname = shippingAddress.lastname;
-                address.postcode = shippingAddress.zip;
-                address.region = shippingAddress.state;
-                address.region_id = shippingAddress.region_id;
-                address.street = shippingAddress.street;
-                address.telephone = shippingAddress.phone;
-                address.is_default_billing = false;
-                address.is_default_shipping = true;
+            address = {};
 
-                result[result.length] = address;
+            address.address_id = billingAddress.address_id;
+            address.city = billingAddress.city;
+            address.country_id = billingAddress.country;
+            address.firstname = billingAddress.firstname;
+            address.lastname = billingAddress.lastname;
+            address.postcode = billingAddress.zip;
+            address.region = billingAddress.state;
+            address.region_id = billingAddress.region_id;
+            address.street = billingAddress.street;
+            address.telephone = billingAddress.phone;
+            address.is_default_billing = true;
+            address.is_default_shipping = false;
 
-                address = {};
-
-                address.city = billingAddress.city;
-                address.country_id = billingAddress.country;
-                address.firstname = billingAddress.firstname;
-                address.lastname = billingAddress.lastname;
-                address.postcode = billingAddress.zip;
-                address.region = billingAddress.state;
-                address.region_id = billingAddress.region_id;
-                address.street = billingAddress.street;
-                address.telephone = billingAddress.phone;
-                address.is_default_billing = true;
-                address.is_default_shipping = false;
-
-                result[result.length] = address;
-            }
+            result[result.length] = address;
 
             return result;
         }
