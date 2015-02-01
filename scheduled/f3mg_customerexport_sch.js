@@ -169,6 +169,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
     var createOrUpdateMagentoJSONRef = 'create';
 
 
+
     if (!!customerRecord) {
 
 
@@ -182,7 +183,9 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
             if (!!existingMagentoReferenceInfo)
                 createOrUpdateMagentoJSONRef = 'update';
 
-            magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, createOrUpdateMagentoJSONRef, existingMagentoReferenceInfo);
+            magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, createOrUpdateMagentoJSONRef, existingMagentoReferenceInfo,customerRecord.password);
+
+
             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
             customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
@@ -225,17 +228,17 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
 
         if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {
 
-            magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
+            //magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
 
-            nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
+            //nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
             customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
 
 
-            if (nsCustomerUpdateStatus) {
+            //if (nsCustomerUpdateStatus) {
                 //Address Sync
                 customerSynched = updateAddressesInMagento(customerRecord, store, magentoId);
-            }
+            //}
 
             nlapiSubmitRecord(customerRecord.nsObj);
 
