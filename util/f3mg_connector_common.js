@@ -894,7 +894,7 @@ var ConnectorCommon = (function () {
          * @param existingId
          * @return {*}
          */
-        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId) {
+        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId,password) {
 
             var magentoIdObjArr = [];
 
@@ -903,6 +903,7 @@ var ConnectorCommon = (function () {
 
                 obj1.StoreId = storeId;
                 obj1.MagentoId = magentoId;
+                obj1.Password=password
                 magentoIdObjArr.push(obj1);
             }
             else if (type === 'update') {
@@ -921,6 +922,7 @@ var ConnectorCommon = (function () {
 
                         obj2.StoreId = storeId;
                         obj2.MagentoId = magentoId;
+                        obj2.Password=password;
                         magentoIdObjArr.push(obj2);
                     }
                 } else {
@@ -928,6 +930,7 @@ var ConnectorCommon = (function () {
 
                     obj3.StoreId = storeId;
                     obj3.MagentoId = magentoId;
+                    obj3.Password=password;
                     magentoIdObjArr.push(obj3);
                 }
             }

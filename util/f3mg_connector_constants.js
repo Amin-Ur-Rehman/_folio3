@@ -14,6 +14,7 @@ ConnectorConstants = (function () {
     return {
         MagentoIdFormat: '{"StoreId":"<STOREID>","MagentoId":"<MAGENTOID>"}',
 
+        CustomerTypesToExport: ['13'],      //Customer Or Lead Or Prospectus or All etc
         DefaultAddressId: '-1',
         ExternalSystemConfig: [],
         CurrentStore: {},
