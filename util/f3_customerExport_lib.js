@@ -9,11 +9,8 @@ CUSTOMER = {
         var result = [];
         var arrCols = [];
         var resultObject;
-        var CUSTOMER_STATUSES=['13'];
+        var CUSTOMER_STATUSES=ConnectorConstants.CustomerTypesToExport;
 
-        //arrFils.push(new nlobjSearchFilter('internalid', null, 'anyof', ['155']));
-
-        
 
         arrFils.push(new nlobjSearchFilter('entitystatus', null, 'anyof',CUSTOMER_STATUSES));
 
