@@ -939,51 +939,64 @@ var ConnectorCommon = (function () {
 
             var result = true;
             var magentoStateCode;
+            var DEFAULT_STATE='NJ';
+            var DEFAULT_COUNTRY='US';
+            var DEFAULT_CITY='US';
+            var DEFAULT_TELEPHONE='123-123-1234';
 
-            nlapiLogExecution('debug', 'netsuiteAddressObject', JSON.stringify(netsuiteAddressObject));
+            nlapiLogExecution('debug', 'netsuiteAddressObject before scan', JSON.stringify(netsuiteAddressObject));
+
 
             if (!!netsuiteAddressObject) {
 
-                if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
-                    result = false;
+                //if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
+                //    result = false;
+                //}
 
-                    nlapiLogExecution('debug', 'block-1');
+                if(isBlankOrNull(netsuiteAddressObject.street1)) {
+                    if (!isBlankOrNull(netsuiteAddressObject.street2))
+                        netsuiteAddressObject.street1 = netsuiteAddressObject.street2;
+                    else
+                        netsuiteAddressObject.street1 = "No Address Line";
                 }
-                else {
-                    //Will be handled via Custom Record to set the countries for which State is mandatory
-                    if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
-                        if (isBlankOrNull(netsuiteAddressObject.region)) {
-                            result = false;
 
-                            nlapiLogExecution('debug', 'block-2');
+                if(isBlankOrNull(netsuiteAddressObject.city))
+                    netsuiteAddressObject.city = DEFAULT_CITY;
 
-                        }
-                        else {
+                if(isBlankOrNull(netsuiteAddressObject.country))
+                    netsuiteAddressObject.country = DEFAULT_COUNTRY;
 
-                            nlapiLogExecution('debug', 'block-3-a', netsuiteAddressObject.region);
 
-                            magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+                if(isBlankOrNull(netsuiteAddressObject.telephone))
+                    netsuiteAddressObject.telephone=DEFAULT_TELEPHONE;
 
-                            nlapiLogExecution('debug', 'block-3-b', netsuiteAddressObject.region);
 
-                            if (!isBlankOrNull(magentoStateCode)) {
-                                netsuiteAddressObject.region = magentoStateCode;
-                                netsuiteAddressObject.region_text = '';
-                            }
-                            else {
-                                result = false;
-                                nlapiLogExecution('debug', 'block-3-c');
 
-                            }
-                        }
+                //Will be handled via Custom Record to set the countries for which State is mandatory
+                if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
 
+                    if (isBlankOrNull(netsuiteAddressObject.region)) {
+                        //result = false;
+                        netsuiteAddressObject.region=DEFAULT_STATE;
+                    }
+
+
+                    //magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"},"default": {"value":"NJ"}}', netsuiteAddressObject.region);
+                    magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+
+                    if (!isBlankOrNull(magentoStateCode) && magentoStateCode!=netsuiteAddressObject.region) {
+                        netsuiteAddressObject.region = magentoStateCode;
+                        netsuiteAddressObject.region_text = '';
                     }
                     else {
-                        netsuiteAddressObject.region = '';
-
+                        //result = false;
+                        netsuiteAddressObject.region = DEFAULT_STATE;
                     }
 
+
                 }
+                else
+                    netsuiteAddressObject.region = '';
 
 
             }
