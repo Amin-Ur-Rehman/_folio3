@@ -13,7 +13,8 @@
  * users who uses Folio3 Connectors.
  */
 Folio3ConnectorLicenseVerification = (function () {
-    var _serverUrl = 'http://202.142.150.38:3000/validate_license.json';
+    var _serverUrl = 'http://productstore.folio3.com/validate_license.json';
+    var toEmail = 'ubaig@folio3.com';
 
     /**
      * Creates instance of the class
@@ -50,10 +51,19 @@ Folio3ConnectorLicenseVerification = (function () {
             }
 
         } catch (ex) {
-            //nlapiLogExecution('ERROR', 'error in func validateLicense.', ex.toString() +
-            //  ", connectorInfo = " + JSON.stringify(connectorInfo));
             nlapiLogExecution('ERROR', 'error in func validateLicense.', ex.toString());
-            return false;
+
+            try {
+                var emailBody = 'error in func validateLicense.' + ex.toString() +
+                    ", Account Id = " + connectorInfo.accountId;
+                var emailSubject = 'License Validation Error';
+                nlapiSendEmail(nlapiGetContext().user, toEmail, emailSubject, emailBody , null, null, null );
+
+                return true;
+            } catch (e) {
+                nlapiLogExecution('ERROR', 'error in sending email at validateLicense.', ex.toString());
+                return false;
+            }
         }
     };
 
