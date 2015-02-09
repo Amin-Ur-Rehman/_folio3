@@ -14,10 +14,9 @@ function startup()
     var magentoIdFieldValue;
     var magentoInfoJSon;
     var storeId='1';
+    var CUSTOMER_STATUSES=ConnectorConstants.CustomerTypesToExport;
 
-    //var CUSTOMER_STATUSES=ConnectorConstants.CustomerTypesToExport;
-
-    arrFils.push(new nlobjSearchFilter('entitystatus', null, 'anyof',['13']));
+    arrFils.push(new nlobjSearchFilter('entitystatus', null, 'anyof',CUSTOMER_STATUSES));
 
     arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'T'));
 
@@ -45,7 +44,14 @@ function startup()
                     {
                         if(magentoInfoJSon[i].StoreId === storeId)
                         {
-                                nlapiSubmitField('customer',recs[i].getId(),'custentity_magentopw',magentoInfoJSon[i].Password);
+                            if(!!magentoInfoJSon[i].Password) {
+
+                                nlapiSubmitField('customer', recs[i].getId(), 'custentity_magentopw', magentoInfoJSon[i].Password);
+
+                                nlapiLogExecution('debug','Customer ID',recs[i].getId() );
+
+                                return;
+                            }
                         }
                     }
                 }
