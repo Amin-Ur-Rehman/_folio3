@@ -81,3 +81,4 @@ ConnectorConstants = (function () {
         }
     };
 })();
+

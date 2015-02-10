@@ -153,10 +153,8 @@ function F3ClientBase() {
 
             var shippingCarrier = shipMethodDetail.length === 2 ? shipMethodDetail[0] : '';
             var shippingMethod = shipMethodDetail.length === 2 ? shipMethodDetail[1] : '';
-
             shippingCarrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', shippingCarrier);
             shippingMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shippingMethod);
-            
             var shippingCost = order.shipping_amount || 0;
 
             if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
