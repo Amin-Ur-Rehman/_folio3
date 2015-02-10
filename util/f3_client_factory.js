@@ -148,13 +148,21 @@ function F3ClientBase() {
             Utility.logDebug('setting payment ', '');
 
             //   rec.setFieldValue('tranid', order.increment_id);
+            var shipMethodDetail = order.shipment_method;
+            shipMethodDetail = (shipMethodDetail + '').split('_');
 
-            var shippingMethod = ConnectorCommon.getShippingCarrierAndMethod2(order.shipping_description);
+            var shippingCarrier = shipMethodDetail.length === 2 ? shipMethodDetail[0] : '';
+            var shippingMethod = shipMethodDetail.length === 2 ? shipMethodDetail[1] : '';
 
-            if (!ConnectorCommon.isDevAccount()) {
-                rec.setFieldValue('shipcarrier', ConnectorConstants.ShippingMethod.FedEx);// hardcoded to noups
+            shippingCarrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', shippingCarrier);
+            shippingMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shippingMethod);
+            
+            var shippingCost = order.shipping_amount || 0;
+
+            if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
+                rec.setFieldValue('shipcarrier', shippingCarrier);
                 rec.setFieldValue('shipmethod', shippingMethod);
-                rec.setFieldValue('shippingcost', order.shipping_amount);
+                rec.setFieldValue('shippingcost', shippingCost);
             }
             // rec.setFieldValue('taxitem',-2379);
 
@@ -186,7 +194,7 @@ function F3ClientBase() {
             //Utility.logDebug('Setting Billing Fields', '');
 
             // set payment details
-            ConnectorCommon.setPayment(rec, payment);
+            //ConnectorCommon.setPayment(rec, payment);
 
 
             for (var x = 0; x < products.length; x++) {
@@ -251,7 +259,7 @@ function F3ClientBase() {
                 rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
 
                 //rec.setFieldValue('subsidiary', '3');// TODO generalize
-                var id = nlapiSubmitRecord(rec, false, true);
+                var id = nlapiSubmitRecord(rec, true, true);
                 Utility.logDebug('Netsuite SO-ID for magento order ' + order.increment_id, id);
                 /*if (isDummyItemSetInOrder) {
                  // if order has dummy item then don't create invoice and customer payment

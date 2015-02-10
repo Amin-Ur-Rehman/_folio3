@@ -1,15 +1,18 @@
 CUSTOMER = {
 
 
+
     getCustomers: function() {
 
-        var arrFils = new Array();
+        var arrFils = [];
         var recs;
-        var result = new Array();
-        var arrCols = new Array();
+        var result = [];
+        var arrCols = [];
         var resultObject;
+        var CUSTOMER_STATUSES=ConnectorConstants.CustomerTypesToExport;
 
-        arrFils.push(new nlobjSearchFilter('internalid', null, 'anyof', ['155']));
+
+        arrFils.push(new nlobjSearchFilter('entitystatus', null, 'anyof',CUSTOMER_STATUSES));
 
         arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
@@ -42,7 +45,9 @@ CUSTOMER = {
 
         try {
 
-            nlapiSubmitField('customer', customerId, 'custentity_magento_custid', magentoId);
+
+            nlapiSubmitField('customer', customerId, ['custentity_magento_custid'], [magentoId]);
+
             result = true;
 
         } catch (ex) {}
@@ -106,7 +111,9 @@ CUSTOMER = {
                 customerDataObject.lastname = names['lastName'];
             }
 
-            customerDataObject.password = "";
+
+            customerDataObject.password = this.getRandomPassword();
+
             customerDataObject.website_id = "1";
             customerDataObject.store_id = storeInfo.systemId;
             customerDataObject.group_id = "";
@@ -124,7 +131,7 @@ CUSTOMER = {
     },
 
     getNSCustomerAddresses: function(customerRecordObject) {
-        var customerAddresses = new Array();
+        var customerAddresses = [];
         var addressObject;
         var names;
         var customerRecord = customerRecordObject.nsObj;
@@ -204,7 +211,7 @@ CUSTOMER = {
             xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.firstname) + '</firstname>';
             xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.lastname) + '</lastname>';
             xml = xml + '<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
-            xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
+            xml = xml + '<password xsi:type="xsd:string" xs:type="type:string">'+nlapiEscapeXML(customerDataObject.password)+'</password>';
             xml = xml + '<website_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.website_id + '</website_id>';
             xml = xml + '<store_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.store_id + '</store_id>';
             xml = xml + '<group_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.group_id + '</group_id>';
@@ -241,7 +248,7 @@ CUSTOMER = {
             xml = xml + '<firstname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.firstname) + '</firstname>';
             xml = xml + '<lastname xsi:type="xsd:string" xs:type="type:string">' + nlapiEscapeXML(customerDataObject.lastname) + '</lastname>';
             xml = xml + '<middlename xsi:type="xsd:string" xs:type="type:string"></middlename>';
-            xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
+            //xml = xml + '<password xsi:type="xsd:string" xs:type="type:string"></password>';
             xml = xml + '<website_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.website_id + '</website_id>';
             xml = xml + '<store_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.store_id + '</store_id>';
             xml = xml + '<group_id xsi:type="xsd:int" xs:type="type:int">' + customerDataObject.group_id + '</group_id>';
@@ -393,7 +400,12 @@ CUSTOMER = {
 
         return xml;
     }
-
+    ,
+    getRandomPassword:function()
+    {
+       var randomstring = Math.random().toString(36).slice(-8);
+       return randomstring;
+    }
 
 };
 
@@ -405,7 +417,7 @@ function getFirstNameLastName(data) {
     var array = data.split(' ');
     var firstName = '';
     var lastName;
-    var result = new Array();
+    var result = [];
 
     lastName = array[array.length - 1];
 
