@@ -92,37 +92,41 @@ var OrderExportHelper = (function () {
                 // load  customer subrecord(address)
                 addressRec = customerRec.viewLineItemSubrecord('addressbook', 'addressbookaddress', line);
 
-                address.street = ( addressRec.getFieldValue('addr1') + ' ' + addressRec.getFieldValue('addr2')  ) || '';
-                address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || '';
-                address.attention = addressRec.getFieldValue('attention') || '';
-                address.addressee = addressRec.getFieldValue('addressee') || '';
-                address.city = addressRec.getFieldValue('city') || '';
-                address.state = addressRec.getFieldValue('state') || '';
-                address.stateId = addressRec.getFieldValue('state') || '';
-                address.country = addressRec.getFieldValue('country') || '';
-                address.zipCode = addressRec.getFieldValue('zip') || '';
-                address.addressId = '';
 
             } else {
 
                 // load  sales order subrecord(shippingaddress)
                 addressRec = orderRecord.viewSubrecord(type);
-
-                address.street = ( addressRec.getFieldValue('addr1') + ' ' + addressRec.getFieldValue('addr2') ) || '';
-                address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || '';
-                address.attention = addressRec.getFieldValue('attention') || '';
-                address.addressee = addressRec.getFieldValue('addressee') || '';
-                address.city = addressRec.getFieldValue('city') || '';
-                address.state = addressRec.getFieldValue('state') || '';
-                address.stateId = addressRec.getFieldValue('state') || '';
-                address.country = addressRec.getFieldValue('country') || '';
-                address.zipCode = addressRec.getFieldValue('zip') || '';
-                address.addressId = '';
             }
 
-            // get magento mapped value
-            address.state = FC_ScrubHandler.getMappedValue('State', address.state);
+            var street1 = addressRec.getFieldValue('addr1') || '';
+            var street2 = addressRec.getFieldValue('addr2') || '';
+            var street = street1 + ' ' + street2;
+            street = nlapiEscapeXML(street.trim());
+            address.street = street || ConnectorConstants.MagentoDefault.Address;
+            address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || ConnectorConstants.MagentoDefault.Telephone;
+                address.attention = addressRec.getFieldValue('attention') || '';
+                address.addressee = addressRec.getFieldValue('addressee') || '';
+            address.city = addressRec.getFieldValue('city') || ConnectorConstants.MagentoDefault.City;
+            address.state = addressRec.getFieldText('dropdownstate') || ConnectorConstants.MagentoDefault.State;
+            address.stateId = '' || addressRec.getFieldValue('state') || ConnectorConstants.MagentoDefault.StateId;
+            address.country = addressRec.getFieldValue('country') || ConnectorConstants.MagentoDefault.Country;
+            address.zipCode = addressRec.getFieldValue('zip') || ConnectorConstants.MagentoDefault.Zip;
+                address.addressId = '';
 
+            //var state = address.stateId;
+            // get magento mapped value
+            /*if (!Utility.isBlankOrNull(state)) {
+                state = FC_ScrubHandler.getMappedValue('State', state);
+            }*/
+
+            //  address.state contains text and address.stateId contains state code
+            /*if (state === address.state) {
+                address.stateId = '';
+                address.state = addressRec.getFieldValue('dropdownstate');
+            } else {
+                address.stateId = state;
+            }*/
             return address;
 
         },
@@ -220,8 +224,8 @@ var OrderExportHelper = (function () {
                 for (line = 1; line <= totalLines; line++) {
                     itemId = orderRecord.getLineItemValue('item', 'item', line);
                     itemId = magentoItemsMap[itemId] || '';
-                    itemQty = orderRecord.getLineItemValue('item', 'item', line) || 0;
-                    itemPrice = orderRecord.getLineItemValue('item', 'item', line) || 0;
+                    itemQty = orderRecord.getLineItemValue('item', 'quantity', line) || 0;
+                    itemPrice = orderRecord.getLineItemValue('item', 'rate', line) || 0;
 
                     var obj = {
                         sku: itemId,
@@ -245,7 +249,11 @@ var OrderExportHelper = (function () {
         appendShippingInfoInDataObject: function (orderRecord, orderDataObject) {
             var obj = {};
 
-            obj.shipmentMethod = 'flatrate_flatrate';
+            var carrier = orderRecord.getFieldValue('carrier') || '';
+            var method = orderRecord.getFieldValue('shipmethod') || '';
+            carrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', carrier);
+            method = FC_ScrubHandler.getMappedValue('ShippingMethod', method);
+            obj.shipmentMethod = carrier + '_' + method;
 
             orderDataObject.shipmentInfo = obj;
         },
@@ -286,6 +294,7 @@ var OrderExportHelper = (function () {
             } catch (e) {
                 Utility.logException('OrderExportHelper.getOrder', e);
             }
+            Utility.logDebug('getOrder', JSON.stringify(orderDataObject))
 
             return orderDataObject;
         },

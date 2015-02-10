@@ -282,6 +282,7 @@ var ConnectorCommon = (function () {
             var magentoIdId = ConnectorConstants.Transaction.Fields.MagentoId;
             var magentoSyncId = 'custbody_magentosyncdev';
             var fils = [];
+            fils.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             fils.push(new nlobjSearchFilter(magentoIdId, null, 'is', orderId, null));
             fils.push(new nlobjSearchFilter(magentoSyncId, null, 'is', 'T', null));
@@ -368,7 +369,11 @@ var ConnectorCommon = (function () {
             isDefaultBilling = address.is_default_billing ? 'T' : 'F';
             isDefaultShipping = address.is_default_shipping ? 'T' : 'F';
 
-            regionId = FC_ScrubHandler.getMappedKeyByValue('State', regionId);
+            if(Utility.isBlankOrNull(regionId)){
+                regionId = FC_ScrubHandler.getMappedValue('State', regionId);
+            }else{
+                regionId = FC_ScrubHandler.getMappedValue('State', region);
+            }
 
             if (type === 'order') {
                 addressId = ConnectorConstants.DefaultAddressId;
