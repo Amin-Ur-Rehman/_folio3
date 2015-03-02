@@ -427,6 +427,47 @@ function F3ClientBase() {
             var id = nlapiSubmitRecord(rec, true, true);
             Utility.logDebug('Customer updated in NetSuite', 'Customer Id: ' + id);
         },
+        /**
+         * Find customer in search result with passed magento id
+         * @param results
+         * @param magentoId
+         * @return {*}
+         */
+        getResultObjWithMagentoId: function (results, magentoId) {
+            var result = null;
+
+            if (!Utility.isBlankOrNull(magentoId)) {
+                for (var i = 0; i < results.length && result === null; i++) {
+                    var tempMagentoId = results[i].getValue(ConnectorConstants.Entity.Fields.MagentoId) || '';
+                    // if id found/ customer is already synced then terminate the loop.
+                    if (tempMagentoId.indexOf(magentoId) > 0) {
+                        result = results[i];
+                    }
+                }
+            }
+
+            return result;
+        },
+        /**
+         * Find customer in Search result with not synced with current store
+         * @param results
+         * @return {*}
+         */
+        getResultObjNotSyncedWithStore: function (results, storeId) {
+            var result = null;
+
+            for (var i = 0; i < results.length && result === null; i++) {
+                // check if it has passed email id and not synced with current store
+                var tempMagentoId = results[i].getValue(ConnectorConstants.Entity.Fields.MagentoId) || '';
+                var magentoId = ConnectorCommon.getMagentoIdFromObjArray(tempMagentoId, storeId);
+                if (Utility.isBlankOrNull(magentoId)) {
+                    result = results[i];
+                }
+
+            }
+
+            return result;
+        },
 
         /**
          * Search the customer with email or formatted magentoId
@@ -436,6 +477,7 @@ function F3ClientBase() {
          */
         searchCustomerInNetSuite: function (email, magentoId) {
             var magentoFormattedId;
+            var result;
             var filExp = [];
             var cols = [];
             var results;
@@ -443,6 +485,7 @@ function F3ClientBase() {
 
             magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoId);
             cols.push(new nlobjSearchColumn(ConnectorConstants.Entity.Fields.MagentoId, null, null));
+            cols.push(new nlobjSearchColumn('internalid', null, null).setSort(false));
 
             filExp.push(['email', 'is', email]);
 
@@ -454,11 +497,19 @@ function F3ClientBase() {
             results = ConnectorCommon.getRecords('customer', filExp, cols);
 
             if (results.length > 0) {
-                // Assumeing that there should be only one customer wiht one Id
-                var result = results[0];
-                resultobj.netSuiteInternalId = result.getId();
-                resultobj.netSuiteMagentoId = result.getValue(ConnectorConstants.Entity.Fields.MagentoId, null, null);
-                resultobj.status = true;
+                // Assuming that there should be only one customer wiht one Id
+                result = this.getResultObjWithMagentoId(results, magentoId);
+
+                // getting first customer search object if not synced with current store
+                if (result === null) {
+                    result = this.getResultObjNotSyncedWithStore(results, ConnectorConstants.CurrentStore.systemId);
+                }
+
+                if (result !== null) {
+                    resultobj.netSuiteInternalId = result.getId();
+                    resultobj.netSuiteMagentoId = result.getValue(ConnectorConstants.Entity.Fields.MagentoId, null, null);
+                    resultobj.status = true;
+                }
             }
             return resultobj;
         }
