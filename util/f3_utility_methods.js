@@ -17,6 +17,7 @@
 
 Utility = (function () {
     return {
+        b_logDebug: true,
         /**
          * Init method
          */
@@ -87,6 +88,10 @@ Utility = (function () {
          * @since    Jan 12, 2015
          */
         logDebug: function (title, description) {
+            if (!this.b_logDebug) {
+                // supress debug
+                return;
+            }
             if (!!window.console) {
                 console.log('DEBUG :: ' + title + ' :: ' + description);
             } else {
@@ -131,7 +136,6 @@ Utility = (function () {
         },
 
 
-
         /**
          * Calculate the size of object
          * @param {object} obj
@@ -164,14 +168,14 @@ Utility = (function () {
          * Check if NetSuite Account Type is One World
          * @return {boolean}
          */
-        isOneWorldAccount:function(){
+        isOneWorldAccount: function () {
             return nlapiGetContext().getFeature('SUBSIDIARIES');
         },
         /**
          * Check if MultiLocation is enabled
          * @return {boolean}
          */
-        isMultiLocInvt:function(){
+        isMultiLocInvt: function () {
             return nlapiGetContext().getFeature('MULTILOCINVT');
         }
     };
