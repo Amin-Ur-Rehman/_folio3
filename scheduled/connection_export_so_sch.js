@@ -29,16 +29,18 @@ var OrderExportHelper = (function () {
             var resultObject;
 
             if (!allStores) {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             } else {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
+                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
 
+            filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
 
+            arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
 
@@ -219,7 +221,7 @@ var OrderExportHelper = (function () {
                     }
                 }
 
-                // need to cater non-synced items
+                // TODO: need to cater non-synced items
                 var magentoItemsMap = ConnectorCommon.getMagentoItemIds(itemIdsArr);
 
                 for (line = 1; line <= totalLines; line++) {
@@ -252,9 +254,23 @@ var OrderExportHelper = (function () {
 
             var carrier = orderRecord.getFieldValue('carrier') || '';
             var method = orderRecord.getFieldValue('shipmethod') || '';
-            carrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', carrier);
-            method = FC_ScrubHandler.getMappedValue('ShippingMethod', method);
-            obj.shipmentMethod = carrier + '_' + method;
+            var shipmentMethod;
+
+            orderDataObject.history += 'NetSuite Ship Carrier:  ' + carrier.toUpperCase() + ' ';
+            orderDataObject.history += 'NetSuite Ship Method:  ' + (orderRecord.getFieldText('shipmethod') || 'BLANK') + ' ';
+
+            // if any of carrier or method is empty then set default
+            if (Utility.isBlankOrNull(carrier) || Utility.isBlankOrNull(method)) {
+                shipmentMethod = 'DEFAULT';
+            } else {
+                shipmentMethod = carrier + '_' + method;
+            }
+
+
+            obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
+
+            // set shipping cost in object
+            obj.shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
 
             orderDataObject.shipmentInfo = obj;
         },
@@ -286,6 +302,9 @@ var OrderExportHelper = (function () {
 
                     orderDataObject.storeId = '1';
                     orderDataObject.nsObj = orderRecord;
+                    // default is blank
+                    orderDataObject.history = '';
+                    orderDataObject.status = orderRecord.getFieldValue('orderstatus') || '';
 
                     this.appendCustomerInDataObject(orderRecord, orderDataObject);
                     this.appendItemsInDataObject(orderRecord, orderDataObject);
@@ -295,7 +314,7 @@ var OrderExportHelper = (function () {
             } catch (e) {
                 Utility.logException('OrderExportHelper.getOrder', e);
             }
-            Utility.logDebug('getOrder', JSON.stringify(orderDataObject))
+            Utility.logDebug('getOrder', JSON.stringify(orderDataObject));
 
             return orderDataObject;
         },
@@ -633,7 +652,9 @@ var ExportSalesOrders = (function () {
          * @param ctx nlobjContext Object
          */
         rescheduleScript: function (ctx, params) {
+            //var status = 'TEST RUN';
             var status = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params);
+            Utility.logDebug('ExportSalesOrders.rescheduleScript', 'Status: ' + status + ' Params: ' + JSON.stringify(params));
         }
     };
 })();

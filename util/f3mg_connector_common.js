@@ -369,9 +369,9 @@ var ConnectorCommon = (function () {
             isDefaultBilling = address.is_default_billing ? 'T' : 'F';
             isDefaultShipping = address.is_default_shipping ? 'T' : 'F';
 
-            if(Utility.isBlankOrNull(regionId)){
+            if (Utility.isBlankOrNull(regionId)) {
                 regionId = FC_ScrubHandler.getMappedValue('State', regionId);
-            }else{
+            } else {
                 regionId = FC_ScrubHandler.getMappedValue('State', region);
             }
 
@@ -899,7 +899,7 @@ var ConnectorCommon = (function () {
          * @param existingId
          * @return {*}
          */
-        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId,password) {
+        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId, password) {
 
             var magentoIdObjArr = [];
 
@@ -908,7 +908,7 @@ var ConnectorCommon = (function () {
 
                 obj1.StoreId = storeId;
                 obj1.MagentoId = magentoId;
-                obj1.Password=password
+                obj1.Password = password
                 magentoIdObjArr.push(obj1);
             }
             else if (type === 'update') {
@@ -927,7 +927,7 @@ var ConnectorCommon = (function () {
 
                         obj2.StoreId = storeId;
                         obj2.MagentoId = magentoId;
-                        obj2.Password=password;
+                        obj2.Password = password;
                         magentoIdObjArr.push(obj2);
                     }
                 } else {
@@ -935,7 +935,7 @@ var ConnectorCommon = (function () {
 
                     obj3.StoreId = storeId;
                     obj3.MagentoId = magentoId;
-                    obj3.Password=password;
+                    obj3.Password = password;
                     magentoIdObjArr.push(obj3);
                 }
             }
@@ -947,10 +947,10 @@ var ConnectorCommon = (function () {
 
             var result = true;
             var magentoStateCode;
-            var DEFAULT_STATE='NJ';
-            var DEFAULT_COUNTRY='US';
-            var DEFAULT_CITY='US';
-            var DEFAULT_TELEPHONE='123-123-1234';
+            var DEFAULT_STATE = 'NJ';
+            var DEFAULT_COUNTRY = 'US';
+            var DEFAULT_CITY = 'US';
+            var DEFAULT_TELEPHONE = '123-123-1234';
 
             nlapiLogExecution('debug', 'netsuiteAddressObject before scan', JSON.stringify(netsuiteAddressObject));
 
@@ -961,23 +961,22 @@ var ConnectorCommon = (function () {
                 //    result = false;
                 //}
 
-                if(isBlankOrNull(netsuiteAddressObject.street1)) {
+                if (isBlankOrNull(netsuiteAddressObject.street1)) {
                     if (!isBlankOrNull(netsuiteAddressObject.street2))
                         netsuiteAddressObject.street1 = netsuiteAddressObject.street2;
                     else
                         netsuiteAddressObject.street1 = "No Address Line";
                 }
 
-                if(isBlankOrNull(netsuiteAddressObject.city))
+                if (isBlankOrNull(netsuiteAddressObject.city))
                     netsuiteAddressObject.city = DEFAULT_CITY;
 
-                if(isBlankOrNull(netsuiteAddressObject.country))
+                if (isBlankOrNull(netsuiteAddressObject.country))
                     netsuiteAddressObject.country = DEFAULT_COUNTRY;
 
 
-                if(isBlankOrNull(netsuiteAddressObject.telephone))
-                    netsuiteAddressObject.telephone=DEFAULT_TELEPHONE;
-
+                if (isBlankOrNull(netsuiteAddressObject.telephone))
+                    netsuiteAddressObject.telephone = DEFAULT_TELEPHONE;
 
 
                 //Will be handled via Custom Record to set the countries for which State is mandatory
@@ -985,14 +984,14 @@ var ConnectorCommon = (function () {
 
                     if (isBlankOrNull(netsuiteAddressObject.region)) {
                         //result = false;
-                        netsuiteAddressObject.region=DEFAULT_STATE;
+                        netsuiteAddressObject.region = DEFAULT_STATE;
                     }
 
 
                     //magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"},"default": {"value":"NJ"}}', netsuiteAddressObject.region);
                     magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
 
-                    if (!isBlankOrNull(magentoStateCode) && magentoStateCode!=netsuiteAddressObject.region) {
+                    if (!isBlankOrNull(magentoStateCode) && magentoStateCode != netsuiteAddressObject.region) {
                         netsuiteAddressObject.region = magentoStateCode;
                         netsuiteAddressObject.region_text = '';
                     }
@@ -1063,16 +1062,20 @@ var ConnectorCommon = (function () {
 
                 fils.push(new nlobjSearchFilter('internalid', null, 'anyof', itemIdsArr, null));
                 cols.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId, null, null));
+                cols.push(new nlobjSearchColumn('itemid', null, null));// this is purest specific
 
                 result = nlapiSearchRecord('item', null, fils, cols) || [];
 
                 if (result.length > 0) {
                     for (var i in result) {
-                        var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
-                        magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
-                        magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
+                        var magentoId = result[i].getValue('itemid');
+                        //var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
+                        //magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
+                        //magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
                         if (!Utility.isBlankOrNull(magentoId)) {
-                            magentoItemIds[result[i].getId()] = magentoId;
+                            magentoId = magentoId.split(':');
+                            //magentoItemIds[result[i].getId()] = magentoId;
+                            magentoItemIds[result[i].getId()] = (magentoId[magentoId.length - 1]).trim();
                         }
                     }
                 }

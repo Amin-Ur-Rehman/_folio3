@@ -44,7 +44,7 @@ ConnectorConstants = (function () {
                 MagentoId: 'custbody_magentoid',
                 MagentoSync: 'custbody_magentosyncdev',
                 MagentoStore: 'custbody_f3mg_magento_store',
-                MagentoSyncStatus: 'custbody_f3mg_magento_sync_status'// TODO: defined in NetSuite
+                MagentoSyncStatus: 'custbody_f3mg_magento_sync_status'
             }
         },
         Item: {
