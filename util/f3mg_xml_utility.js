@@ -758,12 +758,11 @@ XmlUtility = (function () {
 
             var magentoCustomerId;
             var updated;
-            responseMagento.status=true;
+            responseMagento.status = true;
 
             responseMagento.status = true;
 
-            nlapiLogExecution('debug','operation',operation);
-
+            nlapiLogExecution('debug', 'operation', operation);
 
 
             try {
@@ -792,16 +791,15 @@ XmlUtility = (function () {
                     faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                     faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
-                    responseMagento.faultCode= faultCode;
-                    responseMagento.faultString= faultString;
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
 
 
-                    if(!!responseMagento.faultCode) {
-                        responseMagento.status=false;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
                     }
 
-                    if(responseMagento.status)
-                    {
+                    if (responseMagento.status) {
                         responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerCustomerUpdateResponse/result");
 
                     }
@@ -810,8 +808,6 @@ XmlUtility = (function () {
                 }
 
             } catch (ex) {
-
-
 
 
                 Utility.logException('XmlUtility.validateCustomerExportOperationResponse', ex);
@@ -846,21 +842,20 @@ XmlUtility = (function () {
                         responseMagento.magentoAddressId = magentoAddressId;
                     }
 
-                }else if (operation == "update") {
+                } else if (operation == "update") {
 
                     faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                     faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
 
-                    responseMagento.faultCode= faultCode;
-                    responseMagento.faultString= faultString;
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
 
 
-                    if(!!responseMagento.faultCode) {
-                        responseMagento.status=false;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
                     }
 
-                    if(responseMagento.status)
-                    {
+                    if (responseMagento.status) {
                         responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:customerAddressUpdateResponse/result");
 
                     }
@@ -1076,7 +1071,7 @@ XmlUtility = (function () {
                 var item = items[counter];
 
                 productXml += '<item>';
-                productXml += '<sku>' + item.sku + '</sku>';
+                productXml += '<sku>' + encodeURIComponent(item.sku) + '</sku>';
                 productXml += '<qty>' + item.quantity + '</qty>';
                 productXml += '<customprice>' + item.price + '</customprice>';
                 productXml += '</item>';
@@ -1112,6 +1107,7 @@ XmlUtility = (function () {
         getShippingXml: function (shipmentInfo) {
             var shippingXml = '';
             shippingXml += '<shippingmethod xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + shipmentInfo.shipmentMethod + '</shippingmethod>';
+            shippingXml += '<customshippingcost xsi:type="xsd:double" xs:type="type:double" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + shipmentInfo.shipmentCost + '</customshippingcost>';
             return shippingXml;
         },
         /**
@@ -1128,6 +1124,30 @@ XmlUtility = (function () {
 
             return paymentXml;
         },
+        /**
+         * History XML
+         * @param history
+         * @return {string}
+         */
+        getHistoryXml: function (history) {
+            var historyXml = '';
+
+            historyXml += '<history xsi:type="xsd:string" xs:type="type:string">' + history + '</history>';
+
+            return historyXml;
+        },
+        /**
+         * status XML
+         * @param history
+         * @return {string}
+         */
+        getStatusXml: function (status) {
+            var statusXml = '';
+
+            statusXml += '<status xsi:type="xsd:string" xs:type="type:string">' + status + '</status>';
+
+            return statusXml;
+        },
 
         /**
          * Creates XML for Sales Order and returns
@@ -1142,11 +1162,15 @@ XmlUtility = (function () {
             var items = orderCreationInfo.items;
             var shipmentInfo = orderCreationInfo.shipmentInfo;
             var paymentInfo = orderCreationInfo.paymentInfo;
+            var history = orderCreationInfo.history;
+            var status = orderCreationInfo.status;
 
             var customerXml = this.getCustomerXmlForSaleOrder(customer);
             var productsXml = this.getProductsXmlForSaleOrder(items);
             var shippingXml = this.getShippingXml(shipmentInfo);
             var paymentXml = this.getPaymentXml(paymentInfo);
+            var historyXml = this.getHistoryXml(history);
+            var statusXml = this.getStatusXml(status);
 
             orderXml = this.XmlHeader;
             orderXml = orderXml + '<urn:folio3_salesOrderCreateSalesOrder soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
@@ -1156,6 +1180,8 @@ XmlUtility = (function () {
             orderXml = orderXml + productsXml;
             orderXml = orderXml + shippingXml;
             orderXml = orderXml + paymentXml;
+            orderXml = orderXml + historyXml;
+            orderXml = orderXml + statusXml;
             orderXml = orderXml + '</urn:folio3_salesOrderCreateSalesOrder>';
             orderXml = orderXml + this.XmlFooter;
 
@@ -1169,6 +1195,11 @@ XmlUtility = (function () {
          * @return {object}
          */
         transformCreateSalesOrderResponse: function (xml) {
+            try {
+                ConnectorCommon.createLogRec('response - order', nlapiXMLToString(xml));
+            } catch (e) {
+                //supress
+            }
             var obj = {};
             var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/result/item");
 

@@ -43,7 +43,8 @@ ConnectorConstants = (function () {
             Fields: {
                 MagentoId: 'custbody_magentoid',
                 MagentoSync: 'custbody_magentosyncdev',
-                MagentoStore: 'custbody_f3mg_magento_store'
+                MagentoStore: 'custbody_f3mg_magento_store',
+                MagentoSyncStatus: 'custbody_f3mg_magento_sync_status'
             }
         },
         Item: {

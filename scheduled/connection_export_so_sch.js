@@ -29,15 +29,18 @@ var OrderExportHelper = (function () {
             var resultObject;
 
             if (!allStores) {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             } else {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
+                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
 
+            filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
-            
+
+            arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
 
@@ -105,28 +108,28 @@ var OrderExportHelper = (function () {
             street = nlapiEscapeXML(street.trim());
             address.street = street || ConnectorConstants.MagentoDefault.Address;
             address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || ConnectorConstants.MagentoDefault.Telephone;
-                address.attention = addressRec.getFieldValue('attention') || '';
-                address.addressee = addressRec.getFieldValue('addressee') || '';
+            address.attention = addressRec.getFieldValue('attention') || '';
+            address.addressee = addressRec.getFieldValue('addressee') || '';
             address.city = addressRec.getFieldValue('city') || ConnectorConstants.MagentoDefault.City;
             address.state = addressRec.getFieldText('dropdownstate') || ConnectorConstants.MagentoDefault.State;
             address.stateId = '' || addressRec.getFieldValue('state') || ConnectorConstants.MagentoDefault.StateId;
             address.country = addressRec.getFieldValue('country') || ConnectorConstants.MagentoDefault.Country;
             address.zipCode = addressRec.getFieldValue('zip') || ConnectorConstants.MagentoDefault.Zip;
-                address.addressId = '';
+            address.addressId = '';
 
             //var state = address.stateId;
             // get magento mapped value
             /*if (!Utility.isBlankOrNull(state)) {
-                state = FC_ScrubHandler.getMappedValue('State', state);
-            }*/
+             state = FC_ScrubHandler.getMappedValue('State', state);
+             }*/
 
             //  address.state contains text and address.stateId contains state code
             /*if (state === address.state) {
-                address.stateId = '';
-                address.state = addressRec.getFieldValue('dropdownstate');
-            } else {
-                address.stateId = state;
-            }*/
+             address.stateId = '';
+             address.state = addressRec.getFieldValue('dropdownstate');
+             } else {
+             address.stateId = state;
+             }*/
             return address;
 
         },
@@ -218,7 +221,7 @@ var OrderExportHelper = (function () {
                     }
                 }
 
-                // need to cater non-synced items
+                // TODO: need to cater non-synced items
                 var magentoItemsMap = ConnectorCommon.getMagentoItemIds(itemIdsArr);
 
                 for (line = 1; line <= totalLines; line++) {
@@ -251,9 +254,23 @@ var OrderExportHelper = (function () {
 
             var carrier = orderRecord.getFieldValue('carrier') || '';
             var method = orderRecord.getFieldValue('shipmethod') || '';
-            carrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', carrier);
-            method = FC_ScrubHandler.getMappedValue('ShippingMethod', method);
-            obj.shipmentMethod = carrier + '_' + method;
+            var shipmentMethod;
+
+            orderDataObject.history += 'NetSuite Ship Carrier:  ' + carrier.toUpperCase() + ' ';
+            orderDataObject.history += 'NetSuite Ship Method:  ' + (orderRecord.getFieldText('shipmethod') || 'BLANK') + ' ';
+
+            // if any of carrier or method is empty then set default
+            if (Utility.isBlankOrNull(carrier) || Utility.isBlankOrNull(method)) {
+                shipmentMethod = 'DEFAULT';
+            } else {
+                shipmentMethod = carrier + '_' + method;
+            }
+
+
+            obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
+
+            // set shipping cost in object
+            obj.shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
 
             orderDataObject.shipmentInfo = obj;
         },
@@ -285,6 +302,9 @@ var OrderExportHelper = (function () {
 
                     orderDataObject.storeId = '1';
                     orderDataObject.nsObj = orderRecord;
+                    // default is blank
+                    orderDataObject.history = '';
+                    orderDataObject.status = orderRecord.getFieldValue('orderstatus') || '';
 
                     this.appendCustomerInDataObject(orderRecord, orderDataObject);
                     this.appendItemsInDataObject(orderRecord, orderDataObject);
@@ -294,7 +314,7 @@ var OrderExportHelper = (function () {
             } catch (e) {
                 Utility.logException('OrderExportHelper.getOrder', e);
             }
-            Utility.logDebug('getOrder', JSON.stringify(orderDataObject))
+            Utility.logDebug('getOrder', JSON.stringify(orderDataObject));
 
             return orderDataObject;
         },
@@ -308,6 +328,7 @@ var OrderExportHelper = (function () {
                 nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {
                 Utility.logException('OrderExportHelper.setOrderMagentoId', e);
+                ExportSalesOrders.markRecords(orderId, e.toString());
             }
         },
 
@@ -347,7 +368,7 @@ var ExportSalesOrders = (function () {
     return {
 
         startTime: (new Date()).getTime(),
-        minutesAfterReschedule: 15,
+        minutesAfterReschedule: 50,
         usageLimit: 500,
 
         /**
@@ -414,6 +435,7 @@ var ExportSalesOrders = (function () {
             } else {
                 //Log error with fault code that this customer is not synched with magento
                 Utility.logDebug('final stuff', 'orderId  ' + orderObject.internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                ExportSalesOrders.markRecords(orderObject.internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
             }
         },
 
@@ -465,8 +487,11 @@ var ExportSalesOrders = (function () {
 
                                 var orderObject = orderIds[c];
 
-                                this.processOrder(orderObject, store);
-
+                                try {
+                                    this.processOrder(orderObject, store);
+                                } catch (e) {
+                                    ExportSalesOrders.markRecords(orderObject.internalId, e.toString());
+                                }
                                 if (this.rescheduleIfNeeded(context, null)) {
                                     return null;
                                 }
@@ -613,12 +638,12 @@ var ExportSalesOrders = (function () {
         /**
          * Marks record as completed
          */
-        markRecords: function () {
+        markRecords: function (orderId, msg) {
 
             try {
-                //TODO: Write your own logic here
+                nlapiSubmitField('salesorder', orderId, ConnectorConstants.Transaction.Fields.MagentoSyncStatus, msg);
             } catch (e) {
-
+                Utility.logException('ExportSalesOrders.markRecords', e);
             }
         },
 
@@ -627,7 +652,9 @@ var ExportSalesOrders = (function () {
          * @param ctx nlobjContext Object
          */
         rescheduleScript: function (ctx, params) {
+            //var status = 'TEST RUN';
             var status = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params);
+            Utility.logDebug('ExportSalesOrders.rescheduleScript', 'Status: ' + status + ' Params: ' + JSON.stringify(params));
         }
     };
 })();

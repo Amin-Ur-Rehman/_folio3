@@ -350,7 +350,10 @@
         <part name="customer" type="typens:customCustomerEntity"/>
         <part name="products" type="typens:shoppingCartProductEntityArray"/>
         <part name="shippingmethod" type="xsd:string"/>
+        <part name="customshippingcost" type="xsd:double"/>
         <part name="paymentmethod" type="typens:shoppingCartPaymentMethodEntity"/>
+        <part name="history" type="xsd:string" />
+        <part name="status" type="xsd:string" />
     </message>
     <message name="folio3_salesOrderCreateSalesOrderResponse">
         <part name="result" type="typens:customObjectEntityArray" />

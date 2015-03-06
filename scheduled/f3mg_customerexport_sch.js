@@ -1,9 +1,10 @@
 var ScheduledScriptConstant = {
-    Minutes: 15,
+    Minutes: 50,
     RemainingUsage: 1000,
     StartTime: (new Date()).getTime()
 };
 
+var errorMsg='';
 
 function customerExport() {
 
@@ -29,6 +30,7 @@ function customerExport() {
         var magentoReferences;
         var customerSynched;
         var magentoStoreAndCustomer;
+
 
 
         externalSystemConfig.forEach(function(store) {
@@ -64,12 +66,13 @@ function customerExport() {
                     nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Started');
 
                     Utility.logDebug('Customer ' + customerIds[c].internalId);
-
+                    errorMsg='';
 
                     try {
                         externalSystemArr.forEach(function(store) {
 
                             try {
+
 
                                 magentoReferences = customerIds[c].magentoCustomerIds;
                                 magentoStoreAndCustomer = getStoreCustomerIdAssociativeArray(magentoReferences);
@@ -109,6 +112,13 @@ function customerExport() {
                         if (customerSynched) {
                             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoSync(customerIds[c].internalId);
                         }
+                        else {
+
+                            if(isBlankOrNull(errorMsg))
+                                errorMsg='Unknown Error';
+
+                            CUSTOMER.setCustomerMagentoSync_Error(customerIds[c].internalId, errorMsg);
+                        }
 
                         if (rescheduleIfRequired(null)) {
                             return;
@@ -116,6 +126,7 @@ function customerExport() {
 
                     } catch (ex) {
 
+                        CUSTOMER.setCustomerMagentoSync_Error(customerIds[c].internalId,ex.toString());
 
                         Utility.logDebug('Internal Catch Block, Iternation failed for Customer : ' + customerIds[c].internalId, ex.toString());
 
@@ -201,6 +212,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
 
         } else {
+            errorMsg=responseMagento.faultCode + '    ' + responseMagento.faultString;
             Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
@@ -243,6 +255,7 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
             nlapiSubmitRecord(customerRecord.nsObj);
 
         } else {
+            errorMsg=responseMagento.faultCode + '    ' + responseMagento.faultString;
             Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
@@ -339,7 +352,10 @@ function createSingleAddressInMagento(customerRecordObject, customerAddressObj, 
     responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
 
     if (!responseMagento.status) {
+
+        errorMsg=errorMsg+'   ' + responseMagento.faultCode + '    ' + responseMagento.faultString; ;
         addressCreated = false;
+
     } else {
 
         otherStoreAddressInfo = customerAddressObj.magentoIdStoreRef;
@@ -378,6 +394,7 @@ function UpdateSingleAddressInMagento(customerRecordObject, customerAddressObj, 
     responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
 
     if (!responseMagento.status) {
+        errorMsg=errorMsg+'   ' + responseMagento.faultCode + '    ' + responseMagento.faultString; ;
         addressCreated = false;
     }
 
@@ -395,12 +412,12 @@ function rescheduleIfRequired(params) {
     minutes = Math.round(((endTime - ScheduledScriptConstant.StartTime) / (1000 * 60)) * 100) / 100;
 
     if (context.getRemainingUsage() < ScheduledScriptConstant.RemainingUsage) {
-        //nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
+        nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
         return true;
     }
 
     if (minutes > ScheduledScriptConstant.Minutes) {
-        //nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
+        nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
         return true;
     }
 

@@ -16,6 +16,8 @@ CUSTOMER = {
 
         arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
 
+        arrFils.push(new nlobjSearchFilter('custentity_magentosync_msg',null,'isempty'));
+
         arrCols.push(new nlobjSearchColumn('custentity_magento_custid'));
 
 
@@ -63,6 +65,19 @@ CUSTOMER = {
         try {
 
             nlapiSubmitField('customer', customerId, 'custentity_magentosync_dev', 'T');
+
+        } catch (ex) {}
+
+
+        return result;
+
+    },
+    setCustomerMagentoSync_Error: function(customerId,errorMsg) {
+        var result = false;
+
+        try {
+
+            nlapiSubmitField('customer', customerId, 'custentity_magentosync_msg', errorMsg);
 
         } catch (ex) {}
 
