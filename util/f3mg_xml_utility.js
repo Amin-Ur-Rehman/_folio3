@@ -1195,11 +1195,6 @@ XmlUtility = (function () {
          * @return {object}
          */
         transformCreateSalesOrderResponse: function (xml) {
-            try {
-                ConnectorCommon.createLogRec('response - order', nlapiXMLToString(xml));
-            } catch (e) {
-                //supress
-            }
             var obj = {};
             var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/result/item");
 

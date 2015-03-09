@@ -34,6 +34,7 @@ var OrderExportHelper = (function () {
                 //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
 
+            filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
@@ -257,7 +258,7 @@ var OrderExportHelper = (function () {
             var shipmentMethod;
 
             orderDataObject.history += 'NetSuite Ship Carrier:  ' + carrier.toUpperCase() + ' ';
-            orderDataObject.history += 'NetSuite Ship Method:  ' + (orderRecord.getFieldText('shipmethod') || 'BLANK') + ' ';
+            orderDataObject.history += 'NetSuite Ship Method:  ' + (encodeURIComponent(orderRecord.getFieldText('shipmethod')) || 'BLANK') + ' ';
 
             // if any of carrier or method is empty then set default
             if (Utility.isBlankOrNull(carrier) || Utility.isBlankOrNull(method)) {
@@ -459,6 +460,7 @@ var ExportSalesOrders = (function () {
                 var context = nlapiGetContext();
                 var orderIds, externalSystemArr;
 
+                context.setPercentComplete(0.00);
                 Utility.logDebug('Starting', '');
 
                 externalSystemArr = this.extractExternalSystems(externalSystemConfig);
@@ -489,6 +491,10 @@ var ExportSalesOrders = (function () {
 
                                 try {
                                     this.processOrder(orderObject, store);
+                                    context.setPercentComplete(Math.round(((100 * c) / orderIds.length) * 100) / 100);  // calculate the results
+
+                                    // displays the percentage complete in the %Complete column on the Scheduled Script Status page
+                                    context.getPercentComplete();  // displays percentage complete
                                 } catch (e) {
                                     ExportSalesOrders.markRecords(orderObject.internalId, e.toString());
                                 }
