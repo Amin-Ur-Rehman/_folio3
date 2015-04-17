@@ -20,7 +20,7 @@ ConnectorConstants = (function () {
             City: 'US',
             Telephone: '123-123-1234',
             Zip: '08060',
-            Address : 'No Address Line'
+            Address: 'No Address Line'
         },
         CustomerTypesToExport: ['13'],      //Customer Or Lead Or Prospectus or All etc
         DefaultAddressId: '-1',
@@ -75,7 +75,7 @@ ConnectorConstants = (function () {
         initialize: function () {
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.Client = F3ClientFactory.createClient('Folio3');
-            this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
+            //this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
         initializeDummyItem: function () {
             this.DummyItem.Id = ConnectorCommon.getDummyItemId(this.DummyItem.ItemId);

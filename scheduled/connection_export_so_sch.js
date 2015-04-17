@@ -36,10 +36,13 @@ var OrderExportHelper = (function () {
 
             filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
+            // TODO: undo filter: from isnotempty to isempty
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isnotempty', null, null));
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
+            // Hack: TODO remove filter after exporting orders
+            filters.push(new nlobjSearchFilter('custbody_sec_att', null, 'is', 'F', null));
 
             arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
@@ -85,9 +88,11 @@ var OrderExportHelper = (function () {
                 address.isDefaultShipping = '0';
             }
 
-            address.firstName = customerRec.getFieldValue('firstname') || '';
-            address.lastName = customerRec.getFieldValue('lastname') || '';
-            address.company = customerRec.getFieldValue('companyname') || '';
+            // Hack: Please check shipping address information. Please enter the first name. Please enter the last name and invalid XML due & in companyname: Start
+            address.firstName = nlapiEscapeXML(customerRec.getFieldValue('firstname') || customerRec.getFieldValue('companyname') || customerRec.getFieldValue('lastname') || customerRec.getFieldValue('entityid'));
+            address.lastName = nlapiEscapeXML(customerRec.getFieldValue('lastname') || customerRec.getFieldValue('companyname') || customerRec.getFieldValue('firstname') || customerRec.getFieldValue('entityid'));
+            // Hack: Please check shipping address information. Please enter the first name. Please enter the last name and invalid XML due & in companyname: End
+            address.company = nlapiEscapeXML(customerRec.getFieldValue('companyname')) || '';
             address.fax = customerRec.getFieldValue('fax') || '';
 
             if (!Utility.isBlankOrNull(addressId)) {
@@ -103,19 +108,19 @@ var OrderExportHelper = (function () {
                 addressRec = orderRecord.viewSubrecord(type);
             }
 
-            var street1 = addressRec.getFieldValue('addr1') || '';
-            var street2 = addressRec.getFieldValue('addr2') || '';
+            var street1 = !Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('addr1') : '';
+            var street2 = !Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('addr2') : '';
             var street = street1 + ' ' + street2;
             street = nlapiEscapeXML(street.trim());
             address.street = street || ConnectorConstants.MagentoDefault.Address;
-            address.telephone = addressRec.getFieldValue('addrphone') || customerRec.getFieldValue('phone') || ConnectorConstants.MagentoDefault.Telephone;
-            address.attention = addressRec.getFieldValue('attention') || '';
-            address.addressee = addressRec.getFieldValue('addressee') || '';
-            address.city = addressRec.getFieldValue('city') || ConnectorConstants.MagentoDefault.City;
-            address.state = addressRec.getFieldText('dropdownstate') || ConnectorConstants.MagentoDefault.State;
-            address.stateId = '' || addressRec.getFieldValue('state') || ConnectorConstants.MagentoDefault.StateId;
-            address.country = addressRec.getFieldValue('country') || ConnectorConstants.MagentoDefault.Country;
-            address.zipCode = addressRec.getFieldValue('zip') || ConnectorConstants.MagentoDefault.Zip;
+            address.telephone = (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('addrphone') : customerRec.getFieldValue('phone')) || ConnectorConstants.MagentoDefault.Telephone;
+            address.attention = !Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('attention') : '';
+            address.addressee = !Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('addressee') : '';
+            address.city = (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('city') : '') || ConnectorConstants.MagentoDefault.City;
+            address.state = (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldText('dropdownstate') : '') || ConnectorConstants.MagentoDefault.State;
+            address.stateId = '' || (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('state') : ConnectorConstants.MagentoDefault.StateId);
+            address.country = (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('country') : '') || ConnectorConstants.MagentoDefault.Country;
+            address.zipCode = (!Utility.isBlankOrNull(addressRec) ? addressRec.getFieldValue('zip') : '') || ConnectorConstants.MagentoDefault.Zip;
             address.addressId = '';
 
             //var state = address.stateId;
@@ -179,9 +184,11 @@ var OrderExportHelper = (function () {
             var magentoId = customerRec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId);
             var storeId = ConnectorConstants.CurrentStore.systemId;
             obj.customerId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, storeId);
-            obj.email = customerRec.getFieldValue('email') || '';
-            obj.firstName = customerRec.getFieldValue('firstname') || '';
-            obj.lastName = customerRec.getFieldValue('lastname') || '';
+            obj.email = nlapiEscapeXML(customerRec.getFieldValue('email')) || '';
+            // Hack: Please check shipping address information. Please enter the first name. Please enter the last name and invalid XML due & in companyname: Start
+            obj.firstName = nlapiEscapeXML(customerRec.getFieldValue('firstname') || customerRec.getFieldValue('companyname') || customerRec.getFieldValue('lastname') || customerRec.getFieldValue('entityid'));
+            obj.lastName = nlapiEscapeXML(customerRec.getFieldValue('lastname') || customerRec.getFieldValue('companyname') || customerRec.getFieldValue('firstname') || customerRec.getFieldValue('entityid'));
+            // Hack: Please check shipping address information. Please enter the first name. Please enter the last name and invalid XML due & in companyname: End
             obj.company = '';
             obj.street = '';
             obj.city = '';
@@ -267,8 +274,19 @@ var OrderExportHelper = (function () {
                 shipmentMethod = carrier + '_' + method;
             }
 
-
             obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
+
+            // shipmethod is not defined in mapping then fetch default shipping method
+            if (obj.shipmentMethod === shipmentMethod) {
+                obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', 'DEFAULT');
+            }
+
+            // Hack: Shipping method for error - please specify shipping method: Start
+            var syncStatus = orderRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoSyncStatus).toString();
+            if (syncStatus.indexOf('Please specify a shipping method.') > -1) {
+                obj.shipmentMethod = 'ups_GND';
+            }
+            // Hack: Shipping method for error - please specify shipping method: End
 
             // set shipping cost in object
             obj.shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
@@ -326,7 +344,7 @@ var OrderExportHelper = (function () {
          */
         setOrderMagentoId: function (magentoId, orderId) {
             try {
-                nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
+                nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId, 'custbody_sec_att', ConnectorConstants.Transaction.Fields.MagentoSyncStatus], ['T', magentoId, 'T', '']);
             } catch (e) {
                 Utility.logException('OrderExportHelper.setOrderMagentoId', e);
                 ExportSalesOrders.markRecords(orderId, e.toString());
@@ -647,7 +665,7 @@ var ExportSalesOrders = (function () {
         markRecords: function (orderId, msg) {
 
             try {
-                nlapiSubmitField('salesorder', orderId, ConnectorConstants.Transaction.Fields.MagentoSyncStatus, msg);
+                nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSyncStatus, 'custbody_sec_att'], [msg, 'T']);
             } catch (e) {
                 Utility.logException('ExportSalesOrders.markRecords', e);
             }

@@ -147,14 +147,21 @@ function F3ClientBase() {
             var rec = nlapiCreateRecord('salesorder', null);
             Utility.logDebug('setting payment ', '');
 
-            //   rec.setFieldValue('tranid', order.increment_id);
-            var shipMethodDetail = order.shipment_method;
-            shipMethodDetail = (shipMethodDetail + '').split('_');
+            // settting shipping method: start
+            var orderShipMethod = order.shipment_method;
+            var nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', orderShipMethod);
+            var shippingCarrier;
+            var shippingMethod;
 
-            var shippingCarrier = shipMethodDetail.length === 2 ? shipMethodDetail[0] : '';
-            var shippingMethod = shipMethodDetail.length === 2 ? shipMethodDetail[1] : '';
-            shippingCarrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', shippingCarrier);
-            shippingMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shippingMethod);
+            // if no mapping is found then search for default
+            if (orderShipMethod === nsShipMethod) {
+                nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', 'DEFAULT_NS');
+            }
+            nsShipMethod = (nsShipMethod + '').split('_');
+
+            shippingCarrier = nsShipMethod.length === 2 ? nsShipMethod[0] : '';
+            shippingMethod = nsShipMethod.length === 2 ? nsShipMethod[1] : '';
+
             var shippingCost = order.shipping_amount || 0;
 
             if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
@@ -162,10 +169,11 @@ function F3ClientBase() {
                 rec.setFieldValue('shipmethod', shippingMethod);
                 rec.setFieldValue('shippingcost', shippingCost);
             }
-            // rec.setFieldValue('taxitem',-2379);
 
             Utility.logDebug('order.shipping_amount ', order.shipping_amount);
-            Utility.logDebug('setting method ', order.shipment_method);
+            Utility.logDebug('setting method ', nsShipMethod.join(','));
+
+            // settting shipping method: end
 
             rec.setFieldValue('entity', netsuiteCustomerId);
 
@@ -208,7 +216,7 @@ function F3ClientBase() {
                     rec.setLineItemValue('item', 'item', x + 1, netSuiteItemID);
                     rec.setLineItemValue('item', 'quantity', x + 1, products[x].qty_ordered);
                     rec.setLineItemValue('item', 'price', x + 1, 1);
-                    rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                    //rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
                 }
                 else {
                     if (ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.setDummyItem) {
@@ -216,7 +224,7 @@ function F3ClientBase() {
                         rec.setLineItemValue('item', 'item', x + 1, ConnectorConstants.DummyItem.Id);
                         isDummyItemSetInOrder = true;
                         rec.setLineItemValue('item', 'amount', x + 1, '0');
-                        rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                        //rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
                     }
                 }
 
