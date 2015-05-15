@@ -32,8 +32,9 @@ XmlUtility = (function () {
         },
         soapRequestToMagentoSpecificStore: function (xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
-
-            var responseXML = nlapiStringToXML(res.getBody());
+            var body = res.getBody();
+            Utility.logDebug('requestbody_wahaj ', body);
+            var responseXML = nlapiStringToXML(body);
 
             return responseXML;
         },

@@ -28,12 +28,27 @@ var OrderExportHelper = (function () {
             var arrCols = [];
             var resultObject;
 
-            if (!allStores) {
-                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
-            } else {
-                //filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
-            }
+            var ageOfRecordsToSyncInDays = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.ageOfRecordsToSyncInDays;
+            //Utility.logDebug('ageOfRecordsToSyncInDays', ageOfRecordsToSyncInDays);
 
+            var currentDate = Utility.getDateUTC(0);
+            //Utility.logDebug('currentDate', currentDate);
+            var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
+            //Utility.logDebug('oldDate', oldDate);
+            oldDate = nlapiDateToString(oldDate);
+            //Utility.logDebug('first nlapiDateToString', oldDate);
+            oldDate = oldDate.toLowerCase();
+            //Utility.logDebug('oldDate toLowerCase', oldDate);
+            oldDate = nlapiDateToString(nlapiStringToDate(oldDate, 'datetime'), 'datetime');
+            //Utility.logDebug('oldNetsuiteDate', oldDate);
+            filters.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
+
+            if (!allStores) {
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+            } else {
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
+            }
+            filters.push(new nlobjSearchFilter('internalid', null, 'is', '6144', null));
             filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
@@ -193,6 +208,8 @@ var OrderExportHelper = (function () {
             obj.isDefaultBilling = '';
             obj.isDefaultShipping = '';
             obj.zipCode = '';
+            obj.internalId = entityId;
+            obj.magentoCustid = customerRec.getFieldValue('custentity_magento_custid') || '';
 
             // cater billing and shipping addresses
             obj.addresses = this.getAddresses(orderRecord, customerRec);
@@ -293,7 +310,7 @@ var OrderExportHelper = (function () {
          * Gets a single Order
          * @param parameter
          */
-        getOrder: function (orderInternalId) {
+        getOrder: function (orderInternalId, store) {
             var orderDataObject = null;
             try {
                 var orderRecord = nlapiLoadRecord('salesorder', orderInternalId, null);
@@ -306,6 +323,10 @@ var OrderExportHelper = (function () {
                     // default is blank
                     orderDataObject.history = '';
                     orderDataObject.status = orderRecord.getFieldValue('orderstatus') || '';
+
+                    var customerId = orderRecord.getFieldValue('entity');
+                    var magentoCustomerIds = nlapiLookupField('customer', customerId, 'custentity_magento_custid');;
+                    ExportSalesOrders.processCustomer(customerId, magentoCustomerIds, store);
 
                     this.appendCustomerInDataObject(orderRecord, orderDataObject);
                     this.appendItemsInDataObject(orderRecord, orderDataObject);
@@ -408,7 +429,9 @@ var ExportSalesOrders = (function () {
                 requestXml,
                 responseMagento;
 
-            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId);
+            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
+
+            //this.processCustomer(orderRecord.customer, store);
 
             Utility.logDebug('debug', 'Step-4');
 
@@ -438,6 +461,61 @@ var ExportSalesOrders = (function () {
                 Utility.logDebug('final stuff', 'orderId  ' + orderObject.internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
                 ExportSalesOrders.markRecords(orderObject.internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
             }
+        },
+
+        /**
+         * sync customer belongs to current sales order if not synched to magento
+         * @param customer
+         * @param store
+         */
+        processCustomer: function(customerId, magentoCustomerIds, store) {
+
+            try {
+                var customerAlreadySynched = this.customerAlreadySyncToStore(magentoCustomerIds, store.systemId);
+                Utility.logDebug('customerAlreadySynched', customerAlreadySynched);
+                if(!customerAlreadySynched) {
+                    var customerObj = {};
+                    customerObj.internalId = customerId;
+                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    Utility.logDebug('customerObj.internalId', customerObj.internalId);
+                    Utility.logDebug('customerObj.magentoCustomerIds', customerObj.magentoCustomerIds);
+                    if(!!customerObj.magentoCustomerIds) {
+                        createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
+                    } else {
+                        createCustomerInMagento(customerObj, store);
+                    }
+                }
+            }
+            catch (ex) {
+                Utility.logException('error in processCustomer during sales order synchronization', ex);
+            }
+        },
+
+        /**
+         * Check either customer already synchronized to current store
+         * @param magentoCustomerId
+         * @param storeId
+         */
+        customerAlreadySyncToStore: function(magentoCustomerId, storeId) {
+            var alreadySync = false;
+            try {
+                if (!!magentoCustomerId) {
+                    var storesCustomersIds = JSON.parse(magentoCustomerId);
+                    if (!!storesCustomersIds && storesCustomersIds.length > 0) {
+                        for (var i = 0; i < storesCustomersIds.length; i++) {
+                            var obj = storesCustomersIds[i];
+                            if (!!obj.StoreId && obj.StoreId == storeId) {
+                                alreadySync = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (ex) {
+                Utility.logException('error in customerAlreadySyncToStore?', ex);
+            }
+            return alreadySync;
         },
 
         /**

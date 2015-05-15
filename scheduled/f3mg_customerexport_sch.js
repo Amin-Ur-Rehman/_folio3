@@ -185,9 +185,10 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
 
         requsetXML = CUSTOMER.getMagentoCreateCustomerRequestXML(customerRecord, store.sessionID);
-
+        Utility.logDebug('customer_requsetXML ', requsetXML);
+        Utility.logDebug('store_wahaj ', JSON.stringify(store));
         responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
-
+        Utility.logDebug('responseMagento_wahaj ', JSON.stringify(responseMagento));
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
 
@@ -213,7 +214,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
         } else {
             errorMsg=responseMagento.faultCode + '    ' + responseMagento.faultString;
-            Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
+            Utility.logDebug('errored responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
     }
