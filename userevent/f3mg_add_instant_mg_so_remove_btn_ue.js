@@ -8,11 +8,12 @@ var AddInstantSORemovalBtnHelper = (function () {
             // recordType: {label: '', url: ''}
             salesorder: {
                 label: 'Close Magento Sales Order',
-                url: '/app/site/hosting/scriptlet.nl?script=customscript_f3mg_instant_syc_suit&deploy=customdeploy_f3mg_instant_syc_suit'
+                url: '/app/site/hosting/scriptlet.nl?script=customscript_f3mg_remove_magento_so_suit&deploy=customdeploy_f3mg_remove_magento_so_suit'
             }
         },
         addInstantSORemovalBtn: function (type, form, request) {
             try {
+                Utility.logDebug('type', type.toString());
                 if (type.toString() === 'view') {
                     var name,
                         label,
@@ -21,7 +22,7 @@ var AddInstantSORemovalBtnHelper = (function () {
                         url;
 
                     recordType = nlapiGetRecordType();
-
+                    Utility.logDebug('recordType', recordType);
                     if (this.config.hasOwnProperty(recordType)) {
 
                         // TODO: read from configuration
@@ -29,23 +30,31 @@ var AddInstantSORemovalBtnHelper = (function () {
                         label = this.config[recordType].label;
                         var magentoStoreIds = nlapiGetFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore);
                         var magentoSync = nlapiGetFieldValue(ConnectorConstants.Transaction.Fields.MagentoSync);
+                        var magentoId = nlapiGetFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
+                        var status = nlapiGetFieldValue('status');
 
-                        /*url = this.config[recordType].url;
+                        url = this.config[recordType].url;
                         url += url.indexOf('?') === -1 ? '?' : '&';
-                        url += 'recordid=' + nlapiGetRecordId();
-                        url += '&recordtype=' + nlapiGetRecordType();
-                        url += '&storeid=' + magentoStoreIds;*/
+                        url += 'nssoid=' + nlapiGetRecordId();
+                        url += '&mgsoid=' + magentoId;
+                        url += '&storeid=' + magentoStoreIds;
+                        url += '&status=' + 'C';
 
-                        script = "InstantSync.openPopupWindow(this,'" + url + "')";
+                        script = "if(confirm('Do you want to cancel this sales order in Magento?'))" +
+                                "{" +
+                                    "InstantSync.openPopupWindow(this,'" + url + "');" +
+                                "}";
 
                         // Show 'Close Magento Sales Order' button if order is synched to magento
-                        if(!!magentoStoreIds && magentoSync === 'T') {
-                            form.addButton(name, label, 'alert("Yes Its Working..")');
+                        Utility.logDebug('magentoStoreIds#magentoId#magentoSync#status', magentoStoreIds+'#'+magentoId+'#'+magentoSync+'#'+status);
+                        if(!!magentoStoreIds && !!magentoId && magentoSync === 'T' && status === ConnectorConstants.NSTransactionStatus.PendingApproval) {
+                            form.addButton(name, label, script);
+                        } else {
+                            Utility.logDebug('button rendering status', 'Not rendering');
                         }
 
-
                         // set client script to run in view mode
-                        //form.setScript('customscript_f3mg_instant_syc_cl');
+                        form.setScript('customscript_f3mg_instant_syc_cl');
 
                     }
                 }
@@ -71,6 +80,7 @@ var AddInstantSORemovalBtn = (function () {
          * @returns {Void}
          */
         userEventBeforeLoad: function (type, form, request) {
+
             AddInstantSORemovalBtnHelper.addInstantSORemovalBtn(type, form, request);
         }
     };
@@ -86,6 +96,7 @@ var AddInstantSORemovalBtn = (function () {
  * @returns {Void}
  */
 function AddMagentoSORemovalBtnBeforeLoad(type, form, request) {
+    Utility.logDebug('AddInstantSORemovalBtnHelper', 'before load');
     AddInstantSORemovalBtn.userEventBeforeLoad(type, form, request);
 }
 

@@ -1,83 +1,14 @@
 /**
- * Created by ubaig on 01/23/2015.
- * Description:
- * - This script is reponsible for exporting sales orders from Magento to NetSuite
- * -
- * Referenced By:
- * -
- * Dependencies:
- * -
- * -
+ * Created by wahajahmed on 5/21/2015.
  */
+
 
 /**
- * OrderExportHelper class that has the functionality of
+ * RefundExportHelper class that has the functionality of
  */
-var OrderExportHelper = (function () {
+var RefundExportHelper = (function () {
     return {
-        /**
-         * Gets Orders based on the the Store Id
-         * @param allStores
-         * @param storeId
-         * @return {object[],[]}
-         */
-        getOrders: function (allStores, storeId) {
-            var filters = [];
-            var records;
-            var result = [];
-            var arrCols = [];
-            var resultObject;
 
-            Utility.logDebug('getting orders for storeId', storeId);
-
-            var ageOfRecordsToSyncInDays = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.ageOfRecordsToSyncInDays;
-            //Utility.logDebug('ageOfRecordsToSyncInDays', ageOfRecordsToSyncInDays);
-
-            var currentDate = Utility.getDateUTC(0);
-            //Utility.logDebug('currentDate', currentDate);
-            var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
-            //Utility.logDebug('oldDate', oldDate);
-            oldDate = nlapiDateToString(oldDate);
-            //Utility.logDebug('first nlapiDateToString', oldDate);
-            oldDate = oldDate.toLowerCase();
-            //Utility.logDebug('oldDate toLowerCase', oldDate);
-            oldDate = nlapiDateToString(nlapiStringToDate(oldDate, 'datetime'), 'datetime');
-            //Utility.logDebug('oldNetsuiteDate', oldDate);
-            filters.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
-
-            if (!allStores) {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
-            } else {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
-            }
-            //filters.push(new nlobjSearchFilter('internalid', null, 'is', '7173', null));
-            filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
-            filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
-            filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
-
-            arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
-            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
-            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
-
-            records = nlapiSearchRecord('transaction', null, filters, arrCols);
-
-            if (!Utility.isBlankOrNull(records) && records.length > 0) {
-
-                for (var i = 0; i < records.length; i++) {
-                    resultObject = {};
-
-                    resultObject.internalId = records[i].getId();
-                    resultObject.magentoOrderIds = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoId, null, null);
-                    resultObject.magentoStore = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoStore, null, null);
-
-                    result.push(resultObject);
-                }
-            }
-            return result;
-        },
         /**
          * Get Bill/Ship Address either from customer or sales order for sales order export
          * @param orderRecord
@@ -151,6 +82,7 @@ var OrderExportHelper = (function () {
             return address;
 
         },
+
         /**
          * Get Addresses either from customer or sales order for sales order export
          * @param orderRecord
@@ -168,6 +100,7 @@ var OrderExportHelper = (function () {
 
             return addresses;
         },
+
         /**
          * Append customer data in orderDataObject for exporting sales order
          * @param orderRecord
@@ -182,7 +115,7 @@ var OrderExportHelper = (function () {
                 customerRec = nlapiLoadRecord('customer', entityId, null);
             }
             catch (e) {
-                Utility.logException('OrderExportHelper.appendCustomerInDataObject', e);
+                Utility.logException('RefundExportHelper.appendCustomerInDataObject', e);
             }
 
             if (Utility.isBlankOrNull(customerRec)) {
@@ -218,54 +151,47 @@ var OrderExportHelper = (function () {
 
             orderDataObject.customer = obj;
         },
+
         /**
          * Append items data in orderDataObject for exporting sales order
          * @param orderRecord
          * @param orderDataObject
          */
-        appendItemsInDataObject: function (orderRecord, orderDataObject) {
-            var arr = [];
+        appendItemsInDataObject: function (creditMemoRecord, creditMemoDataObject) {
+            creditMemoDataObject.items = [];
 
-            try {
-                var itemId;
-                var sku;
-                var itemQty;
-                var itemPrice;
-                var line;
-                var itemIdsArr = [];
-                var totalLines = orderRecord.getLineItemCount('item');
+            var totalLines = creditMemoRecord.getLineItemCount('item');
 
-                for (line = 1; line <= totalLines; line++) {
-                    itemId = orderRecord.getLineItemValue('item', 'item', line);
-                    if (!Utility.isBlankOrNull(itemId) && itemIdsArr.indexOf(itemId) === -1) {
-                        itemIdsArr.push(itemId);
-                    }
-                }
+            //var magentoItemsMap = ConnectorCommon.getMagentoItemIds(this.getNSItemIds(creditMemoRecord));
 
-                // TODO: need to cater non-synced items
-                var magentoItemsMap = ConnectorCommon.getMagentoItemIds(itemIdsArr);
+            //Utility.logDebug('appendItemsInDataObject - magentoItemsMap', JSON.stringify(magentoItemsMap));
 
-                for (line = 1; line <= totalLines; line++) {
-                    itemId = orderRecord.getLineItemValue('item', 'item', line);
-                    sku = magentoItemsMap[itemId] || '';
-                    itemQty = orderRecord.getLineItemValue('item', 'quantity', line) || 0;
-                    itemPrice = orderRecord.getLineItemValue('item', 'rate', line) || 0;
+            //var orderId = creditMemoDataObject.orderId;
 
-                    var obj = {
-                        itemId: itemId,
-                        sku: sku,
-                        quantity: itemQty,
-                        price: itemPrice
-                    };
-                    arr.push(obj);
+            //var magentoOrderItemIdsMap = ConnectorCommon.getMagentoOrderItemIdsMap(orderId, magentoItemsMap);
+            //Utility.logDebug('appendItemsInDataObject - magentoOrderItemIdsMap', JSON.stringify(magentoOrderItemIdsMap));
+
+            for (var line = 1; line <= totalLines; line++) {
+                var nsId = creditMemoRecord.getLineItemValue('item', 'item', line);
+                var qty = creditMemoRecord.getLineItemValue('item', 'quantity', line);
+
+                //var magentoOrderItemIdMap = magentoOrderItemIdsMap.hasOwnProperty(nsId) ? magentoOrderItemIdsMap[nsId] : null;
+                //var orderItemId = !!magentoOrderItemIdMap && magentoOrderItemIdMap.hasOwnProperty('orderItemId') ? magentoOrderItemIdMap.orderItemId : null;
+                var orderItemId = creditMemoRecord.getLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, line);
+
+                if (!Utility.isBlankOrNull(orderItemId)) {
+
+                    var obj = {};
+
+                    obj.nsId = nsId;
+                    obj.qty = qty;
+                    obj.orderItemId = orderItemId;
+
+                    creditMemoDataObject.items.push(obj);
                 }
             }
-            catch (e) {
-                Utility.logException('OrderExportHelper.appendItemsInDataObject', e);
-            }
-
-            orderDataObject.items = arr;
         },
+
         /**
          * Append Shipping information in orderDataObject for exporting sales order
          * @param orderRecord
@@ -298,60 +224,6 @@ var OrderExportHelper = (function () {
         },
 
         /**
-         * Append Shipping information in orderDataObject for exporting sales order
-         * @param orderRecord
-         * @param orderDataObject
-         */
-        appendPaymentInfoInDataObject: function (orderRecord, orderDataObject) {
-            var obj = {};
-
-            obj.paymentMethod = 'checkmo';
-
-            orderDataObject.paymentInfo = obj;
-        },
-
-        /**
-         * Gets a single Order
-         * @param parameter
-         */
-        getOrder: function (orderInternalId, store) {
-            var orderDataObject = null;
-            try {
-                var orderRecord = nlapiLoadRecord('salesorder', orderInternalId, null);
-
-                if (orderRecord !== null) {
-                    orderDataObject = {};
-
-                    orderDataObject.storeId = '1';
-                    orderDataObject.nsObj = orderRecord;
-                    // default is blank
-                    orderDataObject.history = '';
-                    orderDataObject.status = orderRecord.getFieldValue('orderstatus') || '';
-                    orderDataObject.cancelledMagentoSOId = orderRecord.getFieldValue(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId) || '';
-
-                    var customerId = orderRecord.getFieldValue('entity');
-                    var magentoCustomerIds = nlapiLookupField('customer', customerId, 'custentity_magento_custid');
-                    ExportSalesOrders.processCustomer(customerId, magentoCustomerIds, store);
-
-                    this.appendCustomerInDataObject(orderRecord, orderDataObject);
-                    this.appendItemsInDataObject(orderRecord, orderDataObject);
-                    this.appendShippingInfoInDataObject(orderRecord, orderDataObject);
-                    this.appendPaymentInfoInDataObject(orderRecord, orderDataObject);
-
-                    if(!!orderDataObject.cancelledMagentoSOId) {
-                        orderDataObject.history += orderDataObject.cancelledMagentoSOId + 'E';
-                    }
-
-                }
-            } catch (e) {
-                Utility.logException('OrderExportHelper.getOrder', e);
-            }
-            Utility.logDebug('getOrder', JSON.stringify(orderDataObject));
-
-            return orderDataObject;
-        },
-
-        /**
          Sets Magento Id in the Order record
          * @param parameter
          */
@@ -359,56 +231,11 @@ var OrderExportHelper = (function () {
             try {
                 nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {
-                Utility.logException('OrderExportHelper.setOrderMagentoId', e);
-                ExportSalesOrders.markRecords(orderId, e.toString());
+                Utility.logException('RefundExportHelper.setOrderMagentoId', e);
+                ExportCustomerRefunds.markRecords(orderId, e.toString());
             }
         },
 
-        /**
-         * Set Magento Orders Line Ids in Line Items
-         * @param orderData
-         */
-        setLineItemsMagentoOrderLineIds: function (orderInternalId, orderObject, magentoOrderLineIdData) {
-            try {
-                //Utility.logDebug('orderData.items', JSON.stringify(orderObject.items));
-                var itemIdsArray = OrderExportHelper.getItemIdsArray(orderObject.items);
-                var lineItemData = ConnectorCommon.getMagentoItemIds(itemIdsArray);
-                Utility.logDebug('lineItemData.skuArray', JSON.stringify(lineItemData));
-                var soRecord = nlapiLoadRecord('salesorder', orderInternalId);
-                for (var i = 1; i <= soRecord.getLineItemCount('item'); i++) {
-                    var itemId = soRecord.getLineItemValue('item', 'item', i);
-                    var sku = lineItemData[itemId];
-                    if(!!sku) {
-                        var magentoOrderLineId = magentoOrderLineIdData[sku];
-                        if(!!magentoOrderLineId) {
-                            soRecord.setLineItemValue('item', 'custcol_mg_order_item_id', i, magentoOrderLineId);
-                        }
-                    }
-                }
-                nlapiSubmitRecord(soRecord);
-
-            } catch (e) {
-                Utility.logException('OrderExportHelper.setLineItemsMagentoOrderLineIds', e);
-                ExportSalesOrders.markRecords(orderInternalId, e.toString());
-            }
-        },
-        /**
-         * Convert Line item Ids into Array
-         * @param items
-         * @returns {Array}
-         */
-        getItemIdsArray: function (items) {
-            var itemIdsArray = [];
-            try {
-                for (var i = 0; i < items.length; i++) {
-                    var obj = items[i];
-                    itemIdsArray.push(obj.itemId);
-                }
-            } catch (e) {
-                Utility.logException('OrderExportHelper.getItemIdsArray', e);
-            }
-            return itemIdsArray;
-        },
         /**
          * Description of method setOrderMagentoSync
          * @param parameter
@@ -419,7 +246,7 @@ var OrderExportHelper = (function () {
                 nlapiSubmitField('transaction', orderId, 'custbody_magentosync_dev', 'T');
                 result = true;
             } catch (e) {
-                Utility.logException('OrderExportHelper.setOrderMagentoSync', e);
+                Utility.logException('RefundExportHelper.setOrderMagentoSync', e);
             }
 
             return result;
@@ -432,16 +259,80 @@ var OrderExportHelper = (function () {
          */
         getMagentoRequestXml: function (orderRecord, sessionId) {
             return XmlUtility.getCreateSalesOrderXml(orderRecord, sessionId);
+        },
+
+        /**
+         * Process credit memo to create memo in magento
+         * @param record
+         * @param store
+         */
+        processCustomerRefund: function (record, store) {
+            try {
+                var cashRefundNsId = record.getId();
+                // get credit card data
+                var cashRefund = this.getCustomerRefund(cashRefundNsId);
+
+                if (cashRefund.items.length === 0) {
+                    Utility.throwException(null, 'No item found to refund');
+                }
+
+                var requestXml = XmlUtility.getCreditMemoCreateXml(cashRefund, store.sessionID);
+                Utility.logDebug('cashRefund requestXml', requestXml);
+                var responseMagento = XmlUtility.validateAndTransformResponse(XmlUtility.soapRequestToMagento(requestXml), XmlUtility.transformCreditMemoCreateResponse);
+
+                if (responseMagento.status) {
+                    ExportCustomerRefunds.setCashRefundMagentoId(responseMagento.result.creditMemoId, cashRefundNsId);
+                } else {
+                    Utility.logDebug('RefundExportHelper.processCustomerRefund', responseMagento.faultString);
+                    ExportCustomerRefunds.markRecords(cashRefundNsId, responseMagento.faultString);
+                }
+            } catch (e) {
+                Utility.logException('RefundExportHelper.processCustomerRefund', e);
+                ExportCustomerRefunds.markRecords(cashRefundNsId, e.toString());
+            }
+        },
+
+        /**
+         * Gets a credit memo data object
+         * @param parameter
+         */
+        getCustomerRefund: function (refundInternalId) {
+            var cashRefundDataObject = null;
+            try {
+                var cashRefundRecord = nlapiLoadRecord('cashrefund', refundInternalId, null);
+
+                if (cashRefundRecord !== null) {
+                    cashRefundDataObject = {};
+
+                    cashRefundDataObject.storeId = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore);
+                    cashRefundDataObject.orderId = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
+                    cashRefundDataObject.shippingCost = cashRefundRecord.getFieldValue('shippingcost');
+                    cashRefundDataObject.comment = cashRefundRecord.getFieldValue('memo');
+                    cashRefundDataObject.adjustmentPositive = '';
+                    cashRefundDataObject.adjustmentNegative = '';
+                    cashRefundDataObject.notifyCustomer = '0';
+                    cashRefundDataObject.includeComment = '1';
+                    cashRefundDataObject.refundToStoreCreditAmount = '';// store id optional field know itself
+                    cashRefundDataObject.nsObj = cashRefundRecord;
+
+                    this.appendItemsInDataObject(cashRefundRecord, cashRefundDataObject);
+                }
+            } catch (e) {
+                Utility.logException('CreditMemoExportHelper.getCustomerRefund', e);
+            }
+            Utility.logDebug('getCustomerRefund', JSON.stringify(cashRefundDataObject));
+
+            return cashRefundDataObject;
         }
     };
 })();
 
 
 /**
- * ExportSalesOrders class that has the actual functionality of suitelet.
+ * ExportCustomerRefunds class that has the actual functionality of suitelet.
  * All business logic will be encapsulated in this class.
  */
-var ExportSalesOrders = (function () {
+var ExportCustomerRefunds = (function () {
     return {
 
         startTime: (new Date()).getTime(),
@@ -472,54 +363,35 @@ var ExportSalesOrders = (function () {
         },
 
         /**
-         * Processes Records
-         * @param orderObject
-         * @param store
-         * @returns {{orderRecord: *, requsetXML: *, responseMagento: *, magentoIdObjArrStr: *, nsCustomerUpdateStatus: *, customerAddresses: *, allAddressedSynched: *, adr: number, logRec: nlobjRecord}}
+         Sets Magento Id in the Order record
+         * @param parameter
          */
-        processOrder: function (orderObject, store) {
-
-            var magentoIdObjArrStr,
-                nsOrderUpdateStatus,
-                requestXml,
-                responseMagento;
-
-            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
-
-            //this.processCustomer(orderRecord.customer, store);
-
-            Utility.logDebug('debug', 'Step-4');
-
-            if (!orderRecord) {
-                return null;
+        setCashRefundMagentoId: function (magentoId, creditMemoId) {
+            try {
+                nlapiSubmitField('cashrefund', creditMemoId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId], ['T', magentoId]);
+            } catch (e) {
+                Utility.logException('CreditMemoExportHelper.setCashRefundMagentoId', e);
+                ExportCustomerRefunds.markRecords(creditMemoId, e.toString());
             }
+        },
 
-            Utility.logDebug('debug', 'Step-5');
+        /**
+         * sends records to Salesforce using its API
+         */
+        processRecords: function (records, store) {
+            var context = nlapiGetContext();
+            var params = {};
+            var count = records.length;
 
-            requestXml = OrderExportHelper.getMagentoRequestXml(orderRecord, store.sessionID);
+            Utility.logDebug('ExportCustomerRefunds.processRecords', 'value of count: ' + count);
 
-            ConnectorCommon.createLogRec(orderObject.internalId, requestXml);
+            for (var i = 0; i < count; i++) {
 
-            Utility.logDebug('store.endpoint', store.endpoint);
+                RefundExportHelper.processCustomerRefund(records[i], store);
 
-            var xml = XmlUtility.soapRequestToMagento(requestXml);
-            var incrementalIdData = XmlUtility.transformCreateSalesOrderResponse(xml);
-            var magentoOrderLineIdData = XmlUtility.transformCreateSalesOrderResponseForOrderLineId(xml);
-
-            responseMagento = XmlUtility.validateAndTransformSalesorderCreationResponse(xml, incrementalIdData);
-
-            Utility.logDebug('debug', 'Step-5c');
-
-            if (responseMagento.status) {
-                Utility.logDebug('debug', 'Step-6');
-
-                OrderExportHelper.setOrderMagentoId(responseMagento.data.orderIncrementId, orderObject.internalId);
-                OrderExportHelper.setLineItemsMagentoOrderLineIds(orderObject.internalId, orderRecord, magentoOrderLineIdData);
-
-            } else {
-                //Log error with fault code that this customer is not synched with magento
-                Utility.logDebug('final stuff', 'orderId  ' + orderObject.internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
-                ExportSalesOrders.markRecords(orderObject.internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                if (this.rescheduleIfNeeded(context, params)) {
+                    return;
+                }
             }
         },
 
@@ -586,6 +458,8 @@ var ExportSalesOrders = (function () {
         scheduled: function (type) {
             try {
 
+                Utility.logDebug('ExportCustomerRefunds.scheduled', 'Starting');
+
                 if (!MC_SYNC_CONSTANTS.isValidLicense()) {
                     Utility.logDebug('LICENSE', 'Your license has been expired.');
                     return null;
@@ -597,7 +471,7 @@ var ExportSalesOrders = (function () {
                 // getting configuration
                 var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
                 var context = nlapiGetContext();
-                var orderIds, externalSystemArr;
+                var records, externalSystemArr;
 
                 context.setPercentComplete(0.00);
                 Utility.logDebug('Starting', '');
@@ -619,43 +493,78 @@ var ExportSalesOrders = (function () {
 
                         Utility.logDebug('debug', 'Step-2');
 
-                        orderIds = OrderExportHelper.getOrders(false, store.systemId);
+                        var records = this.getRecords(store.systemId);
 
-                        Utility.logDebug('fetched sales order count', orderIds.length);
+                        Utility.logDebug('fetched refunds count', records.length);
                         Utility.logDebug('debug', 'Step-3');
 
-                        if (orderIds.length > 0) {
-                            for (var c = 0; c < orderIds.length; c++) {
-
-                                var orderObject = orderIds[c];
-
-                                try {
-                                    this.processOrder(orderObject, store);
-                                    context.setPercentComplete(Math.round(((100 * c) / orderIds.length) * 100) / 100);  // calculate the results
-
-                                    // displays the percentage complete in the %Complete column on the Scheduled Script Status page
-                                    context.getPercentComplete();  // displays percentage complete
-                                } catch (e) {
-                                    ExportSalesOrders.markRecords(orderObject.internalId, e.toString());
-                                }
-                                if (this.rescheduleIfNeeded(context, null)) {
-                                    return null;
-                                }
-                            }
+                        if (records !== null && records.length > 0) {
+                            this.processRecords(records, store);
+                        } else {
+                            Utility.logDebug('ExportCustomerRefunds.scheduled', 'No records found to process - StoreId: ' + store.systemId);
                         }
 
                         if (this.rescheduleIfNeeded(context, null)) {
                             return null;
                         }
+
+                        Utility.logDebug('ExportCustomerRefunds.scheduled', ' Ends');
                     }
 
                 } catch (e) {
-                    Utility.logException('ExportSalesOrders.scheduled - Iterating Orders', e);
+                    Utility.logException('ExportCustomerRefunds.scheduled - Iterating Orders', e);
                 }
                 Utility.logDebug(' Ends', '');
 
             } catch (e) {
-                Utility.logException('ExportSalesOrders.scheduled', e);
+                Utility.logException('ExportCustomerRefunds.scheduled', e);
+            }
+        },
+
+        /**
+         * Gets customer refunds search records/ids if exist for syncing
+         * @return {Array}
+         */
+        getRecords: function (storeId) {
+            var fils = [];
+            var records = null;
+
+            try {
+                var ageOfRecordsToSyncInDays = ConnectorConstants.CurrentStore.entitySyncInfo.cashrefund.ageOfRecordsToSyncInDays;
+                Utility.logDebug('ageOfRecordsToSyncInDays', ageOfRecordsToSyncInDays);
+                var currentDate = Utility.getDateUTC(0);
+                var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
+                oldDate = nlapiDateToString(oldDate);
+                oldDate = oldDate.toLowerCase();
+                oldDate = nlapiDateToString(nlapiStringToDate(oldDate, 'datetime'), 'datetime');
+                Utility.logDebug('oldDate', oldDate);
+                fils.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
+
+
+                fils.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
+                fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+                fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isnotempty', null, null));
+                fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, null, 'isempty', null, null));
+                //fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'T', null));
+                //fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
+
+                records = nlapiSearchRecord('cashrefund', null, fils, null);
+            } catch (e) {
+                Utility.logException('ExportCustomerRefunds.getRecords', e);
+            }
+
+            return records;
+        },
+
+        /**
+         * Marks record as completed
+         */
+        markRecords: function (orderId, msg) {
+
+            try {
+                nlapiSubmitField('cashrefund', orderId, ConnectorConstants.Transaction.Fields.MagentoSyncStatus, msg);
+            } catch (e) {
+                Utility.logException('ExportCustomerRefunds.markRecords', e);
             }
         },
 
@@ -702,24 +611,6 @@ var ExportSalesOrders = (function () {
         },
 
         /**
-         * Gets record from DAO
-         * @returns {*}
-         */
-        getRecords: function (lastId) {
-
-            //HACK: TODO: Need to remove this hard coded id
-            var filter = [];
-            if (!lastId) {
-                lastId = '0';
-            }
-            filter.push(new nlobjSearchFilter('internalidnumber', 'parent', 'greaterthanorequalto', lastId, null));
-            //TODO: Put your logic here
-            var records = null;
-
-            return records;
-        },
-
-        /**
          * Reschedules only there is any need
          * @param context Context Object
          * @returns {boolean} true if rescheduling was necessary and done, false otherwise
@@ -745,52 +636,9 @@ var ExportSalesOrders = (function () {
                 }
 
             } catch (e) {
-                Utility.logException('ExportSalesOrders.rescheduleIfNeeded', e);
+                Utility.logException('ExportCustomerRefunds.rescheduleIfNeeded', e);
             }
             return false;
-        },
-
-        /**
-         * sends records to Salesforce using its API
-         */
-        processRecords: function (records) {
-            var context = nlapiGetContext();
-
-            Utility.logDebug('inside processRecords', 'processRecords');
-
-            //HACK: Need to remove this
-            var count = records.length;
-
-            Utility.logDebug('value of count', count);
-
-            for (var i = 0; i < count; i++) {
-                try {
-                    // handle the script to run only between 1 am to 7 am inclusive
-                    if (!this.isRunningTime()) {
-
-                        return;
-                    }
-
-                    if (this.rescheduleIfNeeded(context, params)) {
-                        return;
-                    }
-
-                } catch (e) {
-                    Utility.logException('ExportSalesOrders.processRecords', e);
-                }
-            }
-        },
-
-        /**
-         * Marks record as completed
-         */
-        markRecords: function (orderId, msg) {
-
-            try {
-                nlapiSubmitField('salesorder', orderId, ConnectorConstants.Transaction.Fields.MagentoSyncStatus, msg);
-            } catch (e) {
-                Utility.logException('ExportSalesOrders.markRecords', e);
-            }
         },
 
         /**
@@ -800,15 +648,11 @@ var ExportSalesOrders = (function () {
         rescheduleScript: function (ctx, params) {
             //var status = 'TEST RUN';
             var status = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params);
-            Utility.logDebug('ExportSalesOrders.rescheduleScript', 'Status: ' + status + ' Params: ' + JSON.stringify(params));
+            Utility.logDebug('ExportCustomerRefunds.rescheduleScript', 'Status: ' + status + ' Params: ' + JSON.stringify(params));
         }
     };
 })();
 
-/**
- * @param {String} type Context Types: scheduled, ondemand, userinterface, aborted, skipped
- * @returns {Void}
- */
-function ExportSalesOrdersScheduled(type) {
-    return ExportSalesOrders.scheduled(type);
+function ExportCustomerRefundsScheduled(type) {
+    return ExportCustomerRefunds.scheduled(type);
 }

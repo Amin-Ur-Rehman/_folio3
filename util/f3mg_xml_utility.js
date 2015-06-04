@@ -27,13 +27,16 @@ XmlUtility = (function () {
 
         soapRequestToMagento: function (xml) {
             var res = nlapiRequestURL(ConnectorConstants.CurrentStore.endpoint, xml);
-            var responseXML = nlapiStringToXML(res.getBody());
+            var body = res.getBody();
+            Utility.logDebug('requestbody', body);
+            var responseXML = nlapiStringToXML(body);
+
             return responseXML;
         },
         soapRequestToMagentoSpecificStore: function (xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
             var body = res.getBody();
-            Utility.logDebug('requestbody_wahaj ', body);
+            Utility.logDebug('requestbody', body);
             var responseXML = nlapiStringToXML(body);
 
             return responseXML;
@@ -74,6 +77,7 @@ XmlUtility = (function () {
             soXML = soXML + '<filter SOAP-ENC:arrayType="urn:associativeEntity[0]" xsi:type="urn:associativeArray">';
             soXML = soXML + '</filter>';
 
+            //soXML = soXML + '<complex_filter SOAP-ENC:arrayType="urn:complexFilter[4]" xsi:type="urn:complexFilterArray">';
             soXML = soXML + '<complex_filter SOAP-ENC:arrayType="urn:complexFilter[2]" xsi:type="urn:complexFilterArray">';
 
             soXML = soXML + '<item xsi:type="ns1:complexFilter">';
@@ -96,6 +100,22 @@ XmlUtility = (function () {
             }
             soXML = soXML + ' </value>';
             soXML = soXML + '</item>';
+
+            /*soXML = soXML + '<item xsi:type="ns1:complexFilter">';
+            soXML = soXML + '<key xsi:type="xsd:string">customer_id</key>';
+            soXML = soXML + '<value xsi:type="ns1:associativeEntity">';
+            soXML = soXML + '<key xsi:type="xsd:string">in</key>';
+            soXML = soXML + '<value xsi:type="xsd:string">530</value>';
+            soXML = soXML + ' </value>';
+            soXML = soXML + '</item>';
+            soXML = soXML + '<item xsi:type="ns1:complexFilter">';
+            soXML = soXML + '<key xsi:type="xsd:string">increment_id</key>';
+            soXML = soXML + '<value xsi:type="ns1:associativeEntity">';
+            soXML = soXML + '<key xsi:type="xsd:string">in</key>';
+            soXML = soXML + '<value xsi:type="xsd:string">100093349</value>';
+            soXML = soXML + ' </value>';
+            soXML = soXML + '</item>';*/
+
             soXML = soXML + '</complex_filter>';
 
             soXML = soXML + '</filters>';
@@ -573,6 +593,7 @@ XmlUtility = (function () {
                     responseMagento.billingAddress = this.transformSalesOrderInfoXMLtobillingAddress(billing);
                     responseMagento.payment = this.transformSalesOrderInfoXMLtoPayment(payment);
                     authorizedId = ConnectorCommon.getAuthorizedId(statusHistory);
+                    //Utility.logDebug('authorizedId_w', authorizedId);
                     responseMagento.payment.authorizedId = authorizedId;
                 }
                 else    // Not Attribute ID Found, Nor fault code found
@@ -1003,6 +1024,45 @@ XmlUtility = (function () {
         },
 
         /**
+         * validate and transform xml response of salesorder creation call
+         * @param xml
+         * @param incrementalIdData
+         * @returns {{}}
+         */
+        validateAndTransformSalesorderCreationResponse: function (xml, incrementalIdData) {
+            var responseMagento = {};
+            var faultCode;
+            var faultString;
+
+            try {
+                faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                responseMagento.data = incrementalIdData;
+            } catch (ex) {
+                Utility.logException('XmlUtility.validateAndTransformResponse', ex);
+            }
+
+            if (!Utility.isBlankOrNull(faultCode)) {
+                responseMagento.status = false;
+                responseMagento.faultCode = faultCode;
+                responseMagento.faultString = faultString;
+                Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+            }
+            else if (responseMagento.hasOwnProperty('data') && Utility.objectSize(responseMagento.data) > 0) {
+                responseMagento.status = true;
+                responseMagento.result = responseMagento.data;
+            }
+            else {
+                responseMagento.status = false;
+                responseMagento.faultCode = '000';
+                responseMagento.faultString = 'Unexpected Error';
+                Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+            }
+
+            return responseMagento;
+        },
+
+        /**
          * Description of method getCustomerXmlForSaleOrder
          * @param parameter
          */
@@ -1197,6 +1257,9 @@ XmlUtility = (function () {
          */
         transformCreateSalesOrderResponse: function (xml) {
             var obj = {};
+
+            Utility.logDebug('response xml for logging', nlapiXMLToString(xml));
+
             var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/result/item");
 
             for (var i in itemNodes) {
@@ -1206,6 +1269,69 @@ XmlUtility = (function () {
                 obj[fieldId] = fieldValue;
             }
 
+            return obj;
+        },
+        transformCreateSalesOrderResponseForOrderLineId: function (xml) {
+            var obj = {};
+
+            var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/orderitementityarray/item");
+
+            for (var i in itemNodes) {
+                var itemNode = itemNodes[i];
+                var productSku = nlapiSelectValue(itemNode, 'product_sku');
+                var orderItemId = nlapiSelectValue(itemNode, 'order_item_id');
+                obj[productSku] = orderItemId;
+            }
+
+            return obj;
+        },
+        /**
+         * Creates XML for Credit Memo and returns
+         * @param creditMemoInfo
+         * @param sessionId
+         * @returns {string} XML String
+         */
+        getCreditMemoCreateXml: function (creditMemoInfo, sessionId) {
+            var creditMemoXml = '';
+            creditMemoXml += this.XmlHeader;
+
+            creditMemoXml += '<urn:salesOrderCreditmemoCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            creditMemoXml += '  <sessionId xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:string" xs:type="type:string">' + sessionId + '</sessionId>';
+            creditMemoXml += '  <orderIncrementId xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:string" xs:type="type:string">' + creditMemoInfo.orderId + '</orderIncrementId>';
+            creditMemoXml += '  <creditmemoData xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="urn:salesOrderCreditmemoData" xs:type="type:salesOrderCreditmemoData">';
+            creditMemoXml += '      <qtys xsi:type="urn:orderItemIdQtyArray" soapenc:arrayType="urn:orderItemIdQty[' + creditMemoInfo.items.length + ']" type="urn:Magento">';
+
+            for (var i in creditMemoInfo.items) {
+                creditMemoXml += '          <orderItemIdQty>';
+                creditMemoXml += '              <order_item_id type="http://www.w3.org/2001/XMLSchema">' + creditMemoInfo.items[i].orderItemId + '</order_item_id>';
+                creditMemoXml += '              <qty xs:type="type:double">' + creditMemoInfo.items[i].qty + '</qty>';
+                creditMemoXml += '          </orderItemIdQty>';
+            }
+
+            creditMemoXml += '      </qtys>';
+            creditMemoXml += '      <shipping_amount xsi:type="xsd:double" xs:type="type:double">' + creditMemoInfo.shippingCost + '</shipping_amount>';
+            creditMemoXml += '      <adjustment_positive xsi:type="xsd:double" xs:type="type:double">' + creditMemoInfo.adjustmentPositive + '</adjustment_positive>';
+            creditMemoXml += '      <adjustment_negative xsi:type="xsd:double" xs:type="type:double">' + creditMemoInfo.adjustmentNegative + '</adjustment_negative>';
+            creditMemoXml += '  </creditmemoData>';
+            creditMemoXml += '  <comment xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:string" xs:type="type:string">' + creditMemoInfo.comment + '</comment>';
+            creditMemoXml += '  <notifyCustomer xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:int" xs:type="type:int">' + creditMemoInfo.notifyCustomer + '</notifyCustomer>';
+            creditMemoXml += '  <includeComment xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:int" xs:type="type:int">' + creditMemoInfo.includeComment + '</includeComment>';
+            creditMemoXml += '  <refundToStoreCreditAmount xmlns:xs="http://www.w3.org/2000/XMLSchema-instance" xsi:type="xsd:string" xs:type="type:string">' + creditMemoInfo.refundToStoreCreditAmount + '</refundToStoreCreditAmount>';
+            creditMemoXml += '</urn:salesOrderCreditmemoCreate>';
+
+            creditMemoXml += this.XmlFooter;
+
+            return creditMemoXml;
+        },
+        /**
+         * This function transform create credit memo response into object
+         * @param xml
+         * @return {object}
+         */
+        transformCreditMemoCreateResponse: function (xml) {
+            var obj = {};
+            var creditMemoId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:salesOrderCreditmemoCreateResponse/result");
+            obj.creditMemoId = creditMemoId;
             return obj;
         }
     };

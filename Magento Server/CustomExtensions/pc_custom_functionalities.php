@@ -18,7 +18,7 @@ try {
         //var_dump("going to cancel");
         $data = json_decode($_POST["data"]);
         //var_dump($data);
-        cancelOrder($data, $responseArr);
+        $responseArr = cancelOrder($data, $responseArr);
 
     } else {
          $responseArr["error"] = "No data object found.";
@@ -74,6 +74,7 @@ function cancelOrder($data, $responseArr){
             $order->save();
             //var_dump("Order Saved");
             $responseArr["status"] = true;
+            return $responseArr;
         }
 
     } catch (Exception $e) {

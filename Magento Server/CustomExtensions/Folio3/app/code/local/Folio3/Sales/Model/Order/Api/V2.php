@@ -4,6 +4,7 @@
 //require_once 'Folio3/Common/CustomAttributeEntity.php';
 
 require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomAttributeEntity.php';
+require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomOrderItemEntity.php';
 
 class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
@@ -56,49 +57,102 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * @return array
      */
     public function createSalesOrder($storeId, $customer, $products, $shippingmethod, $customshippingcost, $paymentmethod, $history, $status) {
+        $logStr = 'Func Start: createSalesOrder';
         $result = array();
+        $logStr .= '__Before: initDataForQuote';
+        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
         // initialize members variables for quote
         $this->initDataForQuote($storeId, $customer, $products, $shippingmethod, $paymentmethod);
+        $logStr .= '__After: initDataForQuote';
+        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
         $quoteId = null;
         try {
+            $logStr .= '__Before: createQuote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // create quote
             $quoteId = $this->createQuote();
+            $logStr .= '__After: createQuote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             Mage::log('quote: ' . $quoteId, null, 'create-order.log', true);
 
+            $logStr .= '__Before: getModel sales/service_quote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // create sales order from quote
             $service = Mage::getModel('sales/service_quote', $this->quote);
+            $logStr .= '__After: getModel sales/service_quote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+
+            $logStr .= '__Before: submit order';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             $service->submitAll();
-
+            $logStr .= '__After: submit order';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // getting created order
+            $logStr .= '__Before: get order';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             $order = $service->getOrder();
+            $logStr .= '__After: get order';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
+            $logStr .= '__Before: addHistoryInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // add history in comments
             $this->addHistoryInOrder($order, $history);
+            $logStr .= '__After: addHistoryInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
+            $logStr .= '__Before: setShippingCostInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // set custom shipping cost
             $this->setShippingCostInOrder($order, $customshippingcost);
+            $logStr .= '__After: setShippingCostInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
+            $logStr .= '__Before: setStatusInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // set set
             $this->setStatusInOrder($order, $status);
-
+            $logStr .= '__After: setStatusInOrder';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // set order increment id in web service response
+
             $customAttribute = new CustomAttributeEntity();
             $customAttribute->field_id = 'orderIncrementId';
             $customAttribute->field_value = $order->getIncrementId();
+            $result['result'][] = $customAttribute;
+            $logStr .= '__Before: getOrderItemEntityArray';
+            //$result['orderitementityarray'] = array();
+            $result['orderitementityarray']= CustomOrderItemEntity::getOrderItemEntityArray($order->getIncrementId());
+            $logStr .= '__After: getOrderItemEntityArray';
+            Mage::log($logStr, null, 'create-order.log', true);
 
-            $result[] = $customAttribute;
         } catch (Exception $e) {
+            $logStr .= '__ERROR: ' . $e->getMessage();
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+
+            $logStr .= '__Before: deleteQuote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // TODO: handle quote rollback - future
             $this->delteQuote($quoteId);
-            $this->_fault('Delete Quote Id: ' . $quoteId);
+            $logStr .= '__After: deleteQuote';
+            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+            //$this->_fault('Delete Quote Id: ' . $quoteId);
 
             $customAttribute = new CustomAttributeEntity();
             $customAttribute->field_id = 'Delete Quote Id: ' . $quoteId;
             $customAttribute->field_value = $e->getMessage();
 
-            //throw $e;
+
+
+            Mage::log(' Catch Log Error: ' . $logStr, null, 'order-status.log', true);
+
+            throw $e;
         }
+
+        $logStr .= '__Func End: createSalesOrder';
+
+        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
         return $result;
     }

@@ -44,8 +44,20 @@ ConnectorConstants = (function () {
                 MagentoId: 'custbody_magentoid',
                 MagentoSync: 'custbody_magentosyncdev',
                 MagentoStore: 'custbody_f3mg_magento_store',
-                MagentoSyncStatus: 'custbody_f3mg_magento_sync_status'
+                MagentoSyncStatus: 'custbody_f3mg_magento_sync_status',
+                CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
+                CustomerRefundMagentoId: 'custbody_cash_refund_magentoid'
             }
+            ,
+            Columns: {
+                MagentoOrderId: 'custcol_mg_order_item_id'
+            }
+        },
+        NSTransactionStatus: {
+            PendingApproval: 'Pending Approval'
+        },
+        NSTransactionTypes: {
+            SalesOrder: 'salesorder'
         },
         Item: {
             Fields: {
@@ -74,7 +86,7 @@ ConnectorConstants = (function () {
          */
         initialize: function () {
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
-            this.Client = F3ClientFactory.createClient('Folio3');
+            this.Client = F3ClientFactory.createClient('PurestColloids');
             this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
         initializeDummyItem: function () {
