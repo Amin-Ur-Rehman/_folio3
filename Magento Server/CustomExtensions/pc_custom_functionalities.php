@@ -16,9 +16,20 @@ try {
     //die();
     if(isset($_POST["data"])){
         //var_dump("going to cancel");
-        $data = json_decode($_POST["data"]);
         //var_dump($data);
-        $responseArr = cancelOrder($data, $responseArr);
+        $data = json_decode($_POST["data"]);
+        $method = null;
+        if(isset($_POST["method"])){
+            $method = $_POST["method"];
+        }
+        if($method != null){
+            if($method == 'createInvoice') {
+                $responseArr = createInvoice($data, $responseArr);
+            }
+        }
+        else {
+            $responseArr = cancelOrder($data, $responseArr);
+        }
 
     } else {
          $responseArr["error"] = "No data object found.";
@@ -80,11 +91,37 @@ function cancelOrder($data, $responseArr){
     } catch (Exception $e) {
         Mage::log('setStatusInOrder - Error: ' . $e->getMessage(), null, 'create-order.log', true);
     }
-
-
-
 }
 
+function createInvoice($data, $responseArr){
+    try {
+        if(isset($data->increment_id)) {
+            $increment_id = $data->increment_id;
+            $order = Mage::getModel('sales/order')->loadByIncrementId($increment_id);
+            if (!$order->canInvoice())
+            {
+                Mage::throwException(Mage::helper('core')->__('Cannot create an invoice.'));
+            }
 
+            $invoice = Mage::getModel('sales/service_order', $order)->prepareInvoice();
+            if (!$invoice->getTotalQty())
+            {
+                Mage::throwException(Mage::helper('core')->__('Cannot create an invoice without products.'));
+            }
+
+            $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::NOT_CAPTURE);
+            $invoice->register();
+            $transactionSave = Mage::getModel('core/resource_transaction')->addObject($invoice)->addObject($invoice->getOrder());
+            $transactionSave->save();
+            $responseArr["status"] = true;
+        }
+
+    } catch (Exception $e) {
+        $responseArr["status"] = false;
+        $responseArr["error"] = $e->getMessage();
+        Mage::log('createInvoice - Error: ' . $e->getMessage(), null, 'create-order.log', true);
+    }
+    return $responseArr;
+}
 
 ?>

@@ -87,7 +87,7 @@ var ErrorLog = (function () {
          * @param {string} operation
          * @param {string} errorMessage
          */
-        logError: function (recordType, recordId, operation, errorMessage, system) {
+        logErrorDetails: function (recordType, recordId, operation, errorMessage, system) {
             var data = {};
 
             data[this.FieldName.RecordType] = recordType;
