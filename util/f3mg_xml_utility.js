@@ -243,29 +243,42 @@ XmlUtility = (function () {
             shipmentXML = this.XmlHeader + '<urn:salesOrderShipmentCreate>';
             shipmentXML = shipmentXML + '<sessionId urn:type="xsd:string">' + sessionID + '</sessionId>';
             shipmentXML = shipmentXML + '<orderIncrementId urn:type="xsd:string">' + magentoSOId + '</orderIncrementId>';
-            shipmentXML = shipmentXML + '<itemsQty  SOAP-ENC:arrayType="urn:orderItemIdQtyArray[' + itemsQuantity + ']" xsi:type="urn:orderItemIdQty">';
+
+            var lineItems = [];
+            for (var line = 1; line <= itemsQuantity; line++) {
+                if(nlapiGetLineItemValue('item', 'itemreceive', line) == 'T') {
+                    //var itemId = magentoItemIds[nlapiGetLineItemValue('item', 'item', line)];
+                    var itemId = nlapiGetLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, line);
+                    Utility.logDebug('orrrder Item Id', itemId);
+                    var itemQty = nlapiGetLineItemValue('item', 'quantity', line);
+                    if (nlapiGetLineItemValue('item', 'isserialitem', 1) === 'T') {
+                        comment = comment + ',' + nlapiGetLineItemValue('item', 'itemdescription', line) + '=' + nlapiGetLineItemValue('item', 'serialnumbers', line);
+                    }
+                    else {
+                        comment = '-';
+                    }
+
+                    lineItems.push({itemId: itemId, itemQty: itemQty});
+                }
+            }
+
+            shipmentXML = shipmentXML + '<itemsQty  SOAP-ENC:arrayType="urn:orderItemIdQty[' + lineItems.length + ']" xsi:type="urn:orderItemIdQtyArray">';
             Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
 
             var comment = '';
-            for (var line = 1; line <= itemsQuantity; line++) {
-                var itemId = magentoItemIds[nlapiGetLineItemValue('item', 'item', line)];
-                var itemQty = nlapiGetLineItemValue('item', 'quantity', line);
-                if (nlapiGetLineItemValue('item', 'isserialitem', 1) === 'T') {
-                    comment = comment + ',' + nlapiGetLineItemValue('item', 'itemdescription', line) + '=' + nlapiGetLineItemValue('item', 'serialnumbers', line);
-                }
-                else {
-                    comment = '-';
-                }
 
+            for (var i = 0; i < lineItems.length; i++) {
+                var lineItem = lineItems[i];
                 Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
                 shipmentXML = shipmentXML + '<item xsi:type="urn:orderItemIdQty">';
-                shipmentXML = shipmentXML + '<order_item_id type="xsd:int">' + itemId + '</order_item_id>';
-                shipmentXML = shipmentXML + '<qty type="xsd:double">' + itemQty + '</qty>';
+                shipmentXML = shipmentXML + '<order_item_id type="xsd:int">' + lineItem.itemId + '</order_item_id>';
+                shipmentXML = shipmentXML + '<qty type="xsd:double">' + lineItem.itemQty + '</qty>';
                 shipmentXML = shipmentXML + '</item>';
-                Utility.logDebug('Quantity', itemId);
-                Utility.logDebug('Quantity', itemQty);
+                Utility.logDebug('itemId', lineItem.itemId);
+                Utility.logDebug('Quantity', lineItem.itemQty);
                 Utility.logDebug('xml', nlapiEscapeXML(shipmentXML));
             }
+
 
             shipmentXML = shipmentXML + '</itemsQty>';
             shipmentXML = shipmentXML + ' <comment xsi:type="xsd:string">' + comment + '</comment>';

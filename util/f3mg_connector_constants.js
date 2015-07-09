@@ -54,7 +54,8 @@ ConnectorConstants = (function () {
             }
         },
         NSTransactionStatus: {
-            PendingApproval: 'Pending Approval'
+            PendingApproval: 'Pending Approval',
+            PendingFulfillment: 'Pending Fulfillment'
         },
         NSTransactionTypes: {
             SalesOrder: 'salesorder'
