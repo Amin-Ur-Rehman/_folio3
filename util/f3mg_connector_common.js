@@ -167,6 +167,12 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
+            //payflow_advanced
+            if (payment.method.toString() === 'payflow_advanced') {
+                rec.setFieldValue('paymentmethod', '7');// paypal
+                rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
+                return;
+            }
         },
         getNetsuiteProductIdByMagentoIdViaMap: function (netsuiteMagentoProductMap, magentoID) {
 
@@ -507,7 +513,7 @@ var ConnectorCommon = (function () {
             result.errorMsg = '';
 
             try {
-                filterExpression = "[[";
+                /*filterExpression = "[[";
                 for (var x = 0; x < magentoIds.length; x++) {
                     // multiple store handling
                     var magentoIdForSearching = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoIds[x].product_id);
@@ -516,22 +522,40 @@ var ConnectorCommon = (function () {
                         filterExpression = filterExpression + ",'or' ,";
                     }
                 }
-
                 filterExpression = filterExpression + ']';
                 filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
                 Utility.logDebug(' filterExpression', filterExpression);
                 filterExpression = eval(filterExpression);
                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
+                var recs = nlapiSearchRecord('item', null, filterExpression, cols);*/
 
+                filterExpression = "[[";
+                for (var x = 0; x < magentoIds.length; x++) {
+                    // multiple store handling
+                    filterExpression = filterExpression + "['itemid','contains','" + magentoIds[x].product_id + "']";
+                    if ((x + 1) < magentoIds.length) {
+                        filterExpression = filterExpression + ",'or' ,";
+                    }
+                }
+                filterExpression = filterExpression + ']';
+                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                Utility.logDebug(' filterExpression', filterExpression);
+                filterExpression = eval(filterExpression);
+                cols.push(new nlobjSearchColumn(magentoIdId, null, null));
+                cols.push(new nlobjSearchColumn('itemid', null, null));
                 var recs = nlapiSearchRecord('item', null, filterExpression, cols);
 
                 if (recs && recs.length > 0) {
                     for (var i = 0; i < recs.length; i++) {
                         var obj = {};
                         obj.internalId = recs[i].getId();
-                        // multiple store handling
-                        var magentoIdObjArr = !!recs[i].getValue(magentoIdId) ? JSON.parse(recs[i].getValue(magentoIdId)) : [];
-                        obj.magentoID = this.getMagentoIdFromObjArray(magentoIdObjArr, ConnectorConstants.CurrentStore.systemId);
+
+                        var itemid = recs[i].getValue('itemid');
+                        if (!Utility.isBlankOrNull(itemid)) {
+                            var itemidArr = itemid.split(':');
+                            itemid = (itemidArr[itemidArr.length - 1]).trim();
+                        }
+                        obj.magentoID = itemid;
                         resultArray[resultArray.length] = obj;
                     }
                 }
@@ -788,7 +812,9 @@ var ConnectorCommon = (function () {
 
             for (var i = 0; i < statusHistory.length; i++) {
                 var comment = nlapiSelectValue(statusHistory[i], 'comment') + '';
-                if (comment.indexOf('Captured amount') !== -1 && comment.indexOf('Transaction ID:') !== -1) {
+                //Utility.logDebug('comment_w', comment);
+                var commentLowerCaseString = comment.toLowerCase();
+                if (commentLowerCaseString.indexOf(('Captured amount').toLowerCase()) !== -1 && commentLowerCaseString.indexOf(('Transaction ID:').toLowerCase()) !== -1) {
                     authorizedId = comment.substring(comment.indexOf('"') + 1, comment.lastIndexOf('"'));
                     break;
                 }
