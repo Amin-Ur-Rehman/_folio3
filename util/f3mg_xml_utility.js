@@ -1042,7 +1042,7 @@ XmlUtility = (function () {
          * @param incrementalIdData
          * @returns {{}}
          */
-        validateAndTransformSalesorderCreationResponse: function (xml, incrementalIdData) {
+        validateAndTransformSalesorderCreationResponse: function (xml) {
             var responseMagento = {};
             var faultCode;
             var faultString;
@@ -1050,7 +1050,6 @@ XmlUtility = (function () {
             try {
                 faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
-                responseMagento.data = incrementalIdData;
             } catch (ex) {
                 Utility.logException('XmlUtility.validateAndTransformResponse', ex);
             }
@@ -1061,16 +1060,19 @@ XmlUtility = (function () {
                 responseMagento.faultString = faultString;
                 Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
             }
-            else if (responseMagento.hasOwnProperty('data') && Utility.objectSize(responseMagento.data) > 0) {
-                responseMagento.status = true;
-                responseMagento.result = responseMagento.data;
-            }
             else {
-                responseMagento.status = false;
-                responseMagento.faultCode = '000';
-                responseMagento.faultString = 'Unexpected Error';
-                Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+                var incrementalIdData = this.transformCreateSalesOrderResponse(xml);
+                if (!!incrementalIdData) {
+                    responseMagento.status = true;
+                }
+                else {
+                    responseMagento.status = false;
+                    responseMagento.faultCode = '000';
+                    responseMagento.faultString = 'Unexpected Error';
+                    Utility.logDebug('An error has occurred with request xml', responseMagento.faultString);
+                }
             }
+
 
             return responseMagento;
         },
@@ -1271,7 +1273,7 @@ XmlUtility = (function () {
         transformCreateSalesOrderResponse: function (xml) {
             var obj = {};
 
-            Utility.logDebug('response xml for logging', nlapiXMLToString(xml));
+            //Utility.logDebug('response xml for logging', nlapiXMLToString(xml));
 
             var itemNodes = nlapiSelectNodes(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:folio3_salesOrderCreateSalesOrderResponse/result/item");
 
@@ -1349,3 +1351,9 @@ XmlUtility = (function () {
         }
     };
 })();
+
+
+function replaceLineBreaks(data) {
+    var replacedData = data.replace("\r \n", "<br>");
+    return replacedData;
+}

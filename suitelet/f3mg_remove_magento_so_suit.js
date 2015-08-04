@@ -106,10 +106,12 @@ var RemoveMagentoSO = (function () {
                         fields.push(ConnectorConstants.Transaction.Fields.MagentoId);
                         fields.push(ConnectorConstants.Transaction.Fields.MagentoSync);
                         fields.push(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId);
+                        fields.push(ConnectorConstants.Transaction.Fields.DontSyncToMagento);
                         var values = [];
                         values.push('');
                         values.push('F');
                         values.push(mgSoInternalId);
+                        values.push('T');
                         Utility.logDebug('ConnectorConstants.NSTransactionTypes.SalesOrder', ConnectorConstants.NSTransactionTypes.SalesOrder);
                         Utility.logDebug('nsSoInternalId', nsSoInternalId);
                         Utility.logDebug('fields', JSON.stringify(fields));

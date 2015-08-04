@@ -57,6 +57,7 @@ var OrderExportHelper = (function () {
             filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
+            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.DontSyncToMagento, null, 'is', 'F', null));
 
             arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
             arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
@@ -292,7 +293,9 @@ var OrderExportHelper = (function () {
             obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
 
             // set shipping cost in object
-            obj.shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
+            var shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
+            var handlingcost = orderRecord.getFieldValue('handlingcost') || '0';
+            obj.shipmentCost = parseFloat(shipmentCost) + parseFloat(handlingcost);
 
             orderDataObject.shipmentInfo = obj;
         },
@@ -479,13 +482,20 @@ var ExportSalesOrders = (function () {
          */
         processOrder: function (orderObject, store) {
 
+            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
+
+            this.sendRequestToMagento(orderObject.internalId, orderRecord, store, true);
+        },
+
+        /**
+         * Send request to megento store
+         * @param orderRecord
+         */
+        sendRequestToMagento: function(internalId, orderRecord, store, attemptRetryIfNeeded) {
             var magentoIdObjArrStr,
                 nsOrderUpdateStatus,
                 requestXml,
                 responseMagento;
-
-            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
-
             //this.processCustomer(orderRecord.customer, store);
 
             Utility.logDebug('debug', 'Step-4');
@@ -498,28 +508,50 @@ var ExportSalesOrders = (function () {
 
             requestXml = OrderExportHelper.getMagentoRequestXml(orderRecord, store.sessionID);
 
-            ConnectorCommon.createLogRec(orderObject.internalId, requestXml);
+            ConnectorCommon.createLogRec(internalId, requestXml);
 
             Utility.logDebug('store.endpoint', store.endpoint);
 
             var xml = XmlUtility.soapRequestToMagento(requestXml);
-            var incrementalIdData = XmlUtility.transformCreateSalesOrderResponse(xml);
-            var magentoOrderLineIdData = XmlUtility.transformCreateSalesOrderResponseForOrderLineId(xml);
 
-            responseMagento = XmlUtility.validateAndTransformSalesorderCreationResponse(xml, incrementalIdData);
+            responseMagento = XmlUtility.validateAndTransformSalesorderCreationResponse(xml, 0);
 
             Utility.logDebug('debug', 'Step-5c');
 
             if (responseMagento.status) {
                 Utility.logDebug('debug', 'Step-6');
 
-                OrderExportHelper.setOrderMagentoId(responseMagento.data.orderIncrementId, orderObject.internalId);
-                OrderExportHelper.setLineItemsMagentoOrderLineIds(orderObject.internalId, orderRecord, magentoOrderLineIdData);
+                var incrementalIdData = XmlUtility.transformCreateSalesOrderResponse(xml);
+                Utility.logDebug('incrementalIdData', incrementalIdData.orderIncrementId);
+
+                var magentoOrderLineIdData = XmlUtility.transformCreateSalesOrderResponseForOrderLineId(xml);
+
+                OrderExportHelper.setOrderMagentoId(incrementalIdData.orderIncrementId, internalId);
+                OrderExportHelper.setLineItemsMagentoOrderLineIds(internalId, orderRecord, magentoOrderLineIdData);
 
             } else {
-                //Log error with fault code that this customer is not synched with magento
-                Utility.logDebug('final stuff', 'orderId  ' + orderObject.internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
-                ExportSalesOrders.markRecords(orderObject.internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                if(attemptRetryIfNeeded) {
+                    Utility.logDebug('retrying', 'retrying record synching');
+                    //Utility.logDebug('orderRecord.shipmentInfo.shipmentMethod', orderRecord.shipmentInfo.shipmentMethod);
+
+                    var retryStatus = retrySync(responseMagento.faultString, ConnectorConstants.RetryAction.RecordTypes.SalesOrder, orderRecord);
+                    //Utility.logDebug('retryStatus.status', retryStatus.status);
+                    if(retryStatus.status) {
+                        var modifiedRecordObj = retryStatus.recordObj;
+                        //Utility.logDebug('modifiedRecordObj.shipmentInfo.shipmentMethod', modifiedRecordObj.shipmentInfo.shipmentMethod);
+                        //Utility.logDebug('retrying', 'sending to magento again with modified object');
+                        this.sendRequestToMagento(internalId, modifiedRecordObj, store, false);
+                    } else {
+                        //Log error with fault code that this customer is not synched with magento
+                        Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                        ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                    }
+                }
+                else {
+                    //Log error with fault code that this customer is not synched with magento
+                    Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                    ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                }
             }
         },
 
