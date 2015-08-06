@@ -577,6 +577,27 @@ var ExportSalesOrders = (function () {
                     } else {
                         createCustomerInMagento(customerObj, store);
                     }
+                } else {
+                    // check if the customer is modified. If so, update the customer first in Magento
+                    var customer = CustomerSync.getCustomer(customerId, store.systemId);
+                    var customerObj = {};
+                    customerObj.internalId = customerId;
+                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    Utility.logDebug('inside If customer is already synced', 'Starting');
+                    if(customer.nsObj.getFieldValue(CustomerSync.FieldName.CustomerModified) === 'T') {
+                        // mark customer as unmodified
+                        Utility.logDebug('Customer is modified', 'Mark Customer unmodified and start syncing process');
+                        nlapiSubmitField(CustomerSync.internalId, customerId, CustomerSync.FieldName.CustomerModified, 'F');
+                        try {
+                            //update customer in Magento Store
+                            Utility.logDebug('Customer Syncing Starting', '');
+                            Utility.logDebug('Customer Syncing Starting - Store', JSON.stringify(store));
+                            CustomerSync.updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
+                            Utility.logDebug('Customer Syncing Finished', '');
+                        } catch(ex) {
+                            Utility.logException('Error in updating Customer to Magento', ex);
+                        }
+                    }
                 }
             }
             catch (ex) {
