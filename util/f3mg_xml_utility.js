@@ -1141,7 +1141,7 @@ XmlUtility = (function () {
 
             var productXml = '';
 
-            productXml = productXml + '<products xsi:type="urn:shoppingCartProductEntityArray" soapenc:arrayType="urn:shoppingCartProductEntity[' + items.length + ']">';
+            productXml = productXml + '<products xsi:type="urn:shoppingCartProductEntityArray" soapenc:arrayType="urn:shoppingCartProductEntity[1]">';
 
             for (var counter = 0; counter < items.length; counter++) {
                 var item = items[counter];

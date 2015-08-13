@@ -121,7 +121,7 @@ function ws_soaftsubm(type) {
             var lastModifiedDate = ConnectorCommon.getLastModifiedDate();
 
             if (Utility.isBlankOrNull(scriptStartDate)) {
-                var currentDate = Utility.getDateUTC(-5);
+                var currentDate = Utility.getDateUTC(0);
                 scriptStartDate = nlapiDateToString(currentDate, 'datetimetz');
             }
 
