@@ -75,6 +75,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
         // Make XML to get Order
         orderXML = XmlUtility.getSalesOrderListXML(order, sessionID);
 
+        Utility.logDebug('request_orderXML', orderXML);
+
         // Make Call and Get Data
         responseMagentoOrders = XmlUtility.validateResponse(XmlUtility.soapRequestToMagento(orderXML), 'order');
 
@@ -102,10 +104,16 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         continue;
                     }
 
+                    //Utility.logDebug('stages_w', 'Step-a');
+
                     // Getting sales order information from Magento
                     productXML = XmlUtility.getSalesOrderInfoXML(orders[i].increment_id, sessionID);
 
+                    //Utility.logDebug('stages_w', 'Step-b');
+                    //Utility.logDebug('productXML_w', productXML);
                     responseMagentoProducts = XmlUtility.validateResponse(XmlUtility.soapRequestToMagento(productXML), 'product');
+
+                    //Utility.logDebug('stages_w', 'Step-c');
 
                     // Could not fetch sales order information from Magento
                     if (!responseMagentoProducts.status) {
@@ -113,7 +121,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         result.errorMsg = responseMagentoOrders.faultCode + '--' + responseMagentoOrders.faultString;
                         continue;
                     }
-
+                    //Utility.logDebug('stages_w', 'Step-d');
                     var shippingAddress = responseMagentoProducts.shippingAddress;
                     var billingAddress = responseMagentoProducts.billingAddress;
                     var payment = responseMagentoProducts.payment;
@@ -139,6 +147,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     Utility.logDebug('products', JSON.stringify(products));
                     netsuiteMagentoProductMap = ConnectorCommon.getNetsuiteProductIdsByMagentoIds(products, 'pro');
 
+                    //Utility.logDebug('stages_w', 'Step-e');
+
                     if (!Utility.isBlankOrNull(netsuiteMagentoProductMap.errorMsg)) {
                         Utility.logDebug('result', JSON.stringify(result));
                         Utility.logDebug('COULD NOT EXECUTE Mapping perfectly', 'Please convey to Folio3');
@@ -148,7 +158,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     netsuiteMagentoProductMapData = netsuiteMagentoProductMap.data;
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
+                    //Utility.logDebug('stages_w', 'Step-f');
                     var customer = ConnectorModels.getCustomerObject(orders[i]);
+                    //Utility.logDebug('stages_w', 'Step-g');
                     // adding shipping and billing address in customer object getting from sales order
                     customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
                     var customerNSInternalId = null;
@@ -162,9 +174,10 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         // adding shipping and billing address in customer object getting from sales order
                         //customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
-
+                        //Utility.logDebug('stages_w', 'Step-h');
                         // searching customer record in NetSuite
                         customerSearchObj = ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, null);
+                        //Utility.logDebug('stages_w', 'Step-i');
                         // if customer record found in NetSuite, update the customer record
                         if (customerSearchObj.status) {
                             customerNSInternalId = customerSearchObj.netSuiteInternalId;
@@ -240,6 +253,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                 catch (ex) {
                     Utility.logException('SO of Order ID ' + orders[i].increment_id + ' Failed', ex);
                 }
+
+                // TODO: Just for testing purpose, remove it then
+                //i = orders.length;
             }
         }
         else {
@@ -280,13 +296,19 @@ function startup(type) {
                 try {
                     // getting store/system object
                     store = externalSystemConfig[system];
+                    if(!store) {
+                        //Utility.logDebug('store ' + system, 'This store is null');
+                        continue;
+                    }
                     // set the percent complete parameter to 0.00
                     context.setPercentComplete(0.00);
                     // set store for ustilizing in other functions
                     ConnectorConstants.CurrentStore = store;
+
                     ConnectorConstants.initializeDummyItem();
 
                     var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
+                    //var sofrequency = 120;
 
                     soUpdateDate = ConnectorCommon.getUpdateDate(-1 * sofrequency);
                     Utility.logDebug('soUpdateDate', soUpdateDate);

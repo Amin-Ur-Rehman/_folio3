@@ -130,7 +130,9 @@ CUSTOMER = {
             customerDataObject.password = this.getRandomPassword();
 
             customerDataObject.website_id = "1";
-            customerDataObject.store_id = storeInfo.systemId;
+            //customerDataObject.store_id = storeInfo.systemId;
+            // Further we will get this store ID from configuration
+            customerDataObject.store_id = "1";
             customerDataObject.group_id = "";
             customerDataObject.prefix = getBlankForNull(customerRecord.getFieldValue('salutation'));
             customerDataObject.suffix = "";
