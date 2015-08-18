@@ -10,11 +10,16 @@ function customerExport() {
 
     if (MC_SYNC_CONSTANTS.isValidLicense()) {
 
+        var context = nlapiGetContext();
+
+        var scheduleScriptInvokedFormUserEvent = context.getSetting('SCRIPT', ConnectorConstants.ScheduleScriptInvokedFormUserEvent);
+        Utility.logDebug('scheduleScriptInvokedFormUserEvent', scheduleScriptInvokedFormUserEvent);
+
         // inititlize constants
         ConnectorConstants.initialize();
         // getting configuration
         var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
-        var context = nlapiGetContext();
+
         var customerIds;
         var customerRecord;
         var requsetXML;
@@ -36,8 +41,9 @@ function customerExport() {
         externalSystemConfig.forEach(function(store) {
             ConnectorConstants.CurrentStore = store;
             var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+            Utility.logDebug('sessionID', sessionID);
             if (!sessionID) {
-                Utility.logDebug('sessionID', 'sessionID is empty');
+                Utility.logDebug('empty sessionID', 'sessionID is empty');
                 return;
             }
             store.sessionID = sessionID;
@@ -51,66 +57,46 @@ function customerExport() {
             return;
         }
 
-
         try {
 
-            //Get ids of all customer which has custentity_magentosync_dev (Magento Sync) field marked No
-            customerIds = CUSTOMER.getCustomers();
-
+            if(!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
+                customerIds = CUSTOMER.getCustomersSubmittedFromUserEvent();
+            } else {
+                //Get ids of all customer which has custentity_magentosync_dev (Magento Sync) field marked No
+                //customerIds = CUSTOMER.getCustomers();
+            }
             //Is Customer(s) Exists for Sync
             if (customerIds != null && customerIds.length > 0) {
-
                 for (var c = 0; c < customerIds.length; c++) {
-
-
                     nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Started');
-
                     Utility.logDebug('Customer ' + customerIds[c].internalId);
                     errorMsg='';
-
                     try {
                         externalSystemArr.forEach(function(store) {
-
                             try {
-
-
                                 magentoReferences = customerIds[c].magentoCustomerIds;
                                 magentoStoreAndCustomer = getStoreCustomerIdAssociativeArray(magentoReferences);
-
                                 //Decide whether to Create or Update Customer
                                 if (isBlankOrNull(magentoReferences) || isBlankOrNull(magentoStoreAndCustomer[store.systemId]) || magentoStoreAndCustomer[store.systemId] === '0') {
-
                                     Utility.logDebug('Customer Create Block ' + magentoReferences);
-
                                     customerSynched = createCustomerInMagento(customerIds[c], store);
-
                                     Utility.logDebug('End Create Block ');
-
-
                                 } else {
-
                                     Utility.logDebug('Customer Update Block ');
-
                                     //Update Customer for Current Store
                                     customerSynched = updateCustomerInMagento(customerIds[c], store, magentoStoreAndCustomer[store.systemId], magentoReferences);
-
                                     Utility.logDebug('End Update Block ');
-
-
                                 }
-
-
                             } catch (ex) {
-
                                 Utility.logDebug('Internal Catch Block, Iternation failed for Customer + Store : ' + customerIds[c].internalId + ' StoreId:' + store.systemId, ex.toString());
-
                             }
-
                         });
-
 
                         if (customerSynched) {
                             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoSync(customerIds[c].internalId);
+                            if(!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
+                                RecordsToSync.markProcessed(customerIds[c].customRecordInternalId, RecordsToSync.Status.Processed);
+                            }
                         }
                         else {
 
@@ -135,6 +121,8 @@ function customerExport() {
                     nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Ended');
 
                 }
+            } else {
+                Utility.logDebug('No Customers found to sync');
             }
         } catch (ex) // main Try
 
