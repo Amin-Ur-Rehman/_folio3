@@ -24,6 +24,7 @@ ConnectorConstants = (function () {
         },
         CustomerTypesToExport: ['13'],      //Customer Or Lead Or Prospectus or All etc
         DefaultAddressId: '-1',
+        ScheduleScriptInvokedFormUserEvent: 'custscript_sch_invoke_from_ue',
         ExternalSystemConfig: [],
         CurrentStore: {},
         Client: null,
@@ -54,12 +55,17 @@ ConnectorConstants = (function () {
                 MagentoOrderId: 'custcol_mg_order_item_id'
             }
         },
+
         NSTransactionStatus: {
             PendingApproval: 'Pending Approval',
             PendingFulfillment: 'Pending Fulfillment'
         },
         NSTransactionTypes: {
-            SalesOrder: 'salesorder'
+            SalesOrder: 'salesorder',
+            CashRefund: 'cashrefund'
+        },
+        SalesOrderStatus: {
+            Cancel: 'C'
         },
         Item: {
             Fields: {
@@ -71,6 +77,15 @@ ConnectorConstants = (function () {
         OtherCustom: {
             MagentoId: 'custrecord_magento_id'// JSON
         },
+        PromoCode: {
+            Fields: {
+                MagentoId: 'custrecord_f3mg_promo_magentoid',
+                TransferredToMagento: 'custrecord_f3mg_promo_magentosyncdev',
+                MagentoStore: 'custrecord_f3mg_promo_magento_store',
+                MagentoSyncStatus: 'custrecord_f3mg_promo_magentosyncstatus',
+                LastModifiedDate: 'custrecord_f3mg_promo_lastmodifieddate'
+            }
+        },
         ShippingMethod: {
             UPS: 'ups',
             FedEx: 'nonups'
@@ -81,6 +96,26 @@ ConnectorConstants = (function () {
 
             LastInternalId: 'custscriptcustscriptinternalid',
             ScriptStartDate: 'custscript_start_date'
+        },
+        SuiteScripts: {
+            Suitelet : {
+                GenericDataExport: {
+                    id: 'customscript_f3mg_generic_data_exp_sl',
+                    deploymentId: 'customdeploy_f3mg_generic_data_exp_sl_de'
+                }
+            },
+            ScheduleScript: {
+                CustomerExportToMagento: {
+                    id: 'customscript_customer_exportto_magento',
+                    deploymentId: 'customdeploy_customer_exportto_magento',
+                    deploymentIdInvokedFormUserEvent: 'customdeploy_customer_exportto_magento_2'
+                }
+            }
+        },
+        NSRecordTypes : {
+            PromotionCode: 'promotioncode',
+            PriceLevel: 'pricelevel',
+            PaymentTerm : 'term'
         },
         RetryAction: {
             Messages: {
@@ -96,6 +131,10 @@ ConnectorConstants = (function () {
                 UPS_GND: "ups_GND",
                 UPS_XPD: "ups_XPD"
             }
+        },
+        MagentoCustomerGroups: {
+            TaxExempt: "6",
+            General: "1"
         },
         /**
          * Init method

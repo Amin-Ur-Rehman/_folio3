@@ -1276,6 +1276,131 @@ var ConnectorCommon = (function () {
             catch (e) {
                 Utility.logException('createLogRec', e);
             }
+        },
+
+        /**
+         * Get environment base url
+         * @param environment
+         * @returns {string}
+         */
+        getEnvironmentBaseUrl: function(environment){
+            var baseUrl = 'https://system.na1.netsuite.com';
+            if(environment === 'SANDBOX') {
+                baseUrl = 'https://system.sandbox.netsuite.com';
+            }
+            return baseUrl;
+        },
+
+        /**
+         * Get eligible record type for 'Sync to magento' button
+         * @returns {string}
+         */
+        getEligibleRecordTypeForExportButton: function(){
+           var eligibleRecordTypes = [
+               ConnectorConstants.NSRecordTypes.PromotionCode,
+               ConnectorConstants.NSRecordTypes.PriceLevel,
+               ConnectorConstants.NSRecordTypes.PaymentTerm
+           ];
+            return eligibleRecordTypes;
+        },
+
+        /**
+         * Get netsuite record id for provided magento records incremental id
+         * @param recordType
+         * @param magentoIncrementId
+         * @returns {*}
+         */
+        getNetSuiteRecordInternalId: function(recordType, magentoIncrementId, storeId) {
+            var netSuiteRecordId = null;
+            try {
+                if(!magentoIncrementId) {
+                    return null;
+                }
+
+                var filters = [];
+
+                if(recordType == ConnectorConstants.NSTransactionTypes.SalesOrder) {
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, '', 'is', magentoIncrementId.trim()));
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, '', 'is', storeId.trim()));
+                }
+                else if(recordType == ConnectorConstants.NSTransactionTypes.CashRefund) {
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, '', 'is', magentoIncrementId.trim()));
+                }
+                var result = nlapiSearchRecord(recordType, null, filters);
+                if(!!result && result.length > 0) {
+                    netSuiteRecordId = result[0].getId();
+                }
+            } catch (ex){
+                netSuiteRecordId = null;
+            }
+            return netSuiteRecordId;
+        },
+
+        /**
+         * Close sales order
+         * @param dataIn
+         */
+        closeSalesOrder: function(dataIn) {
+            var result = {status: false, error: ''};
+            try {
+                var data = dataIn.data;
+                var magentoSOIncrementId = data.soIncrementId;
+                var storeId = data.storeId;
+                //nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
+                //nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
+                //Utility.logDebug('magentoSOIncrementId', magentoSOIncrementId);
+                //Utility.logDebug('storeId', storeId);
+                //nlapiLogExecution('DEBUG', 'storeId', storeId);
+                var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder
+                    , magentoSOIncrementId, storeId);
+                if (!!netsuiteSOInternalId) {
+                    this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    result.status = true;
+                }
+            }
+            catch (ex){
+                var err = '';
+                if (ex instanceof nlobjError) {
+                    err = 'System error: ' + ex.getCode() + '\n' + ex.getDetails();
+                }
+                else {
+                    err = 'Unexpected error: ' + ex.toString();
+                }
+                result.status = false;
+                result.error = err;
+            }
+            return result;
+        },
+
+        /**
+         * NetSuite order closing logic
+         * @param netsuiteSOInternalId
+         */
+        closeNetSuiteSalesOrder: function(netsuiteSOInternalId) {
+            // load sales order
+            var soRec = nlapiLoadRecord(ConnectorConstants.NSTransactionTypes.SalesOrder, netsuiteSOInternalId);
+            var totalLines = soRec.getLineItemCount('item');
+            // to close the sales order: in all line items, set checkbox named closed to true
+            for(var line = 1; line <= totalLines; line++){
+                soRec.setLineItemValue('item', 'isclosed', line, 'T');
+            }
+
+            nlapiSubmitRecord(soRec, true);
+        },
+        /**
+         * Cancel netsuite sales order
+         * @param netsuiteSOInternalId
+         */
+        cancelNetSuiteSalesOrder: function(netsuiteSOInternalId) {
+            var context = nlapiGetContext();
+            var environment = context.getEnvironment();
+            nlapiLogExecution('DEBUG', 'environment', environment);
+            var environmentBaseUrl = this.getEnvironmentBaseUrl(environment);
+            var cancelUrl = environmentBaseUrl+ '/app/accounting/transactions/salesordermanager.nl?type=cancel&id='+netsuiteSOInternalId+'&whence=';
+            nlapiLogExecution('DEBUG', 'cancelUrl', cancelUrl);
+            var response = nlapiRequestURL(cancelUrl);
+            nlapiLogExecution('DEBUG', 'response', response.getBody());
+            //nlapiSubmitField(ConnectorConstants.NSTransactionTypes.SalesOrder, netsuiteSOInternalId, 'orderstatus', ConnectorConstants.SalesOrderStatus.Cancel);
         }
     };
 })();

@@ -42,6 +42,25 @@ CUSTOMER = {
         return result;
     },
 
+    getCustomersSubmittedFromUserEvent: function() {
+        var recs;
+        var result = [];
+        var resultObject;
+        recs = RecordsToSync.getRecords(RecordsToSync.RecordTypes.Customer, RecordsToSync.Status.Pending);
+        if (recs != null && recs.length > 0) {
+            for (var i = 0; i < recs.length; i++) {
+                resultObject = new Object();
+                resultObject.customRecordInternalId = recs[i].internalId;
+                resultObject.internalId = recs[i].recordId;
+                resultObject.magentoCustomerIds = nlapiLookupField(RecordsToSync.RecordTypes.Customer, resultObject.internalId, 'custentity_magento_custid');
+                result.push(resultObject);
+            }
+            //Utility.logDebug('getCustomersSubmittedFromUserEvent', JSON.stringify(result))
+        }
+
+        return result;
+    },
+
     setCustomerMagentoId: function(magentoId, customerId) {
         var result = false;
 
@@ -133,7 +152,13 @@ CUSTOMER = {
             //customerDataObject.store_id = storeInfo.systemId;
             // Further we will get this store ID from configuration
             customerDataObject.store_id = "1";
-            customerDataObject.group_id = "";
+            var taxable = customerRecord.getFieldValue('taxable');
+            if(taxable == 'F') {
+                customerDataObject.group_id = ConnectorConstants.MagentoCustomerGroups.TaxExempt;
+            } else {
+                customerDataObject.group_id = ConnectorConstants.MagentoCustomerGroups.General;
+            }
+
             customerDataObject.prefix = getBlankForNull(customerRecord.getFieldValue('salutation'));
             customerDataObject.suffix = "";
             customerDataObject.dob = "";
