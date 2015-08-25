@@ -13,25 +13,15 @@
 /**
  * RecordsToSync class that has the functionality of record manipulation for 'Records To Sync' custom record
  */
-var RecordsToSync = (function () {
+var RecordsMagentoData = (function () {
     return {
-        InternalId: 'customrecord_f3mg_records_to_sync',
+        InternalId: 'customrecord_f3mg_records_magento_data',
         FieldName: {
-            RecordId: 'custrecord_f3mg_rts_record_id',
-            RecordType: 'custrecord_f3mg_rts_record_type',
-            Action: 'custrecord_f3mg_rts_action',
-            Status: 'custrecord_f3mg_rts_status'
-        },
-        RecordTypes : {
-            Customer: 'customer'
-        },
-        Actions : {
-            ExportCustomer: 'ExportCustomer'
-        },
-        Status : {
-            Pending: 'Pending',
-            Processed: 'Processed',
-            ProcessedWithError: 'ProcessedWithError'
+            RecordId: 'custrecord_f3mg_rmd_record_id',
+            RecordType: 'custrecord_f3mg_rmd_record_type',
+            MagentoId: 'custrecord_f3mg_rmd_magento_id',
+            OtherMagentoData: 'custrecord_f3mg_rmd_other_magento_data',
+            Description: 'custrecord_f3mg_rmd_description'
         },
         /**
          * Perform a record search using filters and columns.
@@ -54,7 +44,7 @@ var RecordsToSync = (function () {
                 }
                 result = nlapiSearchRecord(this.InternalId, null, fils, cols) || [];
             } catch (e) {
-                Utility.logException('RecordsToSync.lookup', e);
+                Utility.logException('RecordsMagentoData.lookup', e);
             }
             return result;
         },
@@ -62,55 +52,29 @@ var RecordsToSync = (function () {
          * Getting record information from custom table
          * @returns {Array} Returns an array of objects
          */
-        getRecords: function (recordType, status, action) {
-            var records = [];
-            var filters = [];
-            filters.push(new nlobjSearchFilter(this.FieldName.RecordType,null,'is',recordType));
-            filters.push(new nlobjSearchFilter(this.FieldName.Status,null,'is',status));
-            if(!!action) {
-                filters.push(new nlobjSearchFilter(this.FieldName.Action,null,'is',action));
-            }
-            var res = this.lookup(filters);
-            for (var i = 0; i < res.length; i++) {
-                var rec = res[i];
-                var internalId = rec.getId();
-                var recordId = rec.getValue(this.FieldName.RecordId, null, null);
-                var recordType = rec.getValue(this.FieldName.RecordType, null, null);
-                var action = rec.getValue(this.FieldName.Action, null, null);
-                var status = rec.getValue(this.FieldName.Status, null, null);
-                var obj = {
-                    internalId: internalId,
-                    recordId: recordId,
-                    recordType: recordType,
-                    action: action,
-                    status: status
-                };
-                records.push(obj);
-            }
-            //Utility.logDebug('RecordsToSync.getRecords', JSON.stringify(records));
-            return records;
-        },
-
-        /**
-         * Check if record already exist in queue
-         * @param recordType
-         * @param status
-         * @param action
-         * @returns {Array}
-         */
-        checkRecordAlreadyExist: function (recordId, recordType, status) {
-            var records = [];
+        getRecord: function (recordId, recordType) {
+            var obj = null;
             var filters = [];
             filters.push(new nlobjSearchFilter(this.FieldName.RecordId,null,'is',recordId));
             filters.push(new nlobjSearchFilter(this.FieldName.RecordType,null,'is',recordType));
-            filters.push(new nlobjSearchFilter(this.FieldName.Status,null,'is',status));
             var res = this.lookup(filters);
             if(!!res && res.length > 0) {
-                return true;
+                var rec = res[0];
+                var internalId = rec.getId();
+                var recordId = rec.getValue(this.FieldName.RecordId, null, null);
+                var recordType = rec.getValue(this.FieldName.RecordType, null, null);
+                var magentoId = rec.getValue(this.FieldName.MagentoId, null, null);
+                var otherMagentoData = rec.getValue(this.FieldName.OtherMagentoData, null, null);
+                obj = {
+                    internalId: internalId,
+                    recordId: recordId,
+                    recordType: recordType,
+                    magentoId: magentoId,
+                    otherMagentoData: otherMagentoData
+                };
             }
-            else {
-                return false;
-            }
+            //Utility.logDebug('RecordsMagentoData.getRecord', JSON.stringify(obj));
+            return obj;
         },
 
         /**
@@ -133,18 +97,10 @@ var RecordsToSync = (function () {
                     id = nlapiSubmitRecord(rec, true);
                 }
                 catch (e) {
-                    Utility.logException('RecordsToSync.upsert', e);
+                    Utility.logException('RecordsMagentoData.upsert', e);
                 }
             }
             return id;
-        },
-        /**
-         * Change custom record status to processed
-         * @param internalId
-         * @param status
-         */
-        markProcessed: function(internalId, status) {
-            nlapiSubmitField(this.InternalId, internalId, this.FieldName.Status, status);
         }
 
     };

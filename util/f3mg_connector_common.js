@@ -161,15 +161,28 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('ccapproved', 'T');
                 return;
             }
+
+
+
             //paypal_express
             if (payment.method.toString() === 'paypal_express') {
-                rec.setFieldValue('paymentmethod', '7');// paypal
+                var paymentMethod_paypal = '7';
+                if(!!ConnectorConstants.CurrentStore && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod
+                && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal) {
+                    paymentMethod_paypal = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal;
+                }
+                rec.setFieldValue('paymentmethod', paymentMethod_paypal);// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
             //payflow_advanced
             if (payment.method.toString() === 'payflow_advanced') {
-                rec.setFieldValue('paymentmethod', '7');// paypal
+                var paymentMethod_paypal = '7';
+                if(!!ConnectorConstants.CurrentStore && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod
+                    && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal) {
+                    paymentMethod_paypal = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal;
+                }
+                rec.setFieldValue('paymentmethod', paymentMethod_paypal);// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
@@ -1340,21 +1353,25 @@ var ConnectorCommon = (function () {
          * Close sales order
          * @param dataIn
          */
-        closeSalesOrder: function(dataIn) {
+        cancelSalesOrder: function(dataIn) {
             var result = {status: false, error: ''};
             try {
                 var data = dataIn.data;
                 var magentoSOIncrementId = data.soIncrementId;
-                var storeId = data.storeId;
+                //TODO:
+                // Currently Store Id is cuming wrong: Its like below:
+                //{"apiMethod":"cancelSalesOrder","data":{"soIncrementId":"100000021","0":"storeId","1":"1"}}
+                // Thats for we hard cosing store id now for make things work,
+                //var storeId = data.storeId;
+                var storeId = '1';
                 //nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
                 //nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('storeId', storeId);
                 //nlapiLogExecution('DEBUG', 'storeId', storeId);
                 var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder
                     , magentoSOIncrementId, storeId);
                 if (!!netsuiteSOInternalId) {
-                    this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    //this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    this.closeNetSuiteSalesOrder(netsuiteSOInternalId);
                     result.status = true;
                 }
             }
@@ -1366,6 +1383,7 @@ var ConnectorCommon = (function () {
                 else {
                     err = 'Unexpected error: ' + ex.toString();
                 }
+                nlapiLogExecution('ERROR', 'cancelSalesOrder Error', err);
                 result.status = false;
                 result.error = err;
             }

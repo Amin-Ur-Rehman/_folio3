@@ -40,7 +40,10 @@ var GenericDataExportManager = (function () {
         exportData: function(recordId, recordType){
             var result = null;
             if(recordType == ConnectorConstants.NSRecordTypes.PromotionCode) {
-                result = this.exportPromotionCode(recordId, recordType)
+                result = this.exportPromotionCode(recordId, recordType);
+            }
+            else if(recordType == ConnectorConstants.NSRecordTypes.PriceLevel) {
+                result = this.exportPriceLevel(recordId, recordType);
             }
 
             return result;
@@ -88,9 +91,9 @@ var GenericDataExportManager = (function () {
             var magentoUrl = '';
             try {
                 var internalId = recordId;
-                var promoCodeRecord = PromoCodesExportHelper.getPromoCode(internalId, null);
-                //Utility.logDebug('promoCodeRecord', JSON.stringify(promoCodeRecord));
-                var response = PromoCodesExportHelper.sendRequestToMagento(internalId, promoCodeRecord);
+                var priceLevelRecord = PriceLevelExportHelper.getPriceLevel(internalId, null);
+                Utility.logDebug('priceLevelRecord', JSON.stringify(priceLevelRecord));
+                var response = PriceLevelExportHelper.sendRequestToMagento(internalId, priceLevelRecord);
                 status = response.status;
                 if(!response.status) {
                     error = response.message;

@@ -133,7 +133,7 @@ ConnectorConstants = (function () {
             }
         },
         MagentoCustomerGroups: {
-            TaxExempt: "6",
+            TaxExempt: "2",
             General: "1"
         },
         /**
@@ -141,7 +141,7 @@ ConnectorConstants = (function () {
          */
         initialize: function () {
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
-            this.Client = F3ClientFactory.createClient('PurestColloids');
+            this.Client = F3ClientFactory.createClient('OrsonGygi');
             this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
         initializeDummyItem: function () {

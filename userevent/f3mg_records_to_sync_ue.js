@@ -64,12 +64,13 @@ var RecordsToSyncUE = (function () {
                     var recordType = nlapiGetRecordType();
                     nlapiLogExecution('DEBUG', 'recordId  #  recordType', recordId + '  #  ' + recordType);
                     if(this.recordEligibleToSync(type, recordType)) {
-                        var recordToSyncObj = {};
-                        recordToSyncObj[RecordsToSync.FieldName.RecordId] = recordId;
-                        recordToSyncObj[RecordsToSync.FieldName.RecordType] = recordType;
-                        recordToSyncObj[RecordsToSync.FieldName.Status] = RecordsToSync.Status.Pending;
-                        RecordsToSync.upsert(recordToSyncObj);
-
+                        if(!RecordsToSync.checkRecordAlreadyExist(recordId, recordType, RecordsToSync.Status.Pending)){
+                            var recordToSyncObj = {};
+                            recordToSyncObj[RecordsToSync.FieldName.RecordId] = recordId;
+                            recordToSyncObj[RecordsToSync.FieldName.RecordType] = recordType;
+                            recordToSyncObj[RecordsToSync.FieldName.Status] = RecordsToSync.Status.Pending;
+                            RecordsToSync.upsert(recordToSyncObj);
+                        }
                         var params = [];
                         params[ConnectorConstants.ScheduleScriptInvokedFormUserEvent] = 'T';
                         var status = nlapiScheduleScript(ConnectorConstants.SuiteScripts.ScheduleScript.CustomerExportToMagento.id,
