@@ -1,13 +1,5 @@
 /**
- * Created by ubaig on 01/23/2015.
- * Description:
- * - This script is reponsible for exporting sales orders from Magento to NetSuite
- * -
- * Referenced By:
- * -
- * Dependencies:
- * -
- * -
+ * Created by sameer on 8/20/15.
  */
 
 /**
@@ -15,70 +7,22 @@
  */
 var OrderExportHelper = (function () {
     return {
+
         /**
          * Gets Orders based on the the Store Id
          * @param allStores
          * @param storeId
          * @return {object[],[]}
          */
-        getOrders: function (allStores, storeId) {
-            var filters = [];
-            var records;
-            var result = [];
-            var arrCols = [];
-            var resultObject;
-
-            Utility.logDebug('getting orders for storeId', storeId);
-
-            var ageOfRecordsToSyncInDays = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.ageOfRecordsToSyncInDays;
-            //Utility.logDebug('ageOfRecordsToSyncInDays', ageOfRecordsToSyncInDays);
-
-            var currentDate = Utility.getDateUTC(0);
-            //Utility.logDebug('currentDate', currentDate);
-            var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
-            //Utility.logDebug('oldDate', oldDate);
-            oldDate = nlapiDateToString(oldDate);
-            //Utility.logDebug('first nlapiDateToString', oldDate);
-            oldDate = oldDate.toLowerCase();
-            //Utility.logDebug('oldDate toLowerCase', oldDate);
-            oldDate = nlapiDateToString(nlapiStringToDate(oldDate, 'datetime'), 'datetime');
-            //Utility.logDebug('oldNetsuiteDate', oldDate);
-            filters.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
-
-            if (!allStores) {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
-            } else {
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
-            }
-            //filters.push(new nlobjSearchFilter('internalid', null, 'is', '7173', null));
-            filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
-            filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
-            filters.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'F', null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isempty', null, null));
-            filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.DontSyncToMagento, null, 'is', 'F', null));
-
-            arrCols.push((new nlobjSearchColumn('internalid', null, null)).setSort(false));
-            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoId, null, null));
-            arrCols.push(new nlobjSearchColumn(ConnectorConstants.Transaction.Fields.MagentoStore, null, null));
-
-            records = nlapiSearchRecord('transaction', null, filters, arrCols);
-
-            if (!Utility.isBlankOrNull(records) && records.length > 0) {
-
-                for (var i = 0; i < records.length; i++) {
-                    resultObject = {};
-
-                    resultObject.internalId = records[i].getId();
-                    resultObject.magentoOrderIds = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoId, null, null);
-                    resultObject.magentoStore = records[i].getValue(ConnectorConstants.Transaction.Fields.MagentoStore, null, null);
-
-                    result.push(resultObject);
-                }
-            }
-            return result;
+        getOrders: function () {
+            var resultObject = {},
+                records = nlapiLoadRecord(nlapiGetRecordType(), nlapiGetRecordId());
+            resultObject.internalId = nlapiGetRecordId();
+            resultObject.magentoOrderIds = records.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
+            resultObject.magentoStore = records.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore);
+            return resultObject;
         },
+
         /**
          * Get Bill/Ship Address either from customer or sales order for sales order export
          * @param orderRecord
@@ -87,6 +31,7 @@ var OrderExportHelper = (function () {
          * @param addressId
          * @return {object}
          */
+
         getAddress: function (orderRecord, customerRec, type, addressId) {
 
             var address = {};
@@ -355,6 +300,31 @@ var OrderExportHelper = (function () {
         },
 
         /**
+         *
+         * @param orderInternalId
+         * @param store
+         * @param history
+         * @returns {*}
+         */
+        getOrderToSync: function (orderInternalId, store, history) {
+            Utility.logDebug('inside getOrderToSync', '');
+            var orderDataObject = null;
+            try {
+                var orderRecord = nlapiLoadRecord('salesorder', orderInternalId, null);
+
+                if (orderRecord !== null) {
+                    orderDataObject = {};
+                    orderDataObject.storeId = '1';
+                    orderDataObject.history = history;
+                }
+            } catch (e) {
+                Utility.logException('OrderExportHelper.getOrder', e);
+            }
+            Utility.logDebug('getOrder', JSON.stringify(orderDataObject));
+            return orderDataObject;
+        },
+
+        /**
          Sets Magento Id in the Order record
          * @param parameter
          */
@@ -434,6 +404,7 @@ var OrderExportHelper = (function () {
          * @param sessionId
          */
         getMagentoRequestXml: function (orderRecord, sessionId) {
+            Utility.logDebug('inside getMagentoRequestXml...', '...');
             return XmlUtility.getCreateSalesOrderXml(orderRecord, sessionId);
         }
     };
@@ -480,10 +451,10 @@ var ExportSalesOrders = (function () {
          * @param store
          * @returns {{orderRecord: *, requsetXML: *, responseMagento: *, magentoIdObjArrStr: *, nsCustomerUpdateStatus: *, customerAddresses: *, allAddressedSynched: *, adr: number, logRec: nlobjRecord}}
          */
-        processOrder: function (orderObject, store) {
-
-            var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
-
+        processOrder: function (orderObject, store, history) {
+            Utility.logDebug('In Order Record...', '');
+            var orderRecord = OrderExportHelper.getOrderToSync(orderObject.internalId, store, history);
+            Utility.logDebug('Order Record... Sending Request to Magento', JSON.stringify(orderRecord));
             this.sendRequestToMagento(orderObject.internalId, orderRecord, store, true);
         },
 
@@ -504,10 +475,10 @@ var ExportSalesOrders = (function () {
                 return null;
             }
 
-            Utility.logDebug('debug', 'Step-5');
+            Utility.logDebug('debug', 'Step-5 - getMagentoRequestXml');
 
             requestXml = OrderExportHelper.getMagentoRequestXml(orderRecord, store.sessionID);
-
+            Utility.logDebug('debug', 'Step-5a - returned from getting xml');
             ConnectorCommon.createLogRec(internalId, requestXml);
 
             Utility.logDebug('store.endpoint', store.endpoint);
@@ -857,11 +828,3 @@ var ExportSalesOrders = (function () {
         }
     };
 })();
-
-/**
- * @param {String} type Context Types: scheduled, ondemand, userinterface, aborted, skipped
- * @returns {Void}
- */
-function ExportSalesOrdersScheduled(type) {
-    return ExportSalesOrders.scheduled(type);
-}
