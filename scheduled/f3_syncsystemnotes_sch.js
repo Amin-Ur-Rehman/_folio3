@@ -135,40 +135,30 @@ var SyncSystemNotes = (function () {
             for (var i = 0; i < count; i++) {
                 try {
                     //Fetch System Notes
-                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId);
                     currentRecord = nlapiLoadRecord('salesorder', records[i].recordId);
                     requestDataObject.soMagentoId = currentRecord.getFieldValue('custbody_magentoid');
+                    lastSync = currentRecord.getFieldValue('custbody_history_last_synced');
+                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId,lastSync);
                     requestDataObject.history = nlapiEscapeXML(history);
                     currentStoreObject = _.find(externalSystemArr, function (store) {
                         if (!!store) return store.systemId === currentRecord.getFieldValue('custbody_f3mg_magento_store')
                     });
+                    //If no history then no need to send sync call
+                    if(!history)
+                    {
+                        nlapiLogExecution('debug','No History to Sync');
+                        SystemNotesSyncHelper.noSyncActions(currentRecord,records[i]);
+                        continue;
+                    }
                     //Current Magento Store Configuration Found
                     if (!!currentStoreObject) {
                         //Getting XML for Add Comment Call
                         xmlForAddCommentCall = XmlUtility.getAddSalesOrderCommentXML(currentStoreObject.sessionID, requestDataObject);
-                        var rec = nlapiCreateRecord('customrecord_testxml');
-                        rec.setFieldValue('custrecord_data',xmlForAddCommentCall);
-                        nlapiSubmitRecord(rec);
 
                         if (!!xmlForAddCommentCall) {
                             responseMagento = XmlUtility.validateAddCommentResponse(XmlUtility.soapRequestToMagentoSpecificStore(xmlForAddCommentCall, currentStoreObject));
                         }
-                        if (!!responseMagento && responseMagento.status) {
-                            //Update Sales Order
-                            currentDate = Utility.getDateUTC(0);
-                            lastSync = nlapiDateToString(currentDate, 'datetime');
-                            currentRecord.setFieldValue('custbody_history_last_synced', lastSync);
-                            nlapiSubmitRecord(currentRecord, {disabletriggers: true});
-                            //Update Records To Sync Custom Record
-                            data['id'] = records[i].internalId;
-                            data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.Processed;
-                            RecordsToSync.upsert(data);
-                        } else {
-                            data['id'] = records[i].internalId;
-                            data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.ProcessedWithError;
-                            RecordsToSync.upsert(data);
-                        }
-
+                            SystemNotesSyncHelper.postSyncActions(responseMagento,currentRecord,records[i]);
                         if (this.rescheduleIfNeeded(context)) {
                             return;
                         }

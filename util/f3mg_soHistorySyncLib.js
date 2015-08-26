@@ -11,19 +11,19 @@ var SystemNotesSyncHelper = (function () {
          * @param {soInternalId} string : internal id of sales order
          * @param {lastSyncDate} string : date after which the system notes will be loaded
          */
-        getSystemNotesForSalesOrder: function(soInternalId,lastSyncDate){
+        getSystemNotesForSalesOrder: function (soInternalId, lastSyncDate) {
             var filters = [],
                 columns = [],
-                // fields that we need to include in search filters
+            // fields that we need to include in search filters
                 fields = [],
                 transaction,
                 historyData = '',
                 record;
 
-            if(!!soInternalId)
-            {
+            if (!!soInternalId) {
                 if (fields.length > 0)
                     filters.push(new nlobjSearchFilter('field', 'systemnotes', 'anyof', fields));
+                nlapiLogExecution('debug','lastSyncDate',lastSyncDate);
                 if (!!lastSyncDate)
                     filters.push(new nlobjSearchFilter('date', 'systemnotes', 'onorafter', lastSyncDate));
                 filters.push(new nlobjSearchFilter('internalid', null, 'is', soInternalId));
@@ -48,6 +48,34 @@ var SystemNotesSyncHelper = (function () {
                 }
             }
             return historyData;
+        },
+        postSyncActions: function (responseMagento, sourceRecord, queueRecord) {
+            var data = [];
+            if (!!responseMagento && responseMagento.status) {
+                //Update Sales Order
+                var currentDate = Utility.getDateUTC(0);
+                var lastSync = nlapiDateToString(currentDate, 'datetime');
+                sourceRecord.setFieldValue('custbody_history_last_synced', lastSync);
+                nlapiSubmitRecord(sourceRecord, {disabletriggers: true});
+                //Update Records To Sync Custom Record
+                data['id'] = queueRecord.internalId;
+                data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.Processed;
+                RecordsToSync.upsert(data);
+            } else {
+                data['id'] = records[i].internalId;
+                data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.ProcessedWithError;
+                RecordsToSync.upsert(data);
+            }
+        },
+        noSyncActions: function (sourceRecord, queueRecord) {
+            var data = [];
+            var currentDate = Utility.getDateUTC(0);
+            var lastSync = nlapiDateToString(currentDate, 'datetime');
+            sourceRecord.setFieldValue('custbody_history_last_synced', lastSync);
+            nlapiSubmitRecord(sourceRecord, {disabletriggers: true});
+            data['id'] = queueRecord.internalId;
+            data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.Processed;
+            RecordsToSync.upsert(data);
         }
     };
 })();
