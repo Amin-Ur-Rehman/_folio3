@@ -1,12 +1,11 @@
 /**
  * Created by smehmood on 8/26/2015.
  */
-
 /**
  * SyncSystemNotes class that has the actual functionality of scheduler script.
  * This script is responsible to sync sales order system notes with magento (comment history)
  */
-var SyncSystemNotes = (function () {
+var SyncSystemNotes = (function() {
     return {
 
         startTime: null,
@@ -15,10 +14,10 @@ var SyncSystemNotes = (function () {
          * @param {String} type Context Types: scheduled, ondemand, userinterface, aborted, skipped
          * @returns {Void}
          */
-        scheduled: function (type) {
+        scheduled: function(type) {
             try {
                 nlapiLogExecution('DEBUG', 'Starting', '');
-                if (MC_SYNC_CONSTANTS.isValidLicense()) {
+                if(MC_SYNC_CONSTANTS.isValidLicense()) {
                     var ctx = nlapiGetContext();
                     // inititlize constants
                     ConnectorConstants.initialize();
@@ -28,11 +27,11 @@ var SyncSystemNotes = (function () {
                     var records;
 
                     //Getting sessions of each store
-                    externalSystemConfig.forEach(function (store) {
+                    externalSystemConfig.forEach(function(store) {
                         ConnectorConstants.CurrentStore = store;
                         var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
                         Utility.logDebug('sessionID', sessionID);
-                        if (!sessionID) {
+                        if(!sessionID) {
                             Utility.logDebug('empty sessionID', 'sessionID is empty');
                             return;
                         }
@@ -41,7 +40,7 @@ var SyncSystemNotes = (function () {
                         externalSystemArr.push(store);
                     });
 
-                    if (externalSystemArr.length === 0) {
+                    if(externalSystemArr.length === 0) {
                         Utility.logDebug('SO SystemNotes Sync Script', 'No store configured for sync');
                         return;
                     }
@@ -49,30 +48,27 @@ var SyncSystemNotes = (function () {
                     records = this.getRecords();
                     this.startTime = (new Date()).getTime();
 
-                    if (records !== null && records.length > 0) {
+                    if(records !== null && records.length > 0) {
                         this.processRecords(records, externalSystemArr); //process records
                     } else {
                         nlapiLogExecution('DEBUG', ' No records found to process', '');
                     }
-
-
                     nlapiLogExecution('DEBUG', ' Ends', '');
                 }
-            }
-            catch (e) {
+            } catch(e) {
                 nlapiLogExecution('ERROR', 'Error during  Script working', e.toString());
             }
         },
         //Function to pase number in float
-        parseFloatNum: function (num) {
+        parseFloatNum: function(num) {
             var no = parseFloat(num);
-            if (isNaN(no)) {
+            if(isNaN(no)) {
                 no = 0;
             }
             return no;
         },
         //Function to get Date for specific Time Zone
-        getDateUTC: function (offset) {
+        getDateUTC: function(offset) {
             var today = new Date();
             var utc = today.getTime() + (today.getTimezoneOffset() * 60000);
             offset = parseInt(this.parseFloatNum(offset * 60 * 60 * 1000));
@@ -80,7 +76,7 @@ var SyncSystemNotes = (function () {
             return today;
         },
         //Function to check whether it is exceeding the time limit of scheduler script execution
-        isRunningTime: function () {
+        isRunningTime: function() {
             return true; // todo undo
             var currentDate = this.getDateUTC(0);
             var dateTime = nlapiDateToString(currentDate, 'datetimetz');
@@ -88,16 +84,16 @@ var SyncSystemNotes = (function () {
 
             var strArr = time.split(' ');
 
-            if (strArr.length > 1) {
+            if(strArr.length > 1) {
                 var hour = 0;
                 var AmPm = strArr[1];
                 var timeMinsArr = strArr[0].split(':');
 
-                if (timeMinsArr.length > 0) {
+                if(timeMinsArr.length > 0) {
                     hour = parseInt(timeMinsArr[0]);
                 }
 
-                if (AmPm === 'am' && hour >= 1 && hour < 7) {
+                if(AmPm === 'am' && hour >= 1 && hour < 7) {
                     return true;
                 }
             }
@@ -108,14 +104,14 @@ var SyncSystemNotes = (function () {
          * Gets record from DAO
          * @returns {*}
          */
-        getRecords: function () {
+        getRecords: function() {
             var records = RecordsToSync.getRecords(RecordsToSync.RecordTypes.SalesOrder, RecordsToSync.Status.Pending, RecordsToSync.Actions.SyncSoSystemNotes);
             return records;
         },
         /**
          * Process data to sync
          */
-        processRecords: function (records, externalSystemArr) {
+        processRecords: function(records, externalSystemArr) {
             var context = nlapiGetContext();
             nlapiLogExecution('DEBUG', 'inside processRecords', 'processRecords');
             var count = records.length;
@@ -132,38 +128,37 @@ var SyncSystemNotes = (function () {
             var data = {};
             var responseMagento;
 
-            for (var i = 0; i < count; i++) {
+            for(var i = 0; i < count; i++) {
                 try {
                     //Fetch System Notes
                     currentRecord = nlapiLoadRecord('salesorder', records[i].recordId);
                     requestDataObject.soMagentoId = currentRecord.getFieldValue('custbody_magentoid');
                     lastSync = currentRecord.getFieldValue('custbody_history_last_synced');
-                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId,lastSync);
+                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync);
                     requestDataObject.history = nlapiEscapeXML(history);
-                    currentStoreObject = _.find(externalSystemArr, function (store) {
-                        if (!!store) return store.systemId === currentRecord.getFieldValue('custbody_f3mg_magento_store')
+                    currentStoreObject = _.find(externalSystemArr, function(store) {
+                        if(!!store) return store.systemId === currentRecord.getFieldValue('custbody_f3mg_magento_store')
                     });
                     //If no history then no need to send sync call
-                    if(!history)
-                    {
-                        nlapiLogExecution('debug','No History to Sync');
-                        SystemNotesSyncHelper.noSyncActions(currentRecord,records[i]);
+                    if(!history) {
+                        nlapiLogExecution('debug', 'No History to Sync');
+                        SystemNotesSyncHelper.noSyncActions(currentRecord, records[i]);
                         continue;
                     }
                     //Current Magento Store Configuration Found
-                    if (!!currentStoreObject) {
+                    if(!!currentStoreObject) {
                         //Getting XML for Add Comment Call
                         xmlForAddCommentCall = XmlUtility.getAddSalesOrderCommentXML(currentStoreObject.sessionID, requestDataObject);
 
-                        if (!!xmlForAddCommentCall) {
+                        if(!!xmlForAddCommentCall) {
                             responseMagento = XmlUtility.validateAddCommentResponse(XmlUtility.soapRequestToMagentoSpecificStore(xmlForAddCommentCall, currentStoreObject));
                         }
-                            SystemNotesSyncHelper.postSyncActions(responseMagento,currentRecord,records[i]);
-                        if (this.rescheduleIfNeeded(context)) {
+                        SystemNotesSyncHelper.postSyncActions(responseMagento, currentRecord, records[i]);
+                        if(this.rescheduleIfNeeded(context)) {
                             return;
                         }
                     }
-                } catch (e) {
+                } catch(e) {
                     nlapiLogExecution('ERROR', 'Error during processRecords', e.toString());
                     data['id'] = records[i].internalId;
                     data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.ProcessedWithError;
@@ -176,11 +171,11 @@ var SyncSystemNotes = (function () {
          * @param context Context Object
          * @returns {boolean} true if rescheduling was necessary and done, false otherwise
          */
-        rescheduleIfNeeded: function (context, params) {
+        rescheduleIfNeeded: function(context, params) {
             try {
                 var usageRemaining = context.getRemainingUsage();
 
-                if (usageRemaining < 500) {
+                if(usageRemaining < 500) {
                     this.rescheduleScript(context, params);
                     return true;
                 }
@@ -191,13 +186,12 @@ var SyncSystemNotes = (function () {
                 nlapiLogExecution('DEBUG', 'Time', 'Minutes: ' + minutes + ' , endTime = ' + endTime + ' , startTime = ' + this.startTime);
                 // if script run time greater than 50 mins then reschedule the script to prevent time limit exceed error
 
-                if (minutes > this.minutesAfterReschedule) {
+                if(minutes > this.minutesAfterReschedule) {
                     this.rescheduleScript(context, params);
                     return true;
                 }
 
-            }
-            catch (e) {
+            } catch(e) {
                 nlapiLogExecution('ERROR', 'Error during schedule: ', +JSON.stringify(e) + ' , usageRemaining = ' + usageRemaining);
             }
             return false;
@@ -207,7 +201,7 @@ var SyncSystemNotes = (function () {
          * Call this method to reschedule current schedule script
          * @param ctx nlobjContext Object
          */
-        rescheduleScript: function (ctx, params) {
+        rescheduleScript: function(ctx, params) {
             var status = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params);
         }
     };
