@@ -28,6 +28,27 @@ var systemNotesSync = (function () {
          * @returns {Void}
          */
         userEventAfterSubmit: function (type) {
+            var context = nlapiGetContext();
+            var executionContext = context.getExecutionContext();
+            var record = nlapiLoadRecord(nlapiGetRecordType(), nlapiGetRecordId());
+            var schedulerScriptId = 'customscript_so_systemnotessync_magento',
+                schedulerScriptDepId = 'customdeploy_so_sysntssycnsch_magento';
+            if(executionContext !== 'scheduled' && (type == 'edit' || type == 'xedit')) {
+                //Only for magento orders
+                if (!!record.getFieldValue('custbody_magentoid')) {
+                    //Saving sales order id for system note sync
+                    var data = {};
+                    data['custrecord_f3mg_rts_record_id'] = nlapiGetRecordId();
+                    data['custrecord_f3mg_rts_record_type'] = RecordsToSync.RecordTypes.SalesOrder;
+                    data['custrecord_f3mg_rts_action'] = RecordsToSync.Actions.SyncSoSystemNotes;
+                    data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.Pending;
+                    RecordsToSync.upsert(data);
+                    nlapiScheduleScript(schedulerScriptId, schedulerScriptDepId);
+                }
+            }
+        }
+         /* Code written bt sameer
+        userEventAfterSubmit: function (type) {
             try {
                 var filters = [],
                     columns = [],
@@ -54,7 +75,6 @@ var systemNotesSync = (function () {
 
 
                 //Setting last time history synced
-
                 var currentDate = Utility.getDateUTC(0);
                 var lastSync = nlapiDateToString(currentDate, 'datetime');
                 record.setFieldValue('custbody_history_last_synced', lastSync);
@@ -122,10 +142,7 @@ var systemNotesSync = (function () {
                 Utility.logException('Error in After Submit', err);
             }
         }
-
-
-
-
+    */
     };
 })();
 

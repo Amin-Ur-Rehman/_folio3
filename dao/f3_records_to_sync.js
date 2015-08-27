@@ -23,10 +23,12 @@ var RecordsToSync = (function () {
             Status: 'custrecord_f3mg_rts_status'
         },
         RecordTypes : {
-            Customer: 'customer'
+            Customer: 'customer',
+            SalesOrder: 'salesorder'
         },
         Actions : {
-            ExportCustomer: 'ExportCustomer'
+            ExportCustomer: 'ExportCustomer',
+            SyncSoSystemNotes: 'SyncSoSystemNotes'
         },
         Status : {
             Pending: 'Pending',
