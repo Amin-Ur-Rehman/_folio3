@@ -18,6 +18,12 @@ var giftCertificate = (function () {
         /**
          * Init method
          */
+
+        internalId: giftcertificateitem,
+        fields : {
+            itemName: 'itemid',
+            liabilityAccount: 'liabilityaccount'
+        },
         initialize: function () {
 
         }
