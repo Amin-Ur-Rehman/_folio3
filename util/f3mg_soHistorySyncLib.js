@@ -4,26 +4,30 @@
 /**
  * SystemNotesSyncHelper class that has the helper functions to be used for scheduler script to sync system notes with magento
  */
-var SystemNotesSyncHelper = (function() {
+var SystemNotesSyncHelper = (function () {
     return {
         /* Function to get System Notes of Sales Order By InternalId and Last Sync Date
          * @param {soInternalId} string : internal id of sales order
          * @param {lastSyncDate} string : date after which the system notes will be loaded
          */
-        getSystemNotesForSalesOrder: function(soInternalId, lastSyncDate) {
+        getSystemNotesForSalesOrder: function (soInternalId, lastSyncDate) {
             var filters = [],
                 columns = [],
             // fields that we need to include in search filters
                 fields = [],
                 transaction,
                 historyData = '',
-                record;
+                record,
+                result = {};
 
-            if(!!soInternalId) {
-                if(fields.length > 0)
+            result['lastSyncDate'] = null;
+            result['historyData'] = '';
+
+            if (!!soInternalId) {
+                if (fields.length > 0)
                     filters.push(new nlobjSearchFilter('field', 'systemnotes', 'anyof', fields));
                 nlapiLogExecution('debug', 'lastSyncDate', lastSyncDate);
-                if(!!lastSyncDate)
+                if (!!lastSyncDate)
                     filters.push(new nlobjSearchFilter('date', 'systemnotes', 'onorafter', lastSyncDate));
                 filters.push(new nlobjSearchFilter('internalid', null, 'is', soInternalId));
                 columns.push(new nlobjSearchColumn('date', 'systemNotes'));
@@ -31,29 +35,35 @@ var SystemNotesSyncHelper = (function() {
                 columns.push(new nlobjSearchColumn('type', 'systemNotes'));
                 columns.push(new nlobjSearchColumn('oldvalue', 'systemNotes'));
                 columns.push(new nlobjSearchColumn('newvalue', 'systemNotes'));
+                //sorting on date field
+                columns[0].setSort();
                 transaction = nlapiSearchRecord('transaction', null, filters, columns);
 
-                if(!!transaction && transaction.length > 0) {
-                    for(var i = 0; i < transaction.length; i++) {
-                        if(transaction[i].getValue('oldvalue', 'systemNotes') !== transaction[i].getValue('newvalue', 'systemNotes')) {
-                            historyData += transaction[i].getValue('field', 'systemNotes') + ' : ' + transaction[i].getValue('newvalue', 'systemNotes');
-                        } else {
-                            Utility.logDebug('Value not changed', '');
-                        }
-                        if(!!historyData && historyData.length > 0) {
-                            historyData += '<br />';
+                if (!!transaction && transaction.length > 0) {
+                    for (var i = 0; i < transaction.length; i++) {
+                        if(transaction[i].getValue('field', 'systemNotes') !== 'custbody_history_last_synced') {
+                            if (transaction[i].getValue('oldvalue', 'systemNotes') !== transaction[i].getValue('newvalue', 'systemNotes')) {
+                                historyData += transaction[i].getValue('field', 'systemNotes') + ' : ' + transaction[i].getValue('newvalue', 'systemNotes');
+                            } else {
+                                Utility.logDebug('Value not changed', '');
+                            }
+                            if (!!historyData && historyData.length > 0) {
+                                historyData += '<br />';
+                            }
                         }
                     }
+                    result['lastSyncDate'] = transaction[transaction.length - 1].getValue('date', 'systemNotes');
+                    result ['historyData'] = historyData;
                 }
             }
-            return historyData;
+            return result;
         },
-        postSyncActions: function(responseMagento, sourceRecord, queueRecord) {
+        postSyncActions: function (responseMagento, sourceRecord, queueRecord,lastSync) {
             var data = [];
-            if(!!responseMagento && responseMagento.status) {
+            if (!!responseMagento && responseMagento.status) {
                 //Update Sales Order
-                var currentDate = Utility.getDateUTC(0);
-                var lastSync = nlapiDateToString(currentDate, 'datetime');
+                //var currentDate = Utility.getDateUTC(0);
+                //var lastSync = nlapiDateToString(currentDate, 'datetime');
                 sourceRecord.setFieldValue('custbody_history_last_synced', lastSync);
                 nlapiSubmitRecord(sourceRecord, {
                     disabletriggers: true
@@ -68,10 +78,10 @@ var SystemNotesSyncHelper = (function() {
                 RecordsToSync.upsert(data);
             }
         },
-        noSyncActions: function(sourceRecord, queueRecord) {
+        noSyncActions: function (sourceRecord, queueRecord,lastSync) {
             var data = [];
-            var currentDate = Utility.getDateUTC(0);
-            var lastSync = nlapiDateToString(currentDate, 'datetime');
+            //var currentDate = Utility.getDateUTC(0);
+            //var lastSync = nlapiDateToString(currentDate, 'datetime');
             sourceRecord.setFieldValue('custbody_history_last_synced', lastSync);
             nlapiSubmitRecord(sourceRecord, {
                 disabletriggers: true
