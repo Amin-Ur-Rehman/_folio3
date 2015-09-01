@@ -127,6 +127,7 @@ var SyncSystemNotes = (function() {
             var lastSync;
             var data = {};
             var responseMagento;
+            var lastSyncDate;
 
             for(var i = 0; i < count; i++) {
                 try {
@@ -134,15 +135,18 @@ var SyncSystemNotes = (function() {
                     currentRecord = nlapiLoadRecord('salesorder', records[i].recordId);
                     requestDataObject.soMagentoId = currentRecord.getFieldValue('custbody_magentoid');
                     lastSync = currentRecord.getFieldValue('custbody_history_last_synced');
-                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync);
+                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync)['historyData'];
+                    lastSyncDate = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync)['lastSyncDate'];
                     requestDataObject.history = nlapiEscapeXML(history);
                     currentStoreObject = _.find(externalSystemArr, function(store) {
                         if(!!store) return store.systemId === currentRecord.getFieldValue('custbody_f3mg_magento_store')
                     });
+                    nlapiLogExecution('debug','history',JSON.stringify(history));
+                    nlapiLogExecution('debug','lastSyncDate',JSON.stringify(lastSyncDate));
                     //If no history then no need to send sync call
                     if(!history) {
                         nlapiLogExecution('debug', 'No History to Sync');
-                        SystemNotesSyncHelper.noSyncActions(currentRecord, records[i]);
+                        SystemNotesSyncHelper.noSyncActions(currentRecord, records[i],lastSyncDate);
                         continue;
                     }
                     //Current Magento Store Configuration Found
@@ -153,7 +157,7 @@ var SyncSystemNotes = (function() {
                         if(!!xmlForAddCommentCall) {
                             responseMagento = XmlUtility.validateAddCommentResponse(XmlUtility.soapRequestToMagentoSpecificStore(xmlForAddCommentCall, currentStoreObject));
                         }
-                        SystemNotesSyncHelper.postSyncActions(responseMagento, currentRecord, records[i]);
+                        SystemNotesSyncHelper.postSyncActions(responseMagento, currentRecord, records[i],lastSyncDate);
                         if(this.rescheduleIfNeeded(context)) {
                             return;
                         }

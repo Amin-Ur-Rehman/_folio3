@@ -20,7 +20,9 @@ var RecordsToSync = (function () {
             RecordId: 'custrecord_f3mg_rts_record_id',
             RecordType: 'custrecord_f3mg_rts_record_type',
             Action: 'custrecord_f3mg_rts_action',
-            Status: 'custrecord_f3mg_rts_status'
+            Status: 'custrecord_f3mg_rts_status',
+            Data: 'custrecord_rectosyncdata',
+            Comments: 'custrecord_rectosyncproccomnts'
         },
         RecordTypes : {
             Customer: 'customer',
@@ -74,12 +76,15 @@ var RecordsToSync = (function () {
             }
             var res = this.lookup(filters);
             for (var i = 0; i < res.length; i++) {
+                filters.push(new nlobjSearchFilter(this.FieldName.Action,null,'is',action));
                 var rec = res[i];
                 var internalId = rec.getId();
                 var recordId = rec.getValue(this.FieldName.RecordId, null, null);
                 var recordType = rec.getValue(this.FieldName.RecordType, null, null);
                 var action = rec.getValue(this.FieldName.Action, null, null);
                 var status = rec.getValue(this.FieldName.Status, null, null);
+                var data = rec.getValue(this.FieldName.Data, null, null);
+                var comments = rec.getValue(this.FieldName.Comments, null, null);
                 var obj = {
                     internalId: internalId,
                     recordId: recordId,
@@ -92,7 +97,32 @@ var RecordsToSync = (function () {
             //Utility.logDebug('RecordsToSync.getRecords', JSON.stringify(records));
             return records;
         },
+        /**
+         * Getting record information from custom table to Delete
+         * @returns {Array} Returns an array of objects
+         */
+        getRecordsToDelete: function (beforeDate,status) {
+            var records = [];
+            var filters = [];
+            if(!!beforeDate) {
+                filters.push(new nlobjSearchFilter('lastmodified',null,'before',beforeDate));
+                if(!!status)
+                    filters.push(new nlobjSearchFilter(this.FieldName.Status,null,'is',status));
+                else
+                    filters.push(new nlobjSearchFilter(this.FieldName.Status,null,'is',this.Status.Processed));
 
+                var res = this.lookup(filters);
+                for (var i = 0; i < res.length; i++) {
+                    var rec = res[i];
+                    var internalId = rec.getId();
+                    var obj = {
+                        internalId: internalId
+                    };
+                    records.push(obj);
+                }
+            }
+            return records;
+        },
         /**
          * Check if record already exist in queue
          * @param recordType
