@@ -11,7 +11,7 @@
  */
 
 /**
- * GenericDataExportManager class that has the actual functionality of suitelet.
+ * GenericDataExportManager class that has the actual functionality of generic data export suitelet.
  * All business logic will be encapsulated in this class.
  */
 var GenericDataExportManager = (function () {
@@ -44,6 +44,9 @@ var GenericDataExportManager = (function () {
             }
             else if(recordType == ConnectorConstants.NSRecordTypes.PriceLevel) {
                 result = this.exportPriceLevel(recordId, recordType);
+            }
+            else if(recordType == ConnectorConstants.NSRecordTypes.PaymentTerm) {
+                result = this.exportPaymentTerm(recordId, recordType);
             }
 
             return result;
@@ -107,6 +110,37 @@ var GenericDataExportManager = (function () {
                     error = ex.toString();
                 }
                 nlapiLogExecution('ERROR', 'error in GenericDataExportManager.exportPriceLevel', error);
+            }
+
+            var result = {
+                status: status,
+                error: error
+            };
+            return result;
+        },
+
+        exportPaymentTerm: function(recordId, recordType) {
+            var status = true;
+            var error = '';
+            var magentoUrl = '';
+            try {
+                var internalId = recordId;
+                var paymentTermRecord = PaymentTermExportHelper.getPaymentTerm(internalId, null);
+                Utility.logDebug('paymentTermRecord', JSON.stringify(paymentTermRecord));
+                var response = PaymentTermExportHelper.sendRequestToMagento(internalId, paymentTermRecord);
+                status = response.status;
+                if(!response.status) {
+                    error = response.message;
+                }
+            }
+            catch (ex) {
+                status = false;
+                if (ex instanceof nlobjError) {
+                    error = 'Code: ' + ex.getCode() + ',  Detail: ' + ex.getDetails();
+                } else {
+                    error = ex.toString();
+                }
+                nlapiLogExecution('ERROR', 'error in GenericDataExportManager.exportPaymentTerm', error);
             }
 
             var result = {

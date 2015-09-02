@@ -71,7 +71,8 @@ ConnectorConstants = (function () {
             Fields: {
                 MagentoId: 'custitem_magentoid',// JSON
                 MagentoSync: 'custitem_magentosyncdev',
-                MagentoStores: 'custitem_f3mg_magento_stores'// multiselect
+                MagentoStores: 'custitem_f3mg_magento_stores',// multiselect
+                MagentoSyncStatus: 'custitem_f3mg_magento_sync_status'
             }
         },
         OtherCustom: {
@@ -83,7 +84,8 @@ ConnectorConstants = (function () {
                 TransferredToMagento: 'custrecord_f3mg_promo_magentosyncdev',
                 MagentoStore: 'custrecord_f3mg_promo_magento_store',
                 MagentoSyncStatus: 'custrecord_f3mg_promo_magentosyncstatus',
-                LastModifiedDate: 'custrecord_f3mg_promo_lastmodifieddate'
+                LastModifiedDate: 'custrecord_f3mg_promo_lastmodifieddate',
+                MagentoCouponsListIDs: 'custrecord_f3mg_promo_magentocouponids'
             }
         },
         ShippingMethod: {
@@ -109,6 +111,10 @@ ConnectorConstants = (function () {
                     id: 'customscript_customer_exportto_magento',
                     deploymentId: 'customdeploy_customer_exportto_magento',
                     deploymentIdInvokedFormUserEvent: 'customdeploy_customer_exportto_magento_2'
+                },
+                GiftCertificateExportToMagento: {
+                    id: 'customscript_gift_certificate_export_sch',
+                    deploymentId: 'customdeploy_gift_certificate_export_dep'
                 }
             }
         },

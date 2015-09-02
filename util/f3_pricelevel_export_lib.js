@@ -3,7 +3,7 @@
  */
 
 /**
- * PriceLevelExportHelper class that has the functionality of Helper methods
+ * PriceLevelExportHelper class that has the functionality of Helper methods regarding Price Level Export Logic
  */
 var PriceLevelExportHelper = (function () {
     return {
@@ -90,7 +90,7 @@ var PriceLevelExportHelper = (function () {
                     response.status = false;
                     response.message = responseMagento.message;
                     //Log error with fault code
-                    Utility.logDebug('Error from magento', 'promoCodeId:  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.message);
+                    Utility.logDebug('Error from magento in PriceLevelExport', 'paymentTermId:  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.message);
                 }
             }
             catch (ex) {
@@ -103,7 +103,6 @@ var PriceLevelExportHelper = (function () {
                 response.status = false;
                 response.message = error;
                 nlapiLogExecution('ERROR', 'error in PriceLevelExportHelper.sendRequestToMagento', error);
-                PromoCodesExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
             }
 
             Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'end');

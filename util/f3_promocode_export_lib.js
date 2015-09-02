@@ -3,10 +3,20 @@
  */
 
 /**
- * PromoCodesExportHelper class that has the functionality of Helper methods
+ * PromoCodesExportHelper class that has the functionality of Helper methods regarding Promo Codes Export logic
  */
 var PromoCodesExportHelper = (function () {
     return {
+        /**
+         * Config data
+         */
+        config : {
+            numberOfUses : {
+                singleUse: 'SINGLEUSE',
+                multipleUse: 'MULTIPLEUSES'
+            }
+        },
+
         /**
          * Gets Orders based on the the Store Id
          * @param allStores
@@ -108,6 +118,13 @@ var PromoCodesExportHelper = (function () {
                     promoCodeObject.displayLineDiscounts = promoCodeRecord.getFieldValue('displaylinediscounts') || '';
                     promoCodeObject.numberOfUses = promoCodeRecord.getFieldValue('usetype') || '';
                     promoCodeObject.couponCode = promoCodeRecord.getFieldValue('code') || '';
+                    promoCodeObject.magentoId = promoCodeRecord.getFieldValue(ConnectorConstants.PromoCode.Fields.MagentoId) || '';
+                    promoCodeObject.magentoStore = promoCodeRecord.getFieldValue(ConnectorConstants.PromoCode.Fields.MagentoStore) || '';
+                    promoCodeObject.magentoSyncStatus = promoCodeRecord.getFieldValue(ConnectorConstants.PromoCode.Fields.MagentoSyncStatus) || '';
+                    promoCodeObject.couponCodeList = [];
+                    if(promoCodeObject.numberOfUses === this.config.numberOfUses.singleUse) {
+                        promoCodeObject.couponCodeList = this.getCouponCodesList(internalId, promoCodeObject.magentoId);
+                    }
                 }
             } catch (e) {
                 Utility.logException('PromoCodeExportHelper.getPromoCode', e);
@@ -115,6 +132,55 @@ var PromoCodesExportHelper = (function () {
 
             //Utility.logDebug('getPromoCode', JSON.stringify(promoCodeObject));
             return promoCodeObject;
+        },
+
+        /**
+         * Get Coupon code list exist in case of multiple use
+         * @param promotionInternalId
+         * @returns {*}
+         */
+        getCouponCodesList: function (promotionInternalId, magentoId) {
+            var couponCodesList = [];
+            try {
+                var magentoCouponListIds = {};
+                if(!!magentoId) {
+                    var magentoCouponListIdsStr = nlapiLookupField('promotioncode', promotionInternalId, ConnectorConstants.PromoCode.Fields.MagentoCouponsListIDs);
+                    if(!!magentoCouponListIdsStr) {
+                        magentoCouponListIds = JSON.parse(magentoCouponListIdsStr);
+                    }
+                }
+                var filters = [];
+                var arrCols = [];
+                filters.push(new nlobjSearchFilter('promotion', null, 'is', promotionInternalId, null));
+                arrCols.push(new nlobjSearchColumn('id', null, null));
+                arrCols.push(new nlobjSearchColumn('code', null, null));
+                arrCols.push(new nlobjSearchColumn('datesent', null, null));
+                arrCols.push(new nlobjSearchColumn('recipient', null, null));
+                arrCols.push(new nlobjSearchColumn('usecount', null, null));
+                arrCols.push(new nlobjSearchColumn('used', null, null));
+                var records = nlapiSearchRecord('couponcode', null, filters, arrCols);
+                if(!!records && records.length > 0) {
+                    for (var i = 0; i < records.length; i++) {
+                        var record = records[i];
+                        var obj = {};
+                        obj.id = record.getValue('id');
+                        obj.code = record.getValue('code');
+                        //obj.datesent = record.getValue('datesent');
+                        //obj.recipient = record.getValue('recipient');
+                        //obj.usecount = record.getValue('usecount');
+                        //obj.used = record.getValue('used');
+                        var magentoId = magentoCouponListIds[obj.id];
+                        obj.record_id = !!magentoId ? magentoId : '';
+                        couponCodesList.push(obj);
+                    }
+                }
+
+            } catch (e) {
+                Utility.logException('PromoCodeExportHelper.getPromotionCodesList', e);
+            }
+
+            //Utility.logDebug('getCouponCodesList', JSON.stringify(couponCodesList));
+            return couponCodesList;
         },
 
         /**
@@ -129,20 +195,18 @@ var PromoCodesExportHelper = (function () {
                 if (!promoCodeRecord) {
                     return null;
                 }
-                var magentoId = nlapiLookupField('promotioncode', internalId, ConnectorConstants.PromoCode.Fields.MagentoId);
-                // If record is not already sync to magento, only create functionality yet
-                /*if(!magentoId) {
+                Utility.logDebug('promoCodeRecord', JSON.stringify(promoCodeRecord));
 
-                }*/
-
-                var storeId = nlapiLookupField('promotioncode', internalId, ConnectorConstants.PromoCode.Fields.MagentoStore);
-                //Utility.logDebug('storeId', storeId);
-                if(!storeId) {
+                if(!promoCodeRecord.magentoStore) {
                     response.status = false;
                     response.message = 'Please select "MAGENTO STORE" field for data export.';
                     return response;
                 }
-                var magentoUrl = this.getMagentoUrl(storeId);
+                if(!!promoCodeRecord.magentoId) {
+                    promoCodeRecord.record_id = promoCodeRecord.magentoId;
+                }
+
+                var magentoUrl = this.getMagentoUrl(promoCodeRecord.magentoStore);
                 //Utility.logDebug('magentoUrl', magentoUrl);
 
                 var authHeaderName = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Name;
@@ -151,19 +215,26 @@ var PromoCodesExportHelper = (function () {
                 requestHeaders[authHeaderName] = authHeaderValue;
 
                 var requestParam = {"apiMethod": "upsertShoppingCart", "data": JSON.stringify(promoCodeRecord)};
-                //Utility.logDebug('requestParam', JSON.stringify(requestParam));
+                Utility.logDebug('requestParam', JSON.stringify(requestParam));
                 //Utility.logDebug('requestHeaders', JSON.stringify(requestHeaders));
+
                 var resp = nlapiRequestURL(magentoUrl, requestParam, requestHeaders, 'POST');
                 var responseBody = resp.getBody();
                 Utility.logDebug('export promo code responseBody', responseBody);
                 var responseMagento = JSON.parse(responseBody);
-                //Utility.logDebug('parsed responseBody', JSON.stringify(responseMagento));
+
 
                 if (responseMagento.status) {
                     //Utility.logDebug('debug', 'Step-6');
                     //Utility.logDebug('rule_id', responseMagento.data.record_id);
                     response.magentoId = responseMagento.data.record_id;
-                    PromoCodesExportHelper.setPromoCodeMagentoId(responseMagento.data.record_id, internalId);
+                    var couponCodesData = '';
+                    if(promoCodeRecord.numberOfUses === this.config.numberOfUses.singleUse
+                        && !!responseMagento.data.couponCodeList && responseMagento.data.couponCodeList.length > 0) {
+                        var couponCodesList = this.extractCouponCodeListData(responseMagento.data.couponCodeList);
+                        couponCodesData = JSON.stringify(couponCodesList);
+                    }
+                    PromoCodesExportHelper.setPromoCodeMagentoId(responseMagento.data.record_id, couponCodesData, internalId);
                 } else {
                     response.status = false;
                     response.message = responseMagento.message;
@@ -188,6 +259,21 @@ var PromoCodesExportHelper = (function () {
             Utility.logDebug('PromoCodesExportHelper.sendRequestToMagento', 'end');
 
             return response;
+        },
+
+        /**
+         * Extract coupon Code List data from response
+         * @param couponCodeList
+         */
+        extractCouponCodeListData : function(couponCodeList){
+            var couponListArr = {};
+            if(!!couponCodeList && couponCodeList.length > 0) {
+                for (var i = 0; i < couponCodeList.length; i++) {
+                    var obj = couponCodeList[i];
+                    couponListArr[obj.id] = obj.record_id;
+                }
+            }
+            return couponListArr;
         },
 
         /**
@@ -225,12 +311,17 @@ var PromoCodesExportHelper = (function () {
          Sets Magento Id in the Order record
          * @param parameter
          */
-        setPromoCodeMagentoId: function (magentoId, promoCodeId) {
+        setPromoCodeMagentoId: function (magentoId, couponCodeData, promoCodeId) {
             try {
-                nlapiSubmitField('promotioncode', promoCodeId, [ConnectorConstants.PromoCode.Fields.TransferredToMagento, ConnectorConstants.PromoCode.Fields.MagentoSyncStatus, ConnectorConstants.PromoCode.Fields.MagentoId], ['T', '', magentoId]);
+                nlapiSubmitField('promotioncode', promoCodeId,
+                        [ConnectorConstants.PromoCode.Fields.TransferredToMagento,
+                        ConnectorConstants.PromoCode.Fields.MagentoSyncStatus,
+                        ConnectorConstants.PromoCode.Fields.MagentoId,
+                        ConnectorConstants.PromoCode.Fields.MagentoCouponsListIDs],
+                        ['T', '', magentoId, couponCodeData]);
             } catch (e) {
                 Utility.logException('PromoCodesExportHelper.setPromoCodeMagentoId', e);
-                ExportSalesOrders.markRecords(orderId, e.toString());
+                PromoCodesExportHelper.markRecords(promoCodeId, e.toString());
             }
         },
         /**

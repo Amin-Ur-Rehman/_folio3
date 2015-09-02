@@ -26,11 +26,13 @@ var RecordsToSync = (function () {
         },
         RecordTypes : {
             Customer: 'customer',
-            SalesOrder: 'salesorder'
+            SalesOrder: 'salesorder',
+            GiftCertificateItem: 'giftcertificateitem'
         },
         Actions : {
             ExportCustomer: 'ExportCustomer',
-            SyncSoSystemNotes: 'SyncSoSystemNotes'
+            SyncSoSystemNotes: 'SyncSoSystemNotes',
+            SyncGiftCertificates: 'SyncGiftCertificates'
         },
         Status : {
             Pending: 'Pending',
@@ -90,7 +92,9 @@ var RecordsToSync = (function () {
                     recordId: recordId,
                     recordType: recordType,
                     action: action,
-                    status: status
+                    status: status,
+                    data: data,
+                    comments: comments
                 };
                 records.push(obj);
             }

@@ -167,22 +167,15 @@ var ConnectorCommon = (function () {
             //paypal_express
             if (payment.method.toString() === 'paypal_express') {
                 var paymentMethod_paypal = '7';
-                if(!!ConnectorConstants.CurrentStore && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod
-                && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal) {
-                    paymentMethod_paypal = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal;
-                }
-                rec.setFieldValue('paymentmethod', paymentMethod_paypal);// paypal
+
+
+                rec.setFieldValue('paymentmethod', '7');// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
             //payflow_advanced
             if (payment.method.toString() === 'payflow_advanced') {
-                var paymentMethod_paypal = '7';
-                if(!!ConnectorConstants.CurrentStore && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod
-                    && !!ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal) {
-                    paymentMethod_paypal = ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.paymentmethod.paypal;
-                }
-                rec.setFieldValue('paymentmethod', paymentMethod_paypal);// paypal
+                rec.setFieldValue('paymentmethod', '7');// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
@@ -551,7 +544,7 @@ var ConnectorCommon = (function () {
                     }
                 }
                 filterExpression = filterExpression + ']';
-                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart", "GiftCert"]]';
                 Utility.logDebug(' filterExpression', filterExpression);
                 filterExpression = eval(filterExpression);
                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
@@ -975,6 +968,55 @@ var ConnectorCommon = (function () {
                     obj3.StoreId = storeId;
                     obj3.MagentoId = magentoId;
                     obj3.Password = password;
+                    magentoIdObjArr.push(obj3);
+                }
+            }
+
+            return JSON.stringify(magentoIdObjArr);
+        },
+
+        /**
+         * Get Magento Id from JSON from item
+         * @param storeId
+         * @param magentoId
+         * @param type
+         * @param existingId
+         * @returns {*}
+         */
+        getMagentoIdObjectArrayStringForItem: function (storeId, magentoId, type, existingId) {
+
+            var magentoIdObjArr = [];
+
+            if (type === 'create') {
+                var obj1 = {};
+
+                obj1.StoreId = storeId;
+                obj1.MagentoId = magentoId;
+                magentoIdObjArr.push(obj1);
+            }
+            else if (type === 'update') {
+                if (!!existingId) {
+                    var isAlreadyExist = false;
+                    magentoIdObjArr = JSON.parse(existingId);
+                    for (var i in magentoIdObjArr) {
+                        var tempMagentoIdObj = magentoIdObjArr[i];
+                        if (tempMagentoIdObj.StoreId === storeId) {
+                            isAlreadyExist = true;
+                            tempMagentoIdObj.MagentoId = magentoId;
+                        }
+                    }
+                    if (!isAlreadyExist) {
+                        var obj2 = {};
+
+                        obj2.StoreId = storeId;
+                        obj2.MagentoId = magentoId;
+                        magentoIdObjArr.push(obj2);
+                    }
+                } else {
+                    var obj3 = {};
+
+                    obj3.StoreId = storeId;
+                    obj3.MagentoId = magentoId;
                     magentoIdObjArr.push(obj3);
                 }
             }

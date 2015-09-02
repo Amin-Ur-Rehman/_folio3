@@ -154,11 +154,10 @@ CUSTOMER = {
             customerDataObject.store_id = "1";
             var taxable = customerRecord.getFieldValue('taxable');
             if(taxable == 'F') {
-                customerDataObject.group_id = ConnectorConstants.MagentoCustomerGroups.TaxExempt;
+                customerDataObject.group_id = storeInfo.entitySyncInfo.customer.magentoCustomerGroups.taxExempt;
             } else {
-                customerDataObject.group_id = ConnectorConstants.MagentoCustomerGroups.General;
+                customerDataObject.group_id = storeInfo.entitySyncInfo.customer.magentoCustomerGroups.general;
             }
-
             customerDataObject.prefix = getBlankForNull(customerRecord.getFieldValue('salutation'));
             customerDataObject.suffix = "";
             customerDataObject.dob = "";
