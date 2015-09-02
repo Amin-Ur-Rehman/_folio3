@@ -13,19 +13,26 @@
 /**
  * giftCertificate class that has the functionality of
  */
-var giftCertificate = (function () {
+var giftCertificateImport = (function () {
     return {
         /**
          * Init method
          */
 
-        internalId: giftcertificateitem,
+        internalId: 'giftcertificateitem',
         fields : {
             itemName: 'itemid',
-            liabilityAccount: 'liabilityaccount'
+            liabilityAccount: 'liabilityaccount',
+            inactive: 'isinactive',
+            description: 'storedetaileddescription',
+            shortDescription: 'storedescription',
+            taxSchedule: 'taxschedule'
         },
-        initialize: function () {
-
+        getLiabilityAccount: function () {
+            return '119';
+        },
+        getTaxSchedule: function () {
+            return '1';
         }
     };
 })();

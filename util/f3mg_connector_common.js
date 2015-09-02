@@ -1404,16 +1404,37 @@ var ConnectorCommon = (function () {
         },
 
 
-        createGiftCertificateItem: function(giftCertificateOject) {
-            if (!!giftCertificateOject) {
-                var giftCert = nlapiCreateRecord(giftCertificate.internalId, null);
-                giftCert.setFieldValue(giftCertificate.fields.itemName, giftCertificateOject.itemName);
-                giftCert.setFieldValue(giftCertificate.fields.liabilityAccount, giftCertificateOject.liabilityAccount);
+        createGiftCertificateItem: function(giftCertificateObject) {
+            try {
+                var filters = [],
+                    actionType,
+                    giftCert,
+                    searchRec;
+                filters.push(new nlobjSearchFilter('giftCertificateImport.fields.itemName', null, 'is', giftCertificateObject.name));
+                searchRec = nlapiSearchRecord(giftCertificateImport.internalId, null, filters);
+                // Check if the record exists or not
+                if (!!searchRec && rec.length > 0) {
+                    // Update the record
+                    actionType = 'update';
+                    giftCert = nlapiLoadRecord(giftCertificateImport.internalId, searchRec[0].getId());
+                } else {
+                    // Create record
+                    actionType = 'create';
+                    giftCert = nlapiCreateRecord(giftCertificateImport.internalId, null);
+                }
+                giftCert.setFieldValue(giftCertificateImport.fields.itemName, giftCertificateObject.name);
+                giftCert.setFieldValue(giftCertificateImport.fields.liabilityAccount, giftCertificateImport.getLiabilityAccount());
+                giftCert.setFieldValue(giftCertificateImport.fields.taxSchedule, giftCertificateImport.getTaxSchedule());
+                giftCert.setFieldValue(giftCertificateImport.fields.description, giftCertificateImport.description);
+                giftCert.setFieldValue(giftCertificateImport.fields.shortDescription, giftCertificateImport.shortDescription);
+
                 nlapiSubmitRecord(giftCert, true);
-            } else {
-
+                if (actionType === 'create') {
+                    //TODO: Set magento related fields in magento tab.
+                }
+            } catch (ex) {
+                Utility.logException('Create Gift Certificate item failed', ex);
             }
-
         }
     };
 })();
