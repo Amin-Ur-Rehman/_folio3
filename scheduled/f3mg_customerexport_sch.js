@@ -224,7 +224,7 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
 
         customerRecord.magentoId = magentoId;
         requsetXML = CUSTOMER.getMagentoUpdateCustomerRequestXML(customerRecord, store.sessionID);
-
+        nlapiLogExecution('DEBUG', 'updateCustomerInMagento_requsetXML_w', requsetXML);
         responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
 
         if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {

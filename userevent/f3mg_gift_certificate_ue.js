@@ -11,10 +11,10 @@
  */
 
 /**
- * WotpClient class that has the actual functionality of client script.
+ * GiftCertificateUE class that has the actual functionality of gift certificate user event.
  * All business logic will be encapsulated in this class.
  */
-var RecordsToSyncUE = (function () {
+var GiftCertificateUE = (function () {
     return {
         /**
          * The recordType (internal id) corresponds to the "Applied To" record in your script deployment.
@@ -69,12 +69,13 @@ var RecordsToSyncUE = (function () {
                             recordToSyncObj[RecordsToSync.FieldName.RecordId] = recordId;
                             recordToSyncObj[RecordsToSync.FieldName.RecordType] = recordType;
                             recordToSyncObj[RecordsToSync.FieldName.Status] = RecordsToSync.Status.Pending;
+                            recordToSyncObj[RecordsToSync.FieldName.Action] = RecordsToSync.Actions.SyncGiftCertificates;
                             RecordsToSync.upsert(recordToSyncObj);
                         }
-                        var params = [];
-                        params[ConnectorConstants.ScheduleScriptInvokedFormUserEvent] = 'T';
-                        var status = nlapiScheduleScript(ConnectorConstants.SuiteScripts.ScheduleScript.CustomerExportToMagento.id,
-                            ConnectorConstants.SuiteScripts.ScheduleScript.CustomerExportToMagento.deploymentIdInvokedFormUserEvent, params);
+                        //var params = [];
+                        //params[ConnectorConstants.ScheduleScriptInvokedFormUserEvent] = 'T';
+                        var status = nlapiScheduleScript(ConnectorConstants.SuiteScripts.ScheduleScript.GiftCertificateExportToMagento.id,
+                            ConnectorConstants.SuiteScripts.ScheduleScript.GiftCertificateExportToMagento.deploymentId);
                         nlapiLogExecution('DEBUG', 'schedule script status', status);
                     }
                 }
@@ -95,29 +96,7 @@ var RecordsToSyncUE = (function () {
          * @param recordType
          */
         recordEligibleToSync: function(type, recordType) {
-            if(recordType == RecordsToSync.RecordTypes.Customer) {
-                if(type == 'create') {
-                    return true;
-                }
-                var oldRecord = nlapiGetOldRecord();
-                var newRecord = nlapiGetNewRecord();
-                var oldTaxableFieldValue, newTaxableFieldValue;
-                if(!!oldRecord) {
-                    oldTaxableFieldValue = oldRecord.getFieldValue('taxable');
-                }
-                if(!!newRecord) {
-                    newTaxableFieldValue = newRecord.getFieldValue('taxable');
-                }
-                nlapiLogExecution('DEBUG', 'oldTaxableFieldValue  #  newTaxableFieldValue', oldTaxableFieldValue + '  #  ' + newTaxableFieldValue);
-                if(oldTaxableFieldValue != newTaxableFieldValue) {
-                    return true;
-                } else {
-                    return false;
-                }
-
-            } else {
-                return true;
-            }
+            return true;
         }
     };
 })();
@@ -131,8 +110,8 @@ var RecordsToSyncUE = (function () {
  * @param {nlobjRequest} request Request object
  * @returns {Void}
  */
-function RecordsToSyncUserEventBeforeLoad(type, form, request) {
-    return RecordsToSyncUE.userEventBeforeLoad(type, form, request);
+function GiftCertificateUserEventBeforeLoad(type, form, request) {
+    return GiftCertificateUE.userEventBeforeLoad(type, form, request);
 }
 
 /**
@@ -147,8 +126,8 @@ function RecordsToSyncUserEventBeforeLoad(type, form, request) {
  *                      editforecast (Opp, Estimate)
  * @returns {Void}
  */
-function RecordsToSyncUserEventBeforeSubmit(type) {
-    return RecordsToSyncUE.userEventBeforeSubmit(type);
+function GiftCertificateUserEventBeforeSubmit(type) {
+    return GiftCertificateUE.userEventBeforeSubmit(type);
 }
 
 /**
@@ -162,6 +141,6 @@ function RecordsToSyncUserEventBeforeSubmit(type) {
  *                      paybills (vendor payments)
  * @returns {Void}
  */
-function RecordsToSyncUserEventAfterSubmit(type) {
-    return RecordsToSyncUE.userEventAfterSubmit(type);
+function GiftCertificateUserEventAfterSubmit(type) {
+    return GiftCertificateUE.userEventAfterSubmit(type);
 }

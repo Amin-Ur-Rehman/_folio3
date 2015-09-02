@@ -161,8 +161,14 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('ccapproved', 'T');
                 return;
             }
+
+
+
             //paypal_express
             if (payment.method.toString() === 'paypal_express') {
+                var paymentMethod_paypal = '7';
+
+
                 rec.setFieldValue('paymentmethod', '7');// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
@@ -538,7 +544,7 @@ var ConnectorCommon = (function () {
                     }
                 }
                 filterExpression = filterExpression + ']';
-                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart", "GiftCert"]]';
                 Utility.logDebug(' filterExpression', filterExpression);
                 filterExpression = eval(filterExpression);
                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
@@ -969,6 +975,55 @@ var ConnectorCommon = (function () {
             return JSON.stringify(magentoIdObjArr);
         },
 
+        /**
+         * Get Magento Id from JSON from item
+         * @param storeId
+         * @param magentoId
+         * @param type
+         * @param existingId
+         * @returns {*}
+         */
+        getMagentoIdObjectArrayStringForItem: function (storeId, magentoId, type, existingId) {
+
+            var magentoIdObjArr = [];
+
+            if (type === 'create') {
+                var obj1 = {};
+
+                obj1.StoreId = storeId;
+                obj1.MagentoId = magentoId;
+                magentoIdObjArr.push(obj1);
+            }
+            else if (type === 'update') {
+                if (!!existingId) {
+                    var isAlreadyExist = false;
+                    magentoIdObjArr = JSON.parse(existingId);
+                    for (var i in magentoIdObjArr) {
+                        var tempMagentoIdObj = magentoIdObjArr[i];
+                        if (tempMagentoIdObj.StoreId === storeId) {
+                            isAlreadyExist = true;
+                            tempMagentoIdObj.MagentoId = magentoId;
+                        }
+                    }
+                    if (!isAlreadyExist) {
+                        var obj2 = {};
+
+                        obj2.StoreId = storeId;
+                        obj2.MagentoId = magentoId;
+                        magentoIdObjArr.push(obj2);
+                    }
+                } else {
+                    var obj3 = {};
+
+                    obj3.StoreId = storeId;
+                    obj3.MagentoId = magentoId;
+                    magentoIdObjArr.push(obj3);
+                }
+            }
+
+            return JSON.stringify(magentoIdObjArr);
+        },
+
         getScannedAddressForMagento: function (netsuiteAddressObject) {
 
             var result = true;
@@ -1340,21 +1395,25 @@ var ConnectorCommon = (function () {
          * Close sales order
          * @param dataIn
          */
-        closeSalesOrder: function(dataIn) {
+        cancelSalesOrder: function(dataIn) {
             var result = {status: false, error: ''};
             try {
                 var data = dataIn.data;
                 var magentoSOIncrementId = data.soIncrementId;
-                var storeId = data.storeId;
+                //TODO:
+                // Currently Store Id is cuming wrong: Its like below:
+                //{"apiMethod":"cancelSalesOrder","data":{"soIncrementId":"100000021","0":"storeId","1":"1"}}
+                // Thats for we hard cosing store id now for make things work,
+                //var storeId = data.storeId;
+                var storeId = '1';
                 //nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
                 //nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('storeId', storeId);
                 //nlapiLogExecution('DEBUG', 'storeId', storeId);
                 var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder
                     , magentoSOIncrementId, storeId);
                 if (!!netsuiteSOInternalId) {
-                    this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    //this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    this.closeNetSuiteSalesOrder(netsuiteSOInternalId);
                     result.status = true;
                 }
             }
@@ -1366,6 +1425,7 @@ var ConnectorCommon = (function () {
                 else {
                     err = 'Unexpected error: ' + ex.toString();
                 }
+                nlapiLogExecution('ERROR', 'cancelSalesOrder Error', err);
                 result.status = false;
                 result.error = err;
             }
