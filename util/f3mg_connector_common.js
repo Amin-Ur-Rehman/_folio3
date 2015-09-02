@@ -1401,6 +1401,19 @@ var ConnectorCommon = (function () {
             var response = nlapiRequestURL(cancelUrl);
             nlapiLogExecution('DEBUG', 'response', response.getBody());
             //nlapiSubmitField(ConnectorConstants.NSTransactionTypes.SalesOrder, netsuiteSOInternalId, 'orderstatus', ConnectorConstants.SalesOrderStatus.Cancel);
+        },
+
+
+        createGiftCertificateItem: function(giftCertificateOject) {
+            if (!!giftCertificateOject) {
+                var giftCert = nlapiCreateRecord(giftCertificate.internalId, null);
+                giftCert.setFieldValue(giftCertificate.fields.itemName, giftCertificateOject.itemName);
+                giftCert.setFieldValue(giftCertificate.fields.liabilityAccount, giftCertificateOject.liabilityAccount);
+                nlapiSubmitRecord(giftCert, true);
+            } else {
+
+            }
+
         }
     };
 })();
