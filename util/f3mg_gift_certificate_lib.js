@@ -9,16 +9,91 @@
  * -
  * -
  */
-
 /**
  * giftCertificate class that has the functionality of helper methods regarding Gift Certificate Import/Export Logic
  */
 var GiftCertificateHelper = (function () {
     return {
+
+
+        internalId: 'giftcertificateitem',
+        fields: {
+            itemName: 'itemid',
+            liabilityAccount: 'liabilityaccount',
+            inactive: 'isinactive',
+            description: 'storedetaileddescription',
+            shortDescription: 'storedescription',
+            taxSchedule: 'taxschedule',
+            urlKey: 'urlcomponent',
+            incomeAccount: 'incomeaccount',
+            externalId: 'externalid'
+        },
+
+        /**
+         * Get liability Account Value
+         * @returns {string}
+         */
+        getLiabilityAccount: function (storeId) {
+            var liability = '';
+            var sysConfigs = ExternalSystemConfig.getConfig();
+            if(!!sysConfigs) {
+                var sysConfig = sysConfigs[storeId];
+                if(!!sysConfig) {
+                    var entitySyncInfo = sysConfig.entitySyncInfo;
+                    if(!!entitySyncInfo && !!entitySyncInfo.giftcertificateitem.liabilityAccount) {
+                        liability = entitySyncInfo.giftcertificateitem.liabilityAccount;
+                    }
+                }
+            }
+            return liability;
+        },
+
+        /**
+         * Get Tax Schedule Value
+         * @param storeId
+         * @returns {string}
+         */
+        getTaxSchedule: function (storeId) {
+            var taxSchedule = '';
+            var sysConfigs = ExternalSystemConfig.getConfig();
+            if(!!sysConfigs) {
+                var sysConfig = sysConfigs[storeId];
+                if(!!sysConfig) {
+                    var entitySyncInfo = sysConfig.entitySyncInfo;
+                    if(!!entitySyncInfo && !!entitySyncInfo.giftcertificateitem.taxSchedule) {
+                        taxSchedule = entitySyncInfo.giftcertificateitem.taxSchedule;
+                    }
+                }
+            }
+            return taxSchedule;
+        },
+
+
+        /**
+         * Get Income Account
+         * @param storeId
+         * @returns {string}
+         */
+        getIncomeAccount: function (storeId) {
+            var incomeAccount = '';
+            var sysConfigs = ExternalSystemConfig.getConfig();
+            if(!!sysConfigs) {
+                var sysConfig = sysConfigs[storeId];
+                if(!!sysConfig) {
+                    var entitySyncInfo = sysConfig.entitySyncInfo;
+                    if(!!entitySyncInfo && !!entitySyncInfo.giftcertificateitem.incomeaccount) {
+                        incomeAccount = entitySyncInfo.giftcertificateitem.incomeaccount;
+                    }
+                }
+            }
+            return incomeAccount;
+        },
+
+
         /**
          * Get gift certificates records to sync
          */
-        getRecords: function() {
+        getRecords: function () {
             var recs;
             var result = [];
             var resultObject;
@@ -55,6 +130,48 @@ var GiftCertificateHelper = (function () {
                 }
             }
             return true;
+        },
+
+        /**
+         *
+         * @param giftCertificateObject
+         * @returns {*}
+         */
+        upsert: function(giftCertificateObject) {
+            var giftCert = nlapiCreateRecord(this.internalId, null);
+            var id = this.setGiftCertificateRecordFields(giftCert, giftCertificateObject);
+            return id;
+        },
+
+        /**
+         *
+         * @param searchRec
+         * @param giftCertificateObject
+         * @returns {*}
+         */
+        update: function (searchRec, giftCertificateObject) {
+            var giftCert = nlapiLoadRecord(this.internalId, searchRec.getId());
+            var id = this.setGiftCertificateRecordFields(giftCert, giftCertificateObject);
+            return id;
+        },
+
+        /**
+         *
+         * @param giftCert
+         * @param giftCertificateObject
+         * @returns {*}
+         */
+        setGiftCertificateRecordFields : function (giftCert, giftCertificateObject) {
+            giftCert.setFieldValue(this.fields.itemName, giftCertificateObject.name);
+            giftCert.setFieldValue(this.fields.liabilityAccount, this.getLiabilityAccount(giftCertificateObject.storeId));
+            giftCert.setFieldValue(this.fields.taxSchedule, this.getTaxSchedule(giftCertificateObject.storeId));
+            giftCert.setFieldValue(this.fields.description, giftCertificateObject.description);
+            giftCert.setFieldValue(this.fields.shortDescription, giftCertificateObject.shortDescription);
+            giftCert.setFieldValue(this.fields.urlKey, giftCertificateObject.urlKey);
+            giftCert.setFieldValue(this.fields.inactive, giftCertificateObject.active === '1' ? 'F' : 'T');
+            giftCert.setFieldValue(this.fields.incomeAccount, this.getIncomeAccount(giftCertificateObject.storeId));
+            var id = nlapiSubmitRecord(giftCert, true);
+            return id;
         },
 
         /**
@@ -107,7 +224,8 @@ var GiftCertificateHelper = (function () {
                         this.setMagentoData(itemType, itemId, null, null, msg);
                     } else {
                         nlapiLogExecution("DEBUG", 'ITEM CREATED IN MAGENTO', 'SUCCESSFULLY - Item having NS Id: ' + itemId);
-                        var magId = responseMagento.result;
+                        //var magId = responseMagento.result;
+                        var magId = itemBodyFieldsData.sku;
                         var magentoIdsArr = ConnectorCommon.getMagentoIdObjectArrayStringForItem(store.systemId, magId, 'create', itemBodyFieldsData.magentoIdsArr);
                         this.setMagentoData(itemType, itemId, magentoIdsArr, 'T', '');
                         nlapiLogExecution("DEBUG", 'ITEM UPDATED IN NETSUITE SUCCESSFULLY', 'NETSUITE ITEM ID: ' + itemId + ' MAGENTO ITEM ID: ' + magId);
@@ -116,7 +234,7 @@ var GiftCertificateHelper = (function () {
 
                 RecordsToSync.markProcessed(giftCertificateObj.customRecordInternalId, RecordsToSync.Status.Processed);
             } catch (e) {
-                Utility.logException('Error during processRecord, internalId: ' + giftCertificateObj.internalId , e);
+                Utility.logException('Error during processRecord, internalId: ' + giftCertificateObj.internalId, e);
             }
         },
 
@@ -128,14 +246,14 @@ var GiftCertificateHelper = (function () {
          * @param magentoSync
          * @param magentoSyncStatus
          */
-        setMagentoData: function(itemType, itemId, magentoIdsArr, magentoSync, magentoSyncStatus) {
+        setMagentoData: function (itemType, itemId, magentoIdsArr, magentoSync, magentoSyncStatus) {
             var fields = [];
             var data = [];
-            if(!!magentoIdsArr) {
+            if (!!magentoIdsArr) {
                 fields.push(ConnectorConstants.Item.Fields.MagentoId);
                 data.push(magentoIdsArr);
             }
-            if(!!magentoSync) {
+            if (!!magentoSync) {
                 fields.push(ConnectorConstants.Item.Fields.MagentoSync);
                 data.push(magentoSync);
             }
@@ -151,7 +269,7 @@ var GiftCertificateHelper = (function () {
          * @param type
          * @returns {*}
          */
-        getCreateItemXML: function(product, sessionID, type) {
+        getCreateItemXML: function (product, sessionID, type) {
             var xml;
             xml = XML_HEADER;
             xml = xml + '<urn:catalogProductCreate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
@@ -201,7 +319,7 @@ var GiftCertificateHelper = (function () {
          * @param operation
          * @returns {{}}
          */
-        validateItemExportResponse: function(xml, operation) {
+        validateItemExportResponse: function (xml, operation) {
             var responseMagento = {};
             var magentoItemID;
             var faultCode;
@@ -211,23 +329,19 @@ var GiftCertificateHelper = (function () {
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 if (operation === 'create') {
                     magentoItemID = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductCreateResponse/result");
-                }
-                else if (operation === 'update') {
+                } else if (operation === 'update') {
                     magentoItemID = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
                 }
-            } catch (ex) {
-            }
+            } catch (ex) {}
             if (!!faultCode) {
-                responseMagento.status = false;       // Means There is fault
-                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.status = false; // Means There is fault
+                responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
                 nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
-            }
-            else if (!!magentoItemID) {
-                responseMagento.status = true;       // Means There is fault
+            } else if (!!magentoItemID) {
+                responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
-            }
-            else    // Not Attribute ID Found, Nor fault code found
+            } else // Not Attribute ID Found, Nor fault code found
             {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
@@ -244,12 +358,12 @@ var GiftCertificateHelper = (function () {
          * @param isParent
          * @returns {string}
          */
-        getUpdateItemXML: function(product, sessionID, isParent) {
+        getUpdateItemXML: function (product, sessionID, isParent) {
             var xml = '';
             xml += XML_HEADER + '<urn:catalogProductUpdate>';
             xml = xml + '<sessionId xsi:type="xsd:string">' + sessionID + '</sessionId>';
-            //xml = xml + '<product xsi:type="xsd:string">' + product.magentoId + '</product>';
-            xml = xml + '<product xsi:type="xsd:string">' + product.sku + '</product>';
+            xml = xml + '<product xsi:type="xsd:string">' + product.magentoId + '</product>';
+            //xml = xml + '<product xsi:type="xsd:string">' + product.sku + '</product>';
             xml = xml + '   <productData xsi:type="urn:catalogProductCreateEntity" xs:type="type:catalogProductCreateEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             xml = xml + '       <categories xsi:type="urn:ArrayOfString" soapenc:arrayType="xsd:string[' + product.categories.length + ']" xs:type="type:catalogProductTierPriceEntity">';
             if (product.categories.length > 0) {
@@ -269,6 +383,8 @@ var GiftCertificateHelper = (function () {
             xml = xml + '       <url_key xsi:type="xsd:string" xs:type="type:catalogProductTierPriceEntity">' + product.urlComponent + '</url_key>';
             xml = xml + '       <visibility xsi:type="xsd:string" xs:type="type:catalogProductTierPriceEntity">' + product.visibility + '</visibility>';
             xml = xml + '       <price xsi:type="xsd:string" xs:type="type:catalogProductTierPriceEntity">' + product.price + '</price>';
+            xml = xml + '       <aw_gc_open_amount_min xsi:type="xsd:string" xs:type="type:catalogProductTierPriceEntity">' + product.price + '</aw_gc_open_amount_min>';
+
             xml = xml + '       <tax_class_id xsi:type="xsd:string" xs:type="type:catalogProductTierPriceEntity">' + product.taxClass + '</tax_class_id>';
             xml = xml + '       <meta_title xsi:type="xsd:string" xs:type="type:string">' + product.metaTitle + '</meta_title>';
             xml = xml + '       <meta_keyword xsi:type="xsd:string" xs:type="type:string">' + product.metaKeywords + '</meta_keyword>';
@@ -281,7 +397,7 @@ var GiftCertificateHelper = (function () {
             xml = xml + '       </stock_data>';
             xml = xml + '   </productData>';
             //xml = xml + '<storeView xsi:type="xsd:string">' + product.storeViewId + '</storeView>';
-            xml = xml + '<identifierType xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + 'product_sku' + '</identifierType>';
+            xml = xml + '<identifierType xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + 'sku' + '</identifierType>';
             xml = xml + '</urn:catalogProductUpdate>';
             xml = xml + XML_FOOTER;
             return xml;
@@ -295,7 +411,7 @@ var GiftCertificateHelper = (function () {
          * @param magentoId
          * @returns {{}}
          */
-        getItemBodyFieldsData: function(itemRec, parItemRec, store, magentoId) {
+        getItemBodyFieldsData: function (itemRec, parItemRec, store, magentoId) {
             var dataObj = {};
             dataObj.additionalAttributes = [];
             dataObj.magentoId = magentoId;
@@ -322,7 +438,7 @@ var GiftCertificateHelper = (function () {
             dataObj.sku = nlapiEscapeXML(itemId);
             dataObj.weight = itemRec.getFieldValue('weight') || 0;
             var price = 0;
-            if(Utility.isMultiCurrency()) {
+            if (Utility.isMultiCurrency()) {
                 // We will fetch first price level by assuming that it will be USA currency
                 price = itemRec.getLineItemValue('price', 'price_1_', 1);
             } else {
@@ -350,10 +466,10 @@ var GiftCertificateHelper = (function () {
                 dataObj.visibility = '1'; // Not visible
             }
             dataObj.visibility = '1'; // Not visible for test todo:remove
-            dataObj.taxClass = '1';// Default
-            dataObj.manageStock = '1';// manage stock
-            dataObj.stockAvailability = '1';// is in stock
-            dataObj.useConfigManageStock = '0';// use config manage stock
+            dataObj.taxClass = '1'; // Default
+            dataObj.manageStock = '1'; // manage stock
+            dataObj.stockAvailability = '1'; // is in stock
+            dataObj.useConfigManageStock = '0'; // use config manage stock
             dataObj.magentoIdsArr = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
             return dataObj;
         },
@@ -363,7 +479,7 @@ var GiftCertificateHelper = (function () {
          * @param lines
          * @returns {string}
          */
-        lineBreak: function(lines) {
+        lineBreak: function (lines) {
             var lineStr = '';
             for (var line = 0; line < lines; line++) {
                 lineStr += '<BR>';
@@ -380,7 +496,7 @@ var GiftCertificateHelper = (function () {
          * @param type
          * @returns {*}
          */
-        checkIfAlreadySync: function(itemRec, storeId) {
+        checkIfAlreadySync: function (itemRec, storeId) {
             var isExist = false;
             var magentoId = '';
             var magentoIdsArr = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
@@ -391,16 +507,18 @@ var GiftCertificateHelper = (function () {
                     var magentoIds = JSON.parse(magentoIdsArr);
                     for (var i = 0; i < magentoIds.length; i++) {
                         var obj = magentoIds[i];
-                        if(obj.StoreId == storeId && !!obj.MagentoId){
+                        if (obj.StoreId == storeId && !!obj.MagentoId) {
                             isExist = true;
                             magentoId = obj.MagentoId;
                             break;
                         }
                     }
-                } 
-                catch(e) {}
+                } catch (e) {}
             }
-            return {isSync: isExist, magentoId: magentoId};
+            return {
+                isSync: isExist,
+                magentoId: magentoId
+            };
         },
 
         /**
@@ -408,7 +526,7 @@ var GiftCertificateHelper = (function () {
          * @param dataObj
          * @returns {Object|*|responseMagento.result|Object.result|_.result}
          */
-        getSyncResponse: function(dataObj) {
+        getSyncResponse: function (dataObj) {
             var xml = '';
             xml += XML_HEADER;
             xml = xml + '<urn:catalogProductList soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
@@ -432,7 +550,7 @@ var GiftCertificateHelper = (function () {
          * @param xml
          * @returns {Object}
          */
-        validateItemIDResponse: function(xml) {
+        validateItemIDResponse: function (xml) {
             var responseMagento = new Object();
             var magentoItemID;
             var faultCode;
@@ -441,19 +559,16 @@ var GiftCertificateHelper = (function () {
                 faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 magentoItemID = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductListResponse/storeView/item/product_id");
-            } catch (ex) {
-            }
+            } catch (ex) {}
             if (faultCode != null) {
-                responseMagento.status = false;       // Means There is fault
-                responseMagento.faultCode = faultCode;   // Fault Code
+                responseMagento.status = false; // Means There is fault
+                responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
                 nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
-            }
-            else if (magentoItemID != null) {
-                responseMagento.status = true;       // Means There is fault
+            } else if (magentoItemID != null) {
+                responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
-            }
-            else    // Not Attribute ID Found, Nor fault code found
+            } else // Not Attribute ID Found, Nor fault code found
             {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
