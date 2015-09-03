@@ -14,9 +14,7 @@
  */
 var GiftCertificateHelper = (function () {
     return {
-        /**
-         * Get gift certificates records to sync
-         */
+
 
         internalId: 'giftcertificateitem',
         fields: {
@@ -70,6 +68,12 @@ var GiftCertificateHelper = (function () {
             return taxSchedule;
         },
 
+
+        /**
+         * Get Income Account
+         * @param storeId
+         * @returns {string}
+         */
         getIncomeAccount: function (storeId) {
             var incomeAccount = '';
             var sysConfigs = ExternalSystemConfig.getConfig();
@@ -85,6 +89,10 @@ var GiftCertificateHelper = (function () {
             return incomeAccount;
         },
 
+
+        /**
+         * Get gift certificates records to sync
+         */
         getRecords: function () {
             var recs;
             var result = [];
