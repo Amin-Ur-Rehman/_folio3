@@ -161,8 +161,14 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('ccapproved', 'T');
                 return;
             }
+
+
+
             //paypal_express
             if (payment.method.toString() === 'paypal_express') {
+                var paymentMethod_paypal = '7';
+
+
                 rec.setFieldValue('paymentmethod', '7');// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
@@ -538,7 +544,7 @@ var ConnectorCommon = (function () {
                     }
                 }
                 filterExpression = filterExpression + ']';
-                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart", "GiftCert"]]';
                 Utility.logDebug(' filterExpression', filterExpression);
                 filterExpression = eval(filterExpression);
                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
@@ -969,6 +975,55 @@ var ConnectorCommon = (function () {
             return JSON.stringify(magentoIdObjArr);
         },
 
+        /**
+         * Get Magento Id from JSON from item
+         * @param storeId
+         * @param magentoId
+         * @param type
+         * @param existingId
+         * @returns {*}
+         */
+        getMagentoIdObjectArrayStringForItem: function (storeId, magentoId, type, existingId) {
+
+            var magentoIdObjArr = [];
+
+            if (type === 'create') {
+                var obj1 = {};
+
+                obj1.StoreId = storeId;
+                obj1.MagentoId = magentoId;
+                magentoIdObjArr.push(obj1);
+            }
+            else if (type === 'update') {
+                if (!!existingId) {
+                    var isAlreadyExist = false;
+                    magentoIdObjArr = JSON.parse(existingId);
+                    for (var i in magentoIdObjArr) {
+                        var tempMagentoIdObj = magentoIdObjArr[i];
+                        if (tempMagentoIdObj.StoreId === storeId) {
+                            isAlreadyExist = true;
+                            tempMagentoIdObj.MagentoId = magentoId;
+                        }
+                    }
+                    if (!isAlreadyExist) {
+                        var obj2 = {};
+
+                        obj2.StoreId = storeId;
+                        obj2.MagentoId = magentoId;
+                        magentoIdObjArr.push(obj2);
+                    }
+                } else {
+                    var obj3 = {};
+
+                    obj3.StoreId = storeId;
+                    obj3.MagentoId = magentoId;
+                    magentoIdObjArr.push(obj3);
+                }
+            }
+
+            return JSON.stringify(magentoIdObjArr);
+        },
+
         getScannedAddressForMagento: function (netsuiteAddressObject) {
 
             var result = true;
@@ -1340,21 +1395,25 @@ var ConnectorCommon = (function () {
          * Close sales order
          * @param dataIn
          */
-        closeSalesOrder: function(dataIn) {
+        cancelSalesOrder: function(dataIn) {
             var result = {status: false, error: ''};
             try {
                 var data = dataIn.data;
                 var magentoSOIncrementId = data.soIncrementId;
-                var storeId = data.storeId;
+                //TODO:
+                // Currently Store Id is cuming wrong: Its like below:
+                //{"apiMethod":"cancelSalesOrder","data":{"soIncrementId":"100000021","0":"storeId","1":"1"}}
+                // Thats for we hard cosing store id now for make things work,
+                //var storeId = data.storeId;
+                var storeId = '1';
                 //nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
                 //nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('magentoSOIncrementId', magentoSOIncrementId);
-                //Utility.logDebug('storeId', storeId);
                 //nlapiLogExecution('DEBUG', 'storeId', storeId);
                 var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder
                     , magentoSOIncrementId, storeId);
                 if (!!netsuiteSOInternalId) {
-                    this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    //this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
+                    this.closeNetSuiteSalesOrder(netsuiteSOInternalId);
                     result.status = true;
                 }
             }
@@ -1366,6 +1425,7 @@ var ConnectorCommon = (function () {
                 else {
                     err = 'Unexpected error: ' + ex.toString();
                 }
+                nlapiLogExecution('ERROR', 'cancelSalesOrder Error', err);
                 result.status = false;
                 result.error = err;
             }
@@ -1406,32 +1466,41 @@ var ConnectorCommon = (function () {
 
         createGiftCertificateItem: function(giftCertificateObject) {
             try {
-                var filters = [],
-                    actionType,
-                    giftCert,
-                    searchRec;
-                filters.push(new nlobjSearchFilter('giftCertificateImport.fields.itemName', null, 'is', giftCertificateObject.name));
-                searchRec = nlapiSearchRecord(giftCertificateImport.internalId, null, filters);
+                Utility.logDebug('createGiftCertificateItem entry', JSON.stringify(giftCertificateObject));
+                var actionType,
+                    searchRec,
+                    id,
+                    columns = [],
+                    filters = [],
+                    giftCertificateObject = giftCertificateObject.data,
+                    magentoFormattedId;
+                magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(giftCertificateObject.storeId, giftCertificateObject.sku);
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoId, null, 'contains', magentoFormattedId));
+                columns.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId));
+                searchRec = nlapiSearchRecord(GiftCertificateHelper.internalId, null, filters, columns);
                 // Check if the record exists or not
-                if (!!searchRec && rec.length > 0) {
+                if (!!searchRec && searchRec.length > 0) {
                     // Update the record
+                    Utility.logDebug('In Update Block', 'Id: ' + searchRec[0].getId());
                     actionType = 'update';
-                    giftCert = nlapiLoadRecord(giftCertificateImport.internalId, searchRec[0].getId());
+                    id = GiftCertificateHelper.update(searchRec[0],giftCertificateObject);
                 } else {
                     // Create record
+                    Utility.logDebug('In Create Block', '');
                     actionType = 'create';
-                    giftCert = nlapiCreateRecord(giftCertificateImport.internalId, null);
+                    id = GiftCertificateHelper.upsert(giftCertificateObject);
                 }
-                giftCert.setFieldValue(giftCertificateImport.fields.itemName, giftCertificateObject.name);
-                giftCert.setFieldValue(giftCertificateImport.fields.liabilityAccount, giftCertificateImport.getLiabilityAccount());
-                giftCert.setFieldValue(giftCertificateImport.fields.taxSchedule, giftCertificateImport.getTaxSchedule());
-                giftCert.setFieldValue(giftCertificateImport.fields.description, giftCertificateImport.description);
-                giftCert.setFieldValue(giftCertificateImport.fields.shortDescription, giftCertificateImport.shortDescription);
 
-                nlapiSubmitRecord(giftCert, true);
-                if (actionType === 'create') {
-                    //TODO: Set magento related fields in magento tab.
+                Utility.logDebug('Generic Block', '');
+
+                if (!!id && actionType === 'create') {
+                    Utility.logDebug('Gift Record Created', id);
+                    var magentoId =  JSON.stringify([{"StoreId":giftCertificateObject.storeId,"MagentoId":giftCertificateObject.sku}]);
+
+                    // Add Magento fields to Magento tab.
+                    GiftCertificateHelper.setMagentoData(GiftCertificateHelper.internalId, id, magentoId, 'T', null);
                 }
+                Utility.logDebug('Gift Certificate import successful', 'Call Type: ' + actionType);
             } catch (ex) {
                 Utility.logException('Create Gift Certificate item failed', ex);
             }

@@ -177,6 +177,10 @@ Utility = (function () {
          */
         isMultiLocInvt: function () {
             return nlapiGetContext().getFeature('MULTILOCINVT');
+        },
+
+        isMultiCurrency: function () {
+            return nlapiGetContext().getFeature('MULTICURRENCY');
         }
     };
 })();

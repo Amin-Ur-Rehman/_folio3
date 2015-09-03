@@ -26,11 +26,13 @@ var RecordsToSync = (function () {
         },
         RecordTypes : {
             Customer: 'customer',
-            SalesOrder: 'salesorder'
+            SalesOrder: 'salesorder',
+            GiftCertificateItem: 'giftcertificateitem'
         },
         Actions : {
             ExportCustomer: 'ExportCustomer',
-            SyncSoSystemNotes: 'SyncSoSystemNotes'
+            SyncSoSystemNotes: 'SyncSoSystemNotes',
+            SyncGiftCertificates: 'SyncGiftCertificates'
         },
         Status : {
             Pending: 'Pending',
@@ -90,7 +92,9 @@ var RecordsToSync = (function () {
                     recordId: recordId,
                     recordType: recordType,
                     action: action,
-                    status: status
+                    status: status,
+                    data: data,
+                    comments: comments
                 };
                 records.push(obj);
             }
@@ -123,6 +127,28 @@ var RecordsToSync = (function () {
             }
             return records;
         },
+        /**
+         * Check if record already exist in queue
+         * @param recordType
+         * @param status
+         * @param action
+         * @returns {Array}
+         */
+        checkRecordAlreadyExist: function (recordId, recordType, status) {
+            var records = [];
+            var filters = [];
+            filters.push(new nlobjSearchFilter(this.FieldName.RecordId,null,'is',recordId));
+            filters.push(new nlobjSearchFilter(this.FieldName.RecordType,null,'is',recordType));
+            filters.push(new nlobjSearchFilter(this.FieldName.Status,null,'is',status));
+            var res = this.lookup(filters);
+            if(!!res && res.length > 0) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        },
+
         /**
          * Either inserts or updates data. Upsert = Up[date] + [In]sert
          * @param arg

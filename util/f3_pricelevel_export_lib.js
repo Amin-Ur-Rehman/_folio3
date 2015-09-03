@@ -3,7 +3,7 @@
  */
 
 /**
- * PriceLevelExportHelper class that has the functionality of Helper methods
+ * PriceLevelExportHelper class that has the functionality of Helper methods regarding Price Level Export Logic
  */
 var PriceLevelExportHelper = (function () {
     return {
@@ -19,10 +19,17 @@ var PriceLevelExportHelper = (function () {
                 var priceLevelRecord = nlapiLoadRecord('pricelevel', internalId, null);
                 var priceLevelObject = {};
                 if (priceLevelRecord !== null) {
-                    priceLevelObject.storeId = '';
+                    priceLevelObject.storeId = '1';
                     priceLevelObject.nsObj = priceLevelRecord;
                     priceLevelObject.name = priceLevelRecord.getFieldValue('name') || '';
-                    priceLevelObject.discount = priceLevelRecord.getFieldValue('discountpct') || '';
+                    var discountType =  priceLevelRecord.getFieldValue('discountpct') || '';
+                    priceLevelObject.discountType = 'percent';
+                    if(!!discountType) {
+                        var rate = discountType.substring(0, discountType.length - 1);
+                        priceLevelObject.rate = Math.abs(parseFloat(rate));
+                    } else {
+                        priceLevelObject.rate = '';
+                    }
                     priceLevelObject.isOnline = priceLevelRecord.getFieldValue('isonline') || '';
                     priceLevelObject.isInactive = priceLevelRecord.getFieldValue('isinactive') || '';
                 }
@@ -41,24 +48,20 @@ var PriceLevelExportHelper = (function () {
         sendRequestToMagento: function(internalId, priceLevelRecord) {
 
             var response = {status: true, magentoId: '', message: ''};
+            var updateRecord = false;
             try {
                 Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'Start');
                 if (!priceLevelRecord) {
                     return null;
                 }
-                var magentoId = nlapiLookupField('promotioncode', internalId, ConnectorConstants.PromoCode.Fields.MagentoId);
-                // If record is not already sync to magento, only create functionality yet
-                /*if(!magentoId) {
-
-                }*/
-
-                var storeId = nlapiLookupField('promotioncode', internalId, ConnectorConstants.PromoCode.Fields.MagentoStore);
-                //Utility.logDebug('storeId', storeId);
-                if(!storeId) {
-                    response.status = false;
-                    response.message = 'Please select "MAGENTO STORE" field for data export.';
-                    return response;
+                var magentoData = RecordsMagentoData.getRecord(internalId, ConnectorConstants.NSRecordTypes.PriceLevel);
+                //Utility.logDebug('magentoData', !!magentoData ? JSON.stringify(magentoData) : '');
+                if(!!magentoData && !!magentoData.otherMagentoData) {
+                    priceLevelRecord['record_ids'] = JSON.parse(magentoData.otherMagentoData);
+                    updateRecord = true;
                 }
+                //Utility.logDebug('priceLevelRecord', JSON.stringify(priceLevelRecord));
+                var storeId = '1';
                 var magentoUrl = this.getMagentoUrl(storeId);
                 //Utility.logDebug('magentoUrl', magentoUrl);
 
@@ -67,26 +70,27 @@ var PriceLevelExportHelper = (function () {
                 var requestHeaders = {};
                 requestHeaders[authHeaderName] = authHeaderValue;
 
-                var requestParam = {"apiMethod": "upsertShoppingCart", "data": JSON.stringify(priceLevelRecord)};
-                //Utility.logDebug('requestParam', JSON.stringify(requestParam));
+                var requestParam = {"apiMethod": "upsertPriceLevel", "data": JSON.stringify(priceLevelRecord)};
+                Utility.logDebug('requestParam', JSON.stringify(requestParam));
                 //Utility.logDebug('requestHeaders', JSON.stringify(requestHeaders));
                 var resp = nlapiRequestURL(magentoUrl, requestParam, requestHeaders, 'POST');
                 var responseBody = resp.getBody();
-                Utility.logDebug('export promo code responseBody', responseBody);
+                Utility.logDebug('export price level responseBody', responseBody);
                 var responseMagento = JSON.parse(responseBody);
                 //Utility.logDebug('parsed responseBody', JSON.stringify(responseMagento));
 
                 if (responseMagento.status) {
                     //Utility.logDebug('debug', 'Step-6');
-                    //Utility.logDebug('rule_id', responseMagento.data.record_id);
-                    response.magentoId = responseMagento.data.record_id;
-                    PromoCodesExportHelper.setPromoCodeMagentoId(responseMagento.data.record_id, internalId);
+                    //Utility.logDebug('record_ids', responseMagento.data.record_ids);
+                    if(!updateRecord) {
+                        PriceLevelExportHelper.setPriceLevelMagentoIds(responseMagento.data.record_ids, internalId);
+                    }
+
                 } else {
                     response.status = false;
                     response.message = responseMagento.message;
                     //Log error with fault code
-                    Utility.logDebug('Error from magento', 'promoCodeId:  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.message);
-                    PromoCodesExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + responseMagento.message);
+                    Utility.logDebug('Error from magento in PriceLevelExport', 'paymentTermId:  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.message);
                 }
             }
             catch (ex) {
@@ -98,11 +102,10 @@ var PriceLevelExportHelper = (function () {
                 }
                 response.status = false;
                 response.message = error;
-                nlapiLogExecution('ERROR', 'error in PromoCodesExportHelper.sendRequestToMagento', error);
-                PromoCodesExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
+                nlapiLogExecution('ERROR', 'error in PriceLevelExportHelper.sendRequestToMagento', error);
             }
 
-            Utility.logDebug('PromoCodesExportHelper.sendRequestToMagento', 'end');
+            Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'end');
 
             return response;
         },
@@ -118,8 +121,8 @@ var PriceLevelExportHelper = (function () {
                 var sysConfig = sysConfigs[storeId];
                 if(!!sysConfig) {
                     var entitySyncInfo = sysConfig.entitySyncInfo;
-                    if(!!entitySyncInfo && !!entitySyncInfo.promotioncode.magentoUrl) {
-                        magentoUrl = entitySyncInfo.promotioncode.magentoUrl;
+                    if(!!entitySyncInfo && !!entitySyncInfo.magentoCustomizedApiUrl) {
+                        magentoUrl = entitySyncInfo.magentoCustomizedApiUrl;
                     }
                 }
             }
@@ -142,12 +145,19 @@ var PriceLevelExportHelper = (function () {
          Sets Magento Id in the Order record
          * @param parameter
          */
-        setPromoCodeMagentoId: function (magentoId, promoCodeId) {
+        setPriceLevelMagentoIds: function (magentoIds, promoCodeId) {
             try {
-                nlapiSubmitField('promotioncode', promoCodeId, [ConnectorConstants.PromoCode.Fields.TransferredToMagento, ConnectorConstants.PromoCode.Fields.MagentoSyncStatus, ConnectorConstants.PromoCode.Fields.MagentoId], ['T', '', magentoId]);
+                if(!!magentoIds) {
+                    var objRecordsMagentoData = {};
+                    objRecordsMagentoData[RecordsMagentoData.FieldName.RecordId] = promoCodeId;
+                    objRecordsMagentoData[RecordsMagentoData.FieldName.RecordType] = ConnectorConstants.NSRecordTypes.PriceLevel;
+                    objRecordsMagentoData[RecordsMagentoData.FieldName.MagentoId] = '';
+                    objRecordsMagentoData[RecordsMagentoData.FieldName.OtherMagentoData] = JSON.stringify(magentoIds);
+                    objRecordsMagentoData[RecordsMagentoData.FieldName.Description] = '';
+                    RecordsMagentoData.upsert(objRecordsMagentoData);
+                }
             } catch (e) {
-                Utility.logException('PromoCodesExportHelper.setPromoCodeMagentoId', e);
-                ExportSalesOrders.markRecords(orderId, e.toString());
+                Utility.logException('PriceLevelExportHelper.setPriceLevelMagentoIds', e);
             }
         },
         /**
