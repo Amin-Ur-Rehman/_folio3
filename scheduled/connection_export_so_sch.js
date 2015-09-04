@@ -289,8 +289,9 @@ var OrderExportHelper = (function () {
                 shipmentMethod = carrier + '_' + method;
             }
 
-
+            Utility.logDebug('key_shipmentMethod', shipmentMethod);
             obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
+            Utility.logDebug('value_shipmentMethod', obj.shipmentMethod);
 
             // set shipping cost in object
             var shipmentCost = orderRecord.getFieldValue('shippingcost') || '0';
@@ -511,6 +512,7 @@ var ExportSalesOrders = (function () {
             ConnectorCommon.createLogRec(internalId, requestXml);
 
             Utility.logDebug('store.endpoint', store.endpoint);
+            Utility.logDebug('requestXml', requestXml);
 
             var xml = XmlUtility.soapRequestToMagento(requestXml);
 

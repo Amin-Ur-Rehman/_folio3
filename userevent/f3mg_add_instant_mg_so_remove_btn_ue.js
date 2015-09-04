@@ -143,10 +143,24 @@ var SalesOrderActionsManager = (function () {
                             nlapiSetFieldValue(salesOrderActionsManagerConfig.recordTypes.salesOrder.fields.magentoStore, defaultStoreId);
                         }
                     }
-
                 }
             } catch (e) {
                 Utility.logException('SalesOrderActionsManager.setDefaultStore', e);
+            }
+        },
+        /**
+         * Reset 'Dont Sync To Magento' checkbox field
+         * @param type
+         * @param form
+         * @param request
+         */
+        setDontSyncToMagentoField: function (type, form, request) {
+            try {
+                if (type.toString() === 'edit') {
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.DontSyncToMagento, 'F');
+                }
+            } catch (e) {
+                Utility.logException('SalesOrderActionsManager.setDontSyncToMagentoField', e);
             }
         }
 
@@ -169,6 +183,7 @@ function AddMagentoSORemovalBtnBeforeLoad(type, form, request) {
 
 
 
-function SalesOrderBeforeLoad(type, form, request) {
+function SalesOrderBeforeSubmit(type, form, request) {
     SalesOrderActionsManager.setDefaultStore(type, form, request);
+    SalesOrderActionsManager.setDontSyncToMagentoField(type, form, request);
 }
