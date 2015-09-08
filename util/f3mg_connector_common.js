@@ -1474,8 +1474,16 @@ var ConnectorCommon = (function () {
                     filters = [],
                     giftCertificateObject = giftCertificateObject.data,
                     magentoFormattedId;
-                magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(giftCertificateObject.storeId, giftCertificateObject.sku);
-                filters.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoId, null, 'contains', magentoFormattedId));
+                Utility.logDebug('execution context', giftCertificateObject.context);
+                if(giftCertificateObject.context == ConnectorConstants.MagentoExecutionContext.UserInterface) {
+                    magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(giftCertificateObject.storeId, giftCertificateObject.sku);
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoId, null, 'contains', magentoFormattedId));
+                    Utility.logDebug('searching for id', magentoFormattedId);
+                } else if (giftCertificateObject.context == ConnectorConstants.MagentoExecutionContext.WebService) {
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.ItemId, null, 'is', giftCertificateObject.sku));
+                    Utility.logDebug('searching for sku', giftCertificateObject.sku);
+                }
+
                 columns.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId));
                 searchRec = nlapiSearchRecord(GiftCertificateHelper.internalId, null, filters, columns);
                 // Check if the record exists or not

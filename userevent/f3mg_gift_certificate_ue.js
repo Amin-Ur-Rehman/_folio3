@@ -59,7 +59,9 @@ var GiftCertificateUE = (function () {
          */
         userEventAfterSubmit: function (type) {
             try {
-                if (type.toString() === 'create' || type.toString() === 'edit') {
+                var context = nlapiGetContext();
+                var executionContext = context.getExecutionContext();
+                if (executionContext.toString() === 'userinterface' && (type.toString() === 'create' || type.toString() === 'edit')) {
                     var recordId = nlapiGetRecordId();
                     var recordType = nlapiGetRecordType();
                     nlapiLogExecution('DEBUG', 'recordId  #  recordType', recordId + '  #  ' + recordType);

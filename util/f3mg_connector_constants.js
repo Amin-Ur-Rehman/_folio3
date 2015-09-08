@@ -72,7 +72,11 @@ ConnectorConstants = (function () {
                 MagentoId: 'custitem_magentoid',// JSON
                 MagentoSync: 'custitem_magentosyncdev',
                 MagentoStores: 'custitem_f3mg_magento_stores',// multiselect
-                MagentoSyncStatus: 'custitem_f3mg_magento_sync_status'
+                MagentoSyncStatus: 'custitem_f3mg_magento_sync_status',
+                ItemId: 'itemid',
+                AllowOpenAmount: 'custitem_f3mg_price_allow_open_amount',
+                OpenAmountMinValue: 'custitem_f3mg_price_open_amount_min',
+                OpenAmountMaxValue: 'custitem_f3mg_price_open_amount_max'
             }
         },
         OtherCustom: {
@@ -87,6 +91,10 @@ ConnectorConstants = (function () {
                 LastModifiedDate: 'custrecord_f3mg_promo_lastmodifieddate',
                 MagentoCouponsListIDs: 'custrecord_f3mg_promo_magentocouponids'
             }
+        },
+        MagentoExecutionContext: {
+            WebService: 'webservice',
+            UserInterface: 'userinterface'
         },
         ShippingMethod: {
             UPS: 'ups',
@@ -135,12 +143,16 @@ ConnectorConstants = (function () {
         DefaultValues: {
             shippingMethod: {
                 UPS_GND: "ups_GND",
-                UPS_XPD: "ups_XPD"
+                UPS_XPD: "ups_XPD",
+                UPS_EMPTY: "ups_"
             }
         },
         MagentoCustomerGroups: {
             TaxExempt: "2",
             General: "1"
+        },
+        MagentoProductTypes: {
+            GiftCard: "aw_giftcard"
         },
         /**
          * Init method

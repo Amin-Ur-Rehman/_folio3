@@ -766,6 +766,18 @@ function F3OrsonGygiClient() {
         shippingMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shippingMethod);
 
         var shippingMethodLookupKey = order.shipment_method;
+        Utility.logDebug('outside check', '');
+        Utility.logDebug('order.shipment_method', order.shipment_method);
+        Utility.logDebug('products', JSON.stringify(products));
+
+        if(!order.shipment_method && this.checkAllProductsAreGiftCards(products)) {
+            Utility.logDebug('inside check', '');
+            // If shipment_method iss empty, and all products in order are 'gift cards',
+            // (Note: No shipping information required if you add only gift cards product in an order)
+            shippingMethodLookupKey = ConnectorConstants.DefaultValues.shippingMethod.UPS_EMPTY;
+        }
+
+
         Utility.logDebug('shippingMethodLookupKey_w', shippingMethodLookupKey);
         var shippingMethodLookupValue = FC_ScrubHandler.getMappedKeyByValue('ShippingMethod', shippingMethodLookupKey);
         Utility.logDebug('shippingMethodLookupValue_w', shippingMethodLookupValue);
@@ -831,7 +843,23 @@ function F3OrsonGygiClient() {
                 rec.setLineItemValue('item', 'item', x + 1, netSuiteItemID);
                 rec.setLineItemValue('item', 'quantity', x + 1, products[x].qty_ordered);
                 rec.setLineItemValue('item', 'price', x + 1, 1);
-                rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                if(products[x].product_type === ConnectorConstants.MagentoProductTypes.GiftCard
+                && !!products[x].product_options){
+                    var certificateNumber = '';
+                    rec.setLineItemValue('item', 'giftcertrecipientemail', x + 1, products[x].product_options.aw_gc_recipient_email);
+                    rec.setLineItemValue('item', 'giftcertfrom', x + 1, products[x].product_options.aw_gc_sender_name);
+                    rec.setLineItemValue('item', 'giftcertrecipientname', x + 1, products[x].product_options.aw_gc_recipient_name);
+                    rec.setLineItemValue('item', 'giftcertmessage', x + 1, '');
+                    if(!!products[x].product_options.aw_gc_created_codes && products[x].product_options.aw_gc_created_codes.length > 0) {
+                        certificateNumber = products[x].product_options.aw_gc_created_codes[0];
+                    }
+                    rec.setLineItemValue('item', 'giftcertnumber', x + 1, certificateNumber);
+                    // set price level 'custom'
+                    rec.setLineItemValue('item', 'price', x + 1, '-1');
+                    // set custom amount
+                    rec.setLineItemValue('item', 'amount', x + 1, products[x].product_options.aw_gc_amounts);
+                    rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                }
             }
             else {
                 if (ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.setDummyItem) {
@@ -922,6 +950,18 @@ function F3OrsonGygiClient() {
             Utility.logException('F3OrsonGygiClient_createSalesOrder', ex);
             // }
         }
+    };
+
+    /**
+     * Check either all products are gift cards or not??
+     */
+    currentClient.checkAllProductsAreGiftCards = function (products) {
+        for (var x = 0; x < products.length; x++) {
+            if(products[x].product_type != ConnectorConstants.MagentoProductTypes.GiftCard){
+                return false;
+            }
+        }
+        return true;
     };
 
     return currentClient;

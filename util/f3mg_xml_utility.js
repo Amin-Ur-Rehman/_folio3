@@ -529,6 +529,18 @@ XmlUtility = (function() {
                     skuArr.push(sku);
                     product.product_id = sku; // TODO: check sku
                     product.qty_ordered = nlapiSelectValue(products[i], 'qty_ordered');
+                    product.product_type = nlapiSelectValue(products[i], 'product_type');
+                    var unSerializedObject = null;
+                    var productOptions = nlapiSelectValue(products[i], 'product_options');
+                    if(!!productOptions) {
+                        try{
+                            unSerializedObject = Unserializer.unserialize(productOptions);
+                        }
+                        catch (e){
+                            nlapiLogExecution('Error', 'Error in unserializing product options.', 'product_id: '+ product.product_id);
+                        }
+                    }
+                    product.product_options = unSerializedObject;
                     // get ammount for dummy item
                     result[result.length] = product;
                 }
