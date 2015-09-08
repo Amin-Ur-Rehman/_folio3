@@ -12,10 +12,11 @@ class Price_Level
     {
         $response = null;
         Mage::log("Price_Level.upsert - Start ", null, date("d_m_Y") . '.log', true);
+        Mage::log("Price_Level.upsert - data = " . json_decode($data), null, date("d_m_Y") . '.log', true);
         try {
 
             $recordIds = array();
-            $record_ids = property_exists($data, "record_ids") ? $data->record_ids : null;
+            $record_ids = property_exists($data, "record_ids") && !empty($data->record_ids) ? $data->record_ids : null;
             Mage::log("Price_Level.upsert: record_ids = " . $record_ids, null, date("d_m_Y") . '.log', true);
             $msg = empty($record_ids) ? "Created" : "Updated";
             /*
@@ -24,7 +25,7 @@ class Price_Level
              */
             $taxClassData = (object)array(
                 "className" => $data->name,
-                "record_id" => property_exists($record_ids, "taxClassId") ? $record_ids->taxClassId : null
+                "record_id" => property_exists($record_ids, "taxClassId") && !empty($record_ids->taxClassId) ? $record_ids->taxClassId : null
             );
 
             // making tax class
@@ -35,8 +36,8 @@ class Price_Level
 
                 $customerGroupData = (object)array(
                     "code" => $data->name,
-                    "classId" => $recordIds["taxClassId"],
-                    "record_id" => property_exists($record_ids, "customerGroupId") ? $record_ids->customerGroupId : null
+                    "taxClassId" => $recordIds["taxClassId"],
+                    "record_id" => property_exists($record_ids, "customerGroupId") && !empty($record_ids->customerGroupId) ? $record_ids->customerGroupId : null
                 );
 
                 // making customer group
@@ -46,13 +47,17 @@ class Price_Level
                     $recordIds["customerGroupId"] = $customerGroupResponse["data"]["record_id"];
 
                     $shoppingCartPriceRuleData = (object)array(
+                        "createFor" => "DISCOUNT_EXPORT",
                         "name" => $data->name,
                         "discountType" => $data->discountType,
                         "rate" => $data->rate,
                         "description" => $data->name,
                         "isInactive" => "F",
                         "couponCode" => "",
-                        "record_id" => property_exists($record_ids, "shoppingCartPriceRuleId") ? $record_ids->shoppingCartPriceRuleId : null
+                        "isPublic" => "F",
+                        "numberOfUses" => "",
+                        "customerGroupIds"=>array($recordIds["customerGroupId"]),
+                        "record_id" => property_exists($record_ids, "shoppingCartPriceRuleId") && !empty($record_ids->shoppingCartPriceRuleId) ? $record_ids->shoppingCartPriceRuleId : null
                     );
 
                     // making shopping cart price rule

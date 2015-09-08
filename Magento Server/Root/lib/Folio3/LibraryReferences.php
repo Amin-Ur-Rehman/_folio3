@@ -16,3 +16,4 @@ include_once(BASE_LIB_DIRCETORY . FOLIO3_DIRCETORY . '/CustomerTaxClass.php');
 include_once(BASE_LIB_DIRCETORY . FOLIO3_DIRCETORY . '/CustomerGroup.php');
 include_once(BASE_LIB_DIRCETORY . FOLIO3_DIRCETORY . '/ShoppingCartPriceRule.php');
 include_once(BASE_LIB_DIRCETORY . FOLIO3_DIRCETORY . '/PriceLevel.php');
+include_once(BASE_LIB_DIRCETORY . FOLIO3_DIRCETORY . '/PaymentTerm.php');

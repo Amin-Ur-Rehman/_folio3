@@ -530,6 +530,8 @@ XmlUtility = (function() {
                     product.product_id = sku; // TODO: check sku
                     product.qty_ordered = nlapiSelectValue(products[i], 'qty_ordered');
                     product.product_type = nlapiSelectValue(products[i], 'product_type');
+                    product.item_id = nlapiSelectValue(products[i], 'item_id');
+                    product.tax_amount = nlapiSelectValue(products[i], 'tax_amount');
                     var unSerializedObject = null;
                     var productOptions = nlapiSelectValue(products[i], 'product_options');
                     if(!!productOptions) {

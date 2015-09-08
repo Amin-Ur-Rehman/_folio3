@@ -18,7 +18,7 @@ class F3_Generic_Api_Base
         return $response;
     }
 
-    public function upsertCustomerGroup($data)
+    /*public function upsertCustomerGroup($data)
     {
         $customerGroup = new Customer_Group();
         $response = $customerGroup->upsert($data);
@@ -30,12 +30,19 @@ class F3_Generic_Api_Base
         $customerTaxClass = new Customer_Tax_Class();
         $response = $customerTaxClass->upsert($data);
         return $response;
-    }
+    }*/
 
     public function upsertPriceLevel($data)
     {
         $priceLevel = new Price_Level();
         $response = $priceLevel->upsert($data);
+        return $response;
+    }
+
+    public function upsertPaymentTerm($data)
+    {
+        $paymentTerm = new Payment_Term();
+        $response = $paymentTerm->upsert($data);
         return $response;
     }
 }
