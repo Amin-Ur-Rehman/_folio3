@@ -18,7 +18,8 @@ var GiftCertificateHelper = (function () {
 
         internalId: 'giftcertificateitem',
         fields: {
-            itemName: 'itemid',
+            itemId: 'itemid',
+            itemDisplayName: 'displayname',
             liabilityAccount: 'liabilityaccount',
             inactive: 'isinactive',
             description: 'storedetaileddescription',
@@ -26,7 +27,10 @@ var GiftCertificateHelper = (function () {
             taxSchedule: 'taxschedule',
             urlKey: 'urlcomponent',
             incomeAccount: 'incomeaccount',
-            externalId: 'externalid'
+            externalId: 'externalid',
+            allowOpenAmount: 'custitem_f3mg_price_allow_open_amount',
+            openAmountMinValue: 'custitem_f3mg_price_open_amount_min',
+            openAmountMaxValue: 'custitem_f3mg_price_open_amount_max'
         },
 
         /**
@@ -138,6 +142,7 @@ var GiftCertificateHelper = (function () {
          * @returns {*}
          */
         upsert: function(giftCertificateObject) {
+            Utility.logDebug('log_w', 'creating new record');
             var giftCert = nlapiCreateRecord(this.internalId, null);
             var id = this.setGiftCertificateRecordFields(giftCert, giftCertificateObject);
             return id;
@@ -150,6 +155,7 @@ var GiftCertificateHelper = (function () {
          * @returns {*}
          */
         update: function (searchRec, giftCertificateObject) {
+            Utility.logDebug('log_w', 'loading record: '+searchRec.getId());
             var giftCert = nlapiLoadRecord(this.internalId, searchRec.getId());
             var id = this.setGiftCertificateRecordFields(giftCert, giftCertificateObject);
             return id;
@@ -162,16 +168,116 @@ var GiftCertificateHelper = (function () {
          * @returns {*}
          */
         setGiftCertificateRecordFields : function (giftCert, giftCertificateObject) {
-            giftCert.setFieldValue(this.fields.itemName, giftCertificateObject.name);
+            giftCert.setFieldValue(this.fields.itemId, giftCertificateObject.sku);
+            giftCert.setFieldValue(this.fields.itemDisplayName, giftCertificateObject.name);
             giftCert.setFieldValue(this.fields.liabilityAccount, this.getLiabilityAccount(giftCertificateObject.storeId));
             giftCert.setFieldValue(this.fields.taxSchedule, this.getTaxSchedule(giftCertificateObject.storeId));
             giftCert.setFieldValue(this.fields.description, giftCertificateObject.description);
             giftCert.setFieldValue(this.fields.shortDescription, giftCertificateObject.shortDescription);
             giftCert.setFieldValue(this.fields.urlKey, giftCertificateObject.urlKey);
             giftCert.setFieldValue(this.fields.inactive, giftCertificateObject.active === '1' ? 'F' : 'T');
+
+            giftCert.setFieldValue(this.fields.allowOpenAmount, giftCertificateObject.awGcAllowOpenAmount === '1' ? 'T' : 'F');
+            giftCert.setFieldValue(this.fields.openAmountMinValue, giftCertificateObject.awGcOpenAmountMin);
+            giftCert.setFieldValue(this.fields.openAmountMaxValue, giftCertificateObject.awGcOpenAmountMax);
+
             giftCert.setFieldValue(this.fields.incomeAccount, this.getIncomeAccount(giftCertificateObject.storeId));
+
+            //Utility.logDebug('log_w', 'setting lineitems');
+            this.handleCustomPricingSublistData(giftCert, giftCertificateObject.customPricingData);
+            //Utility.logDebug('log_w', 'setted lineitems');
+
+            //Utility.logDebug('log_w', 'submitting record');
             var id = nlapiSubmitRecord(giftCert, true);
+            //Utility.logDebug('log_w', 'submitted record');
             return id;
+        },
+
+        /**
+         * Handle custom pricing sublist data
+         */
+        handleCustomPricingSublistData: function (giftCertRec, customPricingData) {
+
+            var group = 'recmachcustrecord_f3mg_og_aw_pricing_item';
+            var currentCount = giftCertRec.getLineItemCount(group);
+            Utility.logDebug('lineitem currentCount', currentCount);
+            for (var i = 0; i < currentCount; i++) {
+                //Delete all lines
+                giftCertRec.removeLineItem(group, 1);
+            }
+            Utility.logDebug('customPricingData count', customPricingData.length);
+            if(!!customPricingData && customPricingData.length > 0) {
+                for (var i = 0; i < customPricingData.length; i++) {
+                    var obj = customPricingData[i];
+                    //Add new lines
+                    if(!!obj.magentoId) {
+                        Utility.logDebug('log_w', 'adding new line price>>  price:'+ obj.price);
+                        giftCertRec.selectNewLineItem(group);
+                        giftCertRec.setCurrentLineItemValue(group, "custrecord_f3mg_og_aw_pricing_price", obj.price);
+                        giftCertRec.setCurrentLineItemValue(group, "custrecord_f3mg_og_aw_pricing_magentoid", obj.magentoId);
+                        giftCertRec.commitLineItem(group);
+                    }
+                }
+            }
+        },
+
+        /*handleCustomPricingSublistData: function (giftCertRec, customPricingData) {
+            Utility.logDebug('customPricingData count', customPricingData.length);
+            if(!!customPricingData && customPricingData.length > 0) {
+                var pricingDataArr = this.getPricingDataArray(customPricingData);
+                Utility.logDebug('pricingDataArr', JSON.stringify(pricingDataArr));
+                var group = 'recmachcustrecord_f3mg_og_aw_pricing_item';
+                var currentCount = giftCertRec.getLineItemCount(group);
+                Utility.logDebug('lineitem currentCount', currentCount);
+                for (var i = 0; i < currentCount; i++) {
+                    var linenum = i+1;
+                    var id = giftCertRec.getLineItemValue(group, 'id', linenum);
+                    Utility.logDebug('id treating', id);
+                    var obj = pricingDataArr[id];
+                    if(!obj) {
+                        // if id not fount in associative array means this line not exist in magento, delete it from netsuite too
+                        Utility.logDebug('log_w', 'removing line' + linenum);
+                        giftCertRec.removeLineItem(group, linenum);
+                        // after deletion a line will reduce from sublist, so reduce counter too.
+                        i--;
+                        currentCount--;
+                    } else {
+                        // if id found in associative array means this line exist in magento, update its price
+                        Utility.logDebug('log_w', 'updating price>> linenum:' + linenum +' price:'+ obj.price);
+                        giftCertRec.setLineItemValue(group, 'custrecord_f3mg_og_aw_pricing_price', linenum, obj.price);
+                        giftCertRec.setLineItemValue(group, 'custrecord_f3mg_og_aw_pricing_magentoid', linenum, obj.magentoId);
+                    }
+                }
+
+                for (var i = 0; i < customPricingData.length; i++) {
+                    var obj = customPricingData[i];
+                    // If magento id exist in customPricingList from magento and its netsuite internal id not existed, means that line is
+                    // added in magento, thats why its netsuite internal not exist, add it in ns sublist
+                    if(!obj.internalId && !!obj.magentoId) {
+                        Utility.logDebug('log_w', 'adding new line price>>  price:'+ obj.price);
+                        giftCertRec.selectNewLineItem(group);
+                        //giftCertRec.setCurrentLineItemValue(group, "custrecord_f3mg_og_aw_pricing_item", giftCertRec.getId());
+                        giftCertRec.setCurrentLineItemValue(group, "custrecord_f3mg_og_aw_pricing_price", obj.price);
+                        giftCertRec.setCurrentLineItemValue(group, "custrecord_f3mg_og_aw_pricing_magentoid", obj.magentoId);
+                        giftCertRec.commitLineItem(group);
+                    }
+                }
+
+            }
+        },*/
+
+        /**
+         * Provide associative array for pricing data
+         */
+        getPricingDataArray: function (customPricingData) {
+            var arr = {};
+            for (var i = 0; i < customPricingData.length; i++) {
+                var obj = customPricingData[i];
+                if(!!obj.internalId) {
+                    arr[obj.internalId] = {price: obj.price, itemId:obj.internalId, magentoId: obj.magentoId};
+                }
+            }
+            return arr;
         },
 
         /**
@@ -195,7 +301,7 @@ var GiftCertificateHelper = (function () {
                 // check if item already sync with magento
                 var checkResult = this.checkIfAlreadySync(itemRec, store.systemId);
                 Utility.logDebug('isSync', checkResult.isSync);
-                var itemBodyFieldsData = this.getItemBodyFieldsData(itemRec, itemParentRec, store, checkResult.magentoId);
+                var itemBodyFieldsData = this.getItemBodyFieldsData(itemId, itemRec, itemParentRec, store, checkResult.magentoId);
                 Utility.logDebug('itemBodyFieldsData', JSON.stringify(itemBodyFieldsData));
                 // update the item it is already exist
                 if (checkResult.isSync) {
@@ -306,8 +412,30 @@ var GiftCertificateHelper = (function () {
             xml = xml + '           <manage_stock xsi:type="xsd:int" xs:type="type:int">' + product.manageStock + '</manage_stock>';
             xml = xml + '           <use_config_manage_stock xsi:type="xsd:int" xs:type="type:int">' + product.useConfigManageStock + '</use_config_manage_stock>';
             xml = xml + '       </stock_data>';
+
+            xml = xml + '<additional_attributes xsi:type="urn:catalogProductAdditionalAttributesEntity">';
+            xml = xml + '<single_data xsi:type="urn:associativeArray" soapenc:arrayType="urn:associativeEntity[4]">';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_allow_open_amount</key>';
+            xml = xml + '<value>' + product.allowOpenAmount + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_open_amount_min</key>';
+            xml = xml + '<value>' + product.openAmountMinValue + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_open_amount_max</key>';
+            xml = xml + '<value>' + product.openAmountMaxValue + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>f3mg_custom_pricing_data</key>';
+            xml = xml + '<value>' + JSON.stringify(product.customPricingList)+ '</value>';
+            xml = xml + '</item>';
+            xml = xml + '</single_data>';
+            xml = xml + '</additional_attributes>';
+
             xml = xml + '   </productData>';
-            xml = xml + '   <storeView xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + product.storeViewId + '</storeView>';
+            //xml = xml + '   <storeView xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + product.storeViewId + '</storeView>';
             xml = xml + '</urn:catalogProductCreate>';
             xml = xml + XML_FOOTER;
             return xml;
@@ -395,6 +523,28 @@ var GiftCertificateHelper = (function () {
             xml = xml + '           <manage_stock xsi:type="xsd:int" xs:type="type:int">' + product.manageStock + '</manage_stock>';
             xml = xml + '           <use_config_manage_stock xsi:type="xsd:int" xs:type="type:int">' + product.useConfigManageStock + '</use_config_manage_stock>';
             xml = xml + '       </stock_data>';
+
+            xml = xml + '<additional_attributes xsi:type="urn:catalogProductAdditionalAttributesEntity">';
+            xml = xml + '<single_data xsi:type="urn:associativeArray" soapenc:arrayType="urn:associativeEntity[4]">';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_allow_open_amount</key>';
+            xml = xml + '<value>' + product.allowOpenAmount + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_open_amount_min</key>';
+            xml = xml + '<value>' + product.openAmountMinValue + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>aw_gc_open_amount_max</key>';
+            xml = xml + '<value>' + product.openAmountMaxValue + '</value>';
+            xml = xml + '</item>';
+            xml = xml + '<item>';
+            xml = xml + '<key>f3mg_custom_pricing_data</key>';
+            xml = xml + '<value>' + JSON.stringify(product.customPricingList)+ '</value>';
+            xml = xml + '</item>';
+            xml = xml + '</single_data>';
+            xml = xml + '</additional_attributes>';
+
             xml = xml + '   </productData>';
             //xml = xml + '<storeView xsi:type="xsd:string">' + product.storeViewId + '</storeView>';
             xml = xml + '<identifierType xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + 'sku' + '</identifierType>';
@@ -411,7 +561,7 @@ var GiftCertificateHelper = (function () {
          * @param magentoId
          * @returns {{}}
          */
-        getItemBodyFieldsData: function (itemRec, parItemRec, store, magentoId) {
+        getItemBodyFieldsData: function(itemInternalId, itemRec, parItemRec, store, magentoId) {
             var dataObj = {};
             dataObj.additionalAttributes = [];
             dataObj.magentoId = magentoId;
@@ -465,12 +615,22 @@ var GiftCertificateHelper = (function () {
             } else {
                 dataObj.visibility = '1'; // Not visible
             }
-            dataObj.visibility = '1'; // Not visible for test todo:remove
-            dataObj.taxClass = '1'; // Default
-            dataObj.manageStock = '1'; // manage stock
-            dataObj.stockAvailability = '1'; // is in stock
-            dataObj.useConfigManageStock = '0'; // use config manage stock
-            dataObj.magentoIdsArr = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
+            dataObj.taxClass = store.entitySyncInfo.giftcertificateitem.taxClass;// Default
+            dataObj.manageStock = '1';// manage stock
+            dataObj.stockAvailability = '1';// is in stock
+            dataObj.useConfigManageStock = '0';// use config manage stock
+            dataObj.magentoIdsArr = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId) || '';
+            var allowOpenAmount = itemRec.getFieldValue(ConnectorConstants.Item.Fields.AllowOpenAmount) || 'F';
+            dataObj.allowOpenAmount = allowOpenAmount === 'T' ? '1' : '0';
+            dataObj.openAmountMinValue = itemRec.getFieldValue(ConnectorConstants.Item.Fields.OpenAmountMinValue) || 0;
+            dataObj.openAmountMaxValue = itemRec.getFieldValue(ConnectorConstants.Item.Fields.OpenAmountMaxValue) || 0;
+            dataObj.customPricingList = MagentoCustomPricingDao.getRecords(itemInternalId);
+            dataObj.customPricingData = {
+                allowOpenAmount: dataObj.allowOpenAmount,
+                openAmountMinValue: dataObj.openAmountMinValue,
+                openAmountMaxValue: dataObj.openAmountMaxValue,
+                customPricingList: dataObj.customPricingList
+            };
             return dataObj;
         },
 
