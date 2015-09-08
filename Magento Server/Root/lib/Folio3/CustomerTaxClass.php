@@ -12,8 +12,9 @@ class Customer_Tax_Class
     {
         $response = null;//var_dump($data);die();
         Mage::log("Customer_Tax_Class.upsert - Start ", null, date("d_m_Y") . '.log', true);
+        Mage::log("Customer_Tax_Class.upsert - data = " . json_decode($data), null, date("d_m_Y") . '.log', true);
         try {
-            $id = property_exists($data, "record_id") ? $data->record_id : null;
+            $id = property_exists($data, "record_id") && !empty($data->record_id) ? $data->record_id : null;
             $msg = empty($id) ? "Created" : "Update";
 
             // making record

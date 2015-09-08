@@ -516,7 +516,29 @@ function F3ClientBase() {
                 }
             }
             return resultobj;
+        },
+
+        /**
+         * Set Discount line in Sales Order line item
+         * @param {nlobjRecord} rec
+         * @param {float} discountAmount
+         */
+        setDiscountLine: function (rec, discountAmount) {
+            Utility.logDebug("discountAmount", discountAmount);
+            discountAmount = !Utility.isBlankOrNull(discountAmount) && !isNaN(discountAmount) ? parseFloat(Math.abs(discountAmount)) : 0;
+            Utility.logDebug("discountAmount", discountAmount);
+            if (discountAmount > 0) {
+                discountAmount = discountAmount * (-1);
+
+                rec.selectNewLineItem("item");
+                rec.setCurrentLineItemValue("item", "item", ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.discountItem);
+                // set custom price level
+                rec.setCurrentLineItemValue("item", "price", "-1");
+                rec.setCurrentLineItemValue("item", "amount", discountAmount);
+                rec.commitLineItem("item");
+            }
         }
+
     };
     return self;
 }
@@ -571,7 +593,7 @@ function F3PurestColloidsClient() {
         //Utility.logDebug('shippingMethodLookupKey_w', shippingMethodLookupKey);
         var shippingMethodLookupValue = FC_ScrubHandler.getMappedKeyByValue('ShippingMethod', shippingMethodLookupKey);
         //Utility.logDebug('shippingMethodLookupValue_w', shippingMethodLookupValue);
-        if(!!shippingMethodLookupValue && shippingMethodLookupValue != shippingMethodLookupKey) {
+        if (!!shippingMethodLookupValue && shippingMethodLookupValue != shippingMethodLookupKey) {
             var shippingMethodValuesArray = shippingMethodLookupValue.split('_');
             shippingCarrier = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[0] : shippingCarrier;
             shippingMethod = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[1] : shippingMethod;
@@ -770,7 +792,7 @@ function F3OrsonGygiClient() {
         Utility.logDebug('order.shipment_method', order.shipment_method);
         Utility.logDebug('products', JSON.stringify(products));
 
-        if(!order.shipment_method && this.checkAllProductsAreGiftCards(products)) {
+        if (!order.shipment_method && this.checkAllProductsAreGiftCards(products)) {
             Utility.logDebug('inside check', '');
             // If shipment_method iss empty, and all products in order are 'gift cards',
             // (Note: No shipping information required if you add only gift cards product in an order)
@@ -781,7 +803,7 @@ function F3OrsonGygiClient() {
         Utility.logDebug('shippingMethodLookupKey_w', shippingMethodLookupKey);
         var shippingMethodLookupValue = FC_ScrubHandler.getMappedKeyByValue('ShippingMethod', shippingMethodLookupKey);
         Utility.logDebug('shippingMethodLookupValue_w', shippingMethodLookupValue);
-        if(!!shippingMethodLookupValue && shippingMethodLookupValue != shippingMethodLookupKey) {
+        if (!!shippingMethodLookupValue && shippingMethodLookupValue != shippingMethodLookupKey) {
             var shippingMethodValuesArray = shippingMethodLookupValue.split('_');
             shippingCarrier = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[0] : shippingCarrier;
             shippingMethod = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[1] : shippingMethod;
@@ -843,14 +865,14 @@ function F3OrsonGygiClient() {
                 rec.setLineItemValue('item', 'item', x + 1, netSuiteItemID);
                 rec.setLineItemValue('item', 'quantity', x + 1, products[x].qty_ordered);
                 rec.setLineItemValue('item', 'price', x + 1, 1);
-                if(products[x].product_type === ConnectorConstants.MagentoProductTypes.GiftCard
-                && !!products[x].product_options){
+                if (products[x].product_type === ConnectorConstants.MagentoProductTypes.GiftCard
+                    && !!products[x].product_options) {
                     var certificateNumber = '';
                     rec.setLineItemValue('item', 'giftcertrecipientemail', x + 1, products[x].product_options.aw_gc_recipient_email);
                     rec.setLineItemValue('item', 'giftcertfrom', x + 1, products[x].product_options.aw_gc_sender_name);
                     rec.setLineItemValue('item', 'giftcertrecipientname', x + 1, products[x].product_options.aw_gc_recipient_name);
                     rec.setLineItemValue('item', 'giftcertmessage', x + 1, '');
-                    if(!!products[x].product_options.aw_gc_created_codes && products[x].product_options.aw_gc_created_codes.length > 0) {
+                    if (!!products[x].product_options.aw_gc_created_codes && products[x].product_options.aw_gc_created_codes.length > 0) {
                         certificateNumber = products[x].product_options.aw_gc_created_codes[0];
                     }
                     rec.setLineItemValue('item', 'giftcertnumber', x + 1, certificateNumber);
@@ -860,6 +882,16 @@ function F3OrsonGygiClient() {
                     rec.setLineItemValue('item', 'amount', x + 1, products[x].product_options.aw_gc_amounts);
                     rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
                 }
+
+                rec.setLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, x + 1, products[x].item_id);
+                // set tax amount
+                var taxAmount = products[x].tax_amount;
+                taxAmount = !Utility.isBlankOrNull(taxAmount) && !isNaN(taxAmount) ? parseFloat(taxAmount) : 0;
+
+                // tax handling for line items
+                if (taxAmount > 0) {
+                    rec.setLineItemValue('item', 'taxcode', x + 1, ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.taxCode);
+                }
             }
             else {
                 if (ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.setDummyItem) {
@@ -867,6 +899,7 @@ function F3OrsonGygiClient() {
                     rec.setLineItemValue('item', 'item', x + 1, ConnectorConstants.DummyItem.Id);
                     isDummyItemSetInOrder = true;
                     rec.setLineItemValue('item', 'amount', x + 1, '0');
+                    rec.setLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, x + 1, products[x].item_id);
                     rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
                 }
             }
@@ -879,6 +912,9 @@ function F3OrsonGygiClient() {
 
             //    rec.setLineItemValue('item','amount',x+1,95);
         }
+
+        var discountAmount = order.discount_amount;
+        currentClient.setDiscountLine(rec, discountAmount);
 
         //Utility.logDebug('All items set_w', 'All items set');
         //Utility.logDebug('payment.ccType_w', payment.ccType);
@@ -915,7 +951,6 @@ function F3OrsonGygiClient() {
 
 
             //Utility.logDebug('w_DiscountItem', rec.getFieldValue('discountitem'));
-
 
 
             Utility.logDebug('Going to submit SO', 'Submitting');
@@ -957,7 +992,7 @@ function F3OrsonGygiClient() {
      */
     currentClient.checkAllProductsAreGiftCards = function (products) {
         for (var x = 0; x < products.length; x++) {
-            if(products[x].product_type != ConnectorConstants.MagentoProductTypes.GiftCard){
+            if (products[x].product_type != ConnectorConstants.MagentoProductTypes.GiftCard) {
                 return false;
             }
         }
