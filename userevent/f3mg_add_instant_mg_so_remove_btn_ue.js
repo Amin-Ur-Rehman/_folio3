@@ -169,6 +169,6 @@ function AddMagentoSORemovalBtnBeforeLoad(type, form, request) {
 
 
 
-function SalesOrderBeforeLoad(type, form, request) {
+function SalesOrderBeforeSubmit(type, form, request) {
     SalesOrderActionsManager.setDefaultStore(type, form, request);
 }
