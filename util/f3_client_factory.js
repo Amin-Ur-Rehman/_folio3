@@ -916,6 +916,9 @@ function F3OrsonGygiClient() {
         var discountAmount = order.discount_amount;
         currentClient.setDiscountLine(rec, discountAmount);
 
+        var quoteId = order.quote_id;
+        currentClient.setGiftCardLineItem(rec, quoteId);
+
         //Utility.logDebug('All items set_w', 'All items set');
         //Utility.logDebug('payment.ccType_w', payment.ccType);
         //Utility.logDebug('payment.authorizedId_w', payment.authorizedId);
@@ -997,6 +1000,210 @@ function F3OrsonGygiClient() {
             }
         }
         return true;
+    };
+
+    /**
+     * Description of method: Create Lead Record in NetSuite
+     * @param magentoCustomerObj
+     * @param sessionID
+     * @param isGuest
+     * @return {Object}
+     */
+    currentClient.createLeadInNetSuite = function (magentoCustomerObj, sessionID, isGuest) {
+
+        var result = {
+            errorMsg: '',
+            infoMsg: ''
+        };
+
+        var rec = nlapiCreateRecord('lead', null);
+        //rec.setFieldValue('isperson', 'T');
+        //rec.setFieldValue('subsidiary', '3');// TODO: generalize location
+        //   rec.setFieldValue('salutation', '');
+
+        // zee: get customer address list: start
+
+        var custAddrXML;
+        var responseMagento;
+        var addresses = {};
+
+        if (!isGuest) {
+            custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+            responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+
+            if (!responseMagento.status) {
+                result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
+                Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' + magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
+                return result;
+            }
+
+            addresses = responseMagento.addresses;
+
+            if (!Utility.isBlankOrNull(addresses)) {
+                rec = ConnectorCommon.setAddresses(rec, addresses);
+            }
+
+            // setting sales order addresses
+            addresses = magentoCustomerObj.addresses;
+            rec = ConnectorCommon.setAddresses(rec, addresses, 'order');
+
+        } else {
+            // if guest customer comes
+
+            if (!Utility.isBlankOrNull(addresses)) {
+                rec = ConnectorCommon.setAddresses(rec, magentoCustomerObj.addresses, 'order');
+            }
+        }
+
+        // zee: get customer address list: end
+
+        rec.setFieldValue('isperson', 'T');
+        //rec.setFieldValue('autoname', 'T');
+
+        // set if customer is taxable or not
+        var groupId = magentoCustomerObj.group_id;
+
+        Utility.logDebug("Magento GroupId =  " + groupId, "Config Magento GroupId =  " + ConnectorConstants.CurrentStore.entitySyncInfo.customer.magentoCustomerGroups.taxExempt);
+
+        if (groupId == ConnectorConstants.CurrentStore.entitySyncInfo.customer.magentoCustomerGroups.taxExempt) {
+            rec.setFieldValue('taxable', "F");
+        } else {
+            rec.setFieldValue('taxable', "T");
+        }
+
+        // mulitple stores handling
+
+        var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, isGuest ? 'Guest' : magentoCustomerObj.customer_id, 'create', null);
+
+        if (Utility.isOneWorldAccount()) {
+            rec.setFieldValue('subsidiary', ConnectorConstants.CurrentStore.entitySyncInfo.customer.subsidiary);
+        }
+        rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
+        rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
+        rec.setFieldValue('email', magentoCustomerObj.email);
+        rec.setFieldValue('firstname', magentoCustomerObj.firstname);
+        rec.setFieldValue('middlename', magentoCustomerObj.middlename);
+        rec.setFieldValue('lastname', magentoCustomerObj.lastname);//TODO: check
+        //  rec.setFieldValue('salutation','');
+
+        try {
+            result.id = nlapiSubmitRecord(rec, false, true);
+        } catch (ex) {
+            result.errorMsg = ex.toString();
+            Utility.logException('createLeadInNetSuite', ex);
+        }
+
+        return result;
+    };
+
+    /**
+     * Description of method: Update Customer Record in NetSuite
+     * @param customerId
+     * @param magentoCustomerObj
+     * @param sessionID
+     * @return {Object}
+     */
+    currentClient.updateCustomerInNetSuite = function (customerId, magentoCustomerObj, sessionID) {
+        var result = {};
+        var rec = nlapiLoadRecord('customer', customerId, null);
+
+        // mulitple stores handling
+
+        var existingMagentoId = rec.getFieldValue(ConnectorConstants.Entity.Fields.MagentoId);
+        var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, magentoCustomerObj.customer_id, 'update', existingMagentoId);
+
+        rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoId, magentoIdObjArrStr);
+        rec.setFieldValue(ConnectorConstants.Entity.Fields.MagentoSync, 'T');
+        rec.setFieldValue('email', magentoCustomerObj.email);
+        rec.setFieldValue('firstname', magentoCustomerObj.firstname);
+        rec.setFieldValue('middlename', magentoCustomerObj.middlename);
+        rec.setFieldValue('lastname', magentoCustomerObj.lastname);
+        //  rec.setFieldValue('salutation','');
+
+        // set if customer is taxable or not
+        var groupId = magentoCustomerObj.group_id;
+
+        Utility.logDebug("Magento GroupId =  " + groupId, "Config Magento GroupId =  " + ConnectorConstants.CurrentStore.entitySyncInfo.customer.magentoCustomerGroups.taxExempt);
+
+        if (groupId == ConnectorConstants.CurrentStore.entitySyncInfo.customer.magentoCustomerGroups.taxExempt) {
+            rec.setFieldValue('taxable', "F");
+        } else {
+            rec.setFieldValue('taxable', "T");
+        }
+
+        // zee: get customer address list: start
+
+        var custAddrXML;
+        var responseMagento;
+        var addresses;
+
+        custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+
+        responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+
+        if (!responseMagento.status) {
+            result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
+            Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' + magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
+            return result;
+        }
+
+        addresses = responseMagento.addresses;
+
+        if (!Utility.isBlankOrNull(addresses)) {
+            rec = ConnectorCommon.setAddresses(rec, addresses);
+        }
+        // setting magento addresses from sales order
+        addresses = magentoCustomerObj.addresses;
+        rec = ConnectorCommon.setAddresses(rec, addresses, 'order');
+
+        // zee: get customer address list: end
+        var id = nlapiSubmitRecord(rec, true, true);
+        Utility.logDebug('Customer updated in NetSuite', 'Customer Id: ' + id);
+    };
+
+    /**
+     *  Get Discount amount from magento agaist quote id and apply in order here.
+     * @param rec
+     * @param quoteId
+     */
+    currentClient.setGiftCardLineItem = function (rec, quoteId) {
+        // set gift card discount amount
+        var discount = 0;
+        try {
+            Utility.logDebug("setGiftCardLineItem - quoteId", quoteId);
+            var url = ConnectorConstants.CurrentStore.entitySyncInfo.magentoCustomizedApiUrl;
+            var headers = {};
+            headers['X-HTTP-NS-MG-CONNECTOR'] = "5ac0d7e1-7d9c-430b-af7c-ec66f64781c4";
+            var postData = {};
+            postData.data = JSON.stringify({"quoteId": quoteId});
+            postData.apiMethod = "getGiftCardDiscount";
+            var response = nlapiRequestURL(url, postData, headers).getBody();
+            Utility.logDebug("setGiftCardLineItem - response", response);
+            var responseData = JSON.parse(response);
+
+            if (responseData["status"] == 1) {
+                discount = responseData.data["giftcardAmount"];
+                Utility.logDebug("setGiftCardLineItem - giftcardAmount", discount);
+                discount = !Utility.isBlankOrNull(discount) && !isNaN(discount) ? parseFloat(Math.abs(discount)) : 0;
+                Utility.logDebug("setGiftCardLineItem - giftcardAmount", discount);
+            }
+
+            if (discount > 0) {
+                discount = discount * (-1);
+
+                rec.selectNewLineItem("item");
+                rec.setCurrentLineItemValue("item", "item", ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.giftCardItem);
+                // set custom price level
+                rec.setCurrentLineItemValue("item", "price", "-1");
+                rec.setCurrentLineItemValue("item", "amount", discount);
+                rec.commitLineItem("item");
+            } else {
+                Utility.logDebug("setGiftCardLineItem", "Gift Card Discount is not applied");
+            }
+
+        } catch (e) {
+            Utility.logException('Error in Fetching Discount', e);
+        }
     };
 
     return currentClient;

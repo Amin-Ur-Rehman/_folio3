@@ -45,4 +45,88 @@ class F3_Generic_Api_Base
         $response = $paymentTerm->upsert($data);
         return $response;
     }
+
+    public function getGiftCardDiscount($data)
+    {
+        $response = $this->getGiftCardAmount($data);
+        return $response;
+    }
+
+    private function getGiftCardAmount($data)
+    {
+        try {
+            $quoteId = property_exists($data, "quoteId") && !empty($data->quoteId) ? $data->quoteId : null;
+
+            if ($quoteId == null) {
+                throw new Exception("Unable to get giftcard discount. Undefined Quote Id");
+            }
+
+            $connectionRead = Mage::getSingleton('core/resource')->getConnection('core_read');
+
+            // making select query
+            $select = $connectionRead->select()
+                ->from("aw_giftcard_quote_totals", array("quote_entity_id", "giftcard_id", "link_id", "base_giftcard_amount", "giftcard_amount"))
+                ->where("quote_entity_id" . '=?', $quoteId);
+
+            // we only need to know if the row exist or not
+            $result = $connectionRead->fetchRow($select);
+
+            $responseData = array();
+
+            if (!empty($result)) {
+                $responseData["quoteEentityId"] = $result["quote_entity_id"];
+                $responseData["giftcardId"] = $result["giftcard_id"];
+                $responseData["linkId"] = $result["link_id"];
+                $responseData["baseGiftcardAmount"] = $result["base_giftcard_amount"];
+                $responseData["giftcardAmount"] = $result["giftcard_amount"];
+            } else {
+                $responseData["quoteEentityId"] = null;
+                $responseData["giftcardId"] = null;
+                $responseData["linkId"] = null;
+                $responseData["baseGiftcardAmount"] = 0;
+                $responseData["giftcardAmount"] = 0;
+            }
+
+
+            // making response object
+            $response["status"] = 1;
+            $response["message"] = "Gift Card Amount used in Order";
+            $response["data"] = $responseData;
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.getGiftCardAmount - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+
+        return $response;
+    }
+
+    public function getSalesOrderInfo($data)
+    {
+        try {
+            $orderIncrementId = property_exists($data, "orderIncrementId") && !empty($data->orderIncrementId) ? $data->orderIncrementId : null;
+
+            if ($orderIncrementId == null) {
+                throw new Exception("Undefined Order IncrementId");
+            }
+
+            $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
+            $state = $order->getState();
+            $status = $order->getStatus();
+
+            $responseData = array();
+
+            $responseData["state"] = !empty($state) ? $state : "";
+            $responseData["status"] = !empty($status) ? $status : "";
+
+            // making response object
+            $response["status"] = 1;
+            $response["message"] = "Sales Order Info";
+            $response["data"] = $responseData;
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.getGiftCardAmount - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+
+        return $response;
+    }
 }

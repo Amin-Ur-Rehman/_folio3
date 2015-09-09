@@ -451,8 +451,11 @@ XmlUtility = (function() {
                 order.store_id = nlapiSelectValue(orders[i], 'store_id');
                 order.shipping_amount = nlapiSelectValue(orders[i], 'shipping_amount');
                 order.discount_amount = nlapiSelectValue(orders[i], 'discount_amount');
+                order.discount_description = nlapiSelectValue(orders[i], 'discount_description');
                 order.customer_middlename = nlapiSelectValue(orders[i], 'customer_middlename');
                 order.customer_middlename = order.customer_middlename ? order.customer_middlename : '';
+                order.customer_group_id = nlapiSelectValue(orders[i], 'customer_group_id');
+                order.quote_id = nlapiSelectValue(orders[i], 'quote_id');
 
                 result.push(order);
             }
