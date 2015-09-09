@@ -30,10 +30,12 @@ var systemNotesSync = (function () {
         userEventAfterSubmit: function (type) {
             var context = nlapiGetContext();
             var executionContext = context.getExecutionContext();
-            var record = nlapiLoadRecord(nlapiGetRecordType(), nlapiGetRecordId());
+            var record;
             var schedulerScriptId = 'customscript_so_systemnotessync_magento',
                 schedulerScriptDepId = 'customdeploy_so_sysntssycnsch_magento';
+            nlapiLogExecution('debug','System Notes Sync User Event Called');
             if(executionContext !== 'scheduled' && (type == 'edit' || type == 'xedit')) {
+                record = nlapiLoadRecord(nlapiGetRecordType(), nlapiGetRecordId());
                 //Only for magento orders
                 if (!!record.getFieldValue('custbody_magentoid')) {
                     //Saving sales order id for system note sync
