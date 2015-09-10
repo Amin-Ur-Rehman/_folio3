@@ -129,6 +129,7 @@ var SyncSystemNotes = (function() {
             var responseMagento;
             var lastSyncDate;
             var historyDataObjs;
+            var externalOrderStatus;
 
             for(var i = 0; i < count; i++) {
                 try {
@@ -153,16 +154,23 @@ var SyncSystemNotes = (function() {
                     }
                     //Current Magento Store Configuration Found
                     if(!!currentStoreObject) {
-                        //Getting XML for Add Comment Call
-                        xmlForAddCommentCall = XmlUtility.getAddSalesOrderCommentXML(currentStoreObject.sessionID, requestDataObject);
+                        Utility.logDebug('End Point for Custom Calls',currentStoreObject.entitySyncInfo.magentoCustomizedApiUrl);
+                        externalOrderStatus = SystemNotesSyncHelper.getOrderStatus(requestDataObject.soMagentoId,currentStoreObject.entitySyncInfo.magentoCustomizedApiUrl);
+                        Utility.logDebug('externalOrder status',externalOrderStatus);
+                        if(externalOrderStatus !='error') {
+                            requestDataObject.orderstatus = externalOrderStatus;
+                            //Getting XML for Add Comment Call
+                            xmlForAddCommentCall = XmlUtility.getAddSalesOrderCommentXML(currentStoreObject.sessionID, requestDataObject);
 
-                        if(!!xmlForAddCommentCall) {
-                            responseMagento = XmlUtility.validateAddCommentResponse(XmlUtility.soapRequestToMagentoSpecificStore(xmlForAddCommentCall, currentStoreObject));
+                            if (!!xmlForAddCommentCall) {
+                                responseMagento = XmlUtility.validateAddCommentResponse(XmlUtility.soapRequestToMagentoSpecificStore(xmlForAddCommentCall, currentStoreObject));
+                            }
+                            SystemNotesSyncHelper.postSyncActions(responseMagento, currentRecord, records[i], lastSyncDate);
                         }
-                        SystemNotesSyncHelper.postSyncActions(responseMagento, currentRecord, records[i],lastSyncDate);
-                        if(this.rescheduleIfNeeded(context)) {
-                            return;
-                        }
+                            if (this.rescheduleIfNeeded(context)) {
+                                return;
+                            }
+
                     }
                 } catch(e) {
                     nlapiLogExecution('ERROR', 'Error during processRecords', e.toString());

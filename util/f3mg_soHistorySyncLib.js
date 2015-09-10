@@ -35,14 +35,12 @@ var SystemNotesSyncHelper = (function() {
                 columns.push(new nlobjSearchColumn('type', 'systemNotes', 'group'));
                 columns.push(new nlobjSearchColumn('oldvalue', 'systemNotes', 'group'));
                 columns.push(new nlobjSearchColumn('newvalue', 'systemNotes', 'group'));
-                Utility.logDebug('before search');
-
                 //sorting on date field
                 columns[0].setSort();
 
                 if(filters.length > 0)
                     transaction = nlapiSearchRecord('transaction', null, filters, columns);
-                Utility.logDebug('transaction', transaction.length);
+
                 if(!!transaction && transaction.length > 0) {
                     for(var i = 0; i < transaction.length; i++) {
                         if(transaction[i].getValue('field', 'systemNotes', 'group').toLowerCase() !== 'custbody_history_last_synced') {
@@ -97,6 +95,34 @@ var SystemNotesSyncHelper = (function() {
             data['id'] = queueRecord.internalId;
             data['custrecord_f3mg_rts_status'] = RecordsToSync.Status.Processed;
             RecordsToSync.upsert(data);
+        },
+        getOrderStatus:function(externalOrderId,endPoint)
+        {
+            var responseObj;
+            var responseBody;
+            var orderStatus='';
+            var postData = {};
+            var API_METHOD ='getSalesOrderInfo';
+            try
+            {
+                if(!!externalOrderId && !!endPoint) {
+                    postData.data = {};
+                    postData.data = JSON.stringify({"orderIncrementId": externalOrderId});
+                    postData.apiMethod = API_METHOD;
+                    responseObj = nlapiRequestURL(endPoint, postData);
+                    responseBody = JSON.parse(responseObj.getBody());
+                    Utility.logDebug('responseJSON',responseObj.getBody());
+                    if (responseBody.status === 1 && !!responseBody.data)
+                        orderStatus = responseBody.data.status;
+                    else
+                        orderStatus = 'error';
+                }
+            }catch(ex)
+            {
+                orderStatus = 'error';
+                Utility.logDebug('SystemNotesSyncHelper.getOrderStatus',ex.toString());
+            }
+            return orderStatus;
         }
     };
 })();
