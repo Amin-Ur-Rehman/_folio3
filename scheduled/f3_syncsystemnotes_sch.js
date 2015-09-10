@@ -128,6 +128,7 @@ var SyncSystemNotes = (function() {
             var data = {};
             var responseMagento;
             var lastSyncDate;
+            var historyDataObjs;
 
             for(var i = 0; i < count; i++) {
                 try {
@@ -135,8 +136,9 @@ var SyncSystemNotes = (function() {
                     currentRecord = nlapiLoadRecord('salesorder', records[i].recordId);
                     requestDataObject.soMagentoId = currentRecord.getFieldValue('custbody_magentoid');
                     lastSync = currentRecord.getFieldValue('custbody_history_last_synced');
-                    history = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync)['historyData'];
-                    lastSyncDate = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync)['lastSyncDate'];
+                    historyDataObjs = SystemNotesSyncHelper.getSystemNotesForSalesOrder(records[i].recordId, lastSync);
+                    history = historyDataObjs['historyData'];
+                    lastSyncDate = historyDataObjs['lastSyncDate'];
                     requestDataObject.history = nlapiEscapeXML(history);
                     currentStoreObject = _.find(externalSystemArr, function(store) {
                         if(!!store) return store.systemId === currentRecord.getFieldValue('custbody_f3mg_magento_store')
