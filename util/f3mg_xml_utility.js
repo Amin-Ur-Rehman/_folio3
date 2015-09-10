@@ -1356,6 +1356,7 @@ XmlUtility = (function() {
                 xml = xml + '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionID + '</sessionId>';
                 xml = xml + '<orderIncrementId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + dataObject.soMagentoId + '</orderIncrementId>';
                 xml = xml + '<comment xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + dataObject.history + '</comment>';
+                xml = xml + '<status xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + dataObject.orderstatus + '</status>';
                 xml = xml + '<notify xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance"/>';
                 xml = xml + '</urn:salesOrderAddComment>';
                 xml = xml + '</soapenv:Body>';
