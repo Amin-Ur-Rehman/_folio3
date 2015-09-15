@@ -1169,6 +1169,7 @@ function F3OrsonGygiClient() {
     currentClient.setGiftCardLineItem = function (rec, quoteId) {
         // set gift card discount amount
         var discount = 0;
+        var giftCertCode = null;
         try {
             Utility.logDebug("setGiftCardLineItem - quoteId", quoteId);
             var url = ConnectorConstants.CurrentStore.entitySyncInfo.magentoCustomizedApiUrl;
@@ -1186,24 +1187,41 @@ function F3OrsonGygiClient() {
                 Utility.logDebug("setGiftCardLineItem - giftcardAmount", discount);
                 discount = !Utility.isBlankOrNull(discount) && !isNaN(discount) ? parseFloat(Math.abs(discount)) : 0;
                 Utility.logDebug("setGiftCardLineItem - giftcardAmount", discount);
+                giftCertCode = responseData.data["code"];
             }
 
             if (discount > 0) {
-                discount = discount * (-1);
+                var giftCertCodeId = this.getGiftCertcode(giftCertCode);
 
-                rec.selectNewLineItem("item");
-                rec.setCurrentLineItemValue("item", "item", ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.giftCardItem);
-                // set custom price level
-                rec.setCurrentLineItemValue("item", "price", "-1");
-                rec.setCurrentLineItemValue("item", "amount", discount);
-                rec.commitLineItem("item");
+                rec.setLineItemValue("giftcertredemption", "authcode", 1, giftCertCodeId);
+                rec.setLineItemValue("giftcertredemption", "authcodeapplied", 1, discount);
             } else {
-                Utility.logDebug("setGiftCardLineItem", "Gift Card Discount is not applied");
+                Utility.logDebug("setGiftCardLineItem", "Gift Card is not found in Magento Sales Order");
             }
 
         } catch (e) {
             Utility.logException('Error in Fetching Discount', e);
         }
+    };
+
+    currentClient.getGiftCertcode = function (code) {
+        if (Utility.isBlankOrNull(code)) {
+            return null;
+        }
+
+        var fils = [];
+        var results = null;
+        var giftCertcode = null;
+
+        fils.push(new nlobjSearchFilter("giftcertcode", null, "is", code, null));
+
+        results = nlapiSearchRecord("giftcertificate", null, fils, null);
+
+        if (!!results) {
+            giftCertcode = results[0].getId();
+        }
+
+        return giftCertcode;
     };
 
     return currentClient;
