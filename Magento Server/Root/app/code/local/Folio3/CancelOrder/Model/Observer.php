@@ -26,11 +26,10 @@ class Folio3_CancelOrder_Model_Observer
             $new_data = $observer->getEvent()->getData('data_object')->getData();
             Mage::log(json_encode($original_data));
             Mage::log(json_encode($new_data));
-            if (($original_data['state'] !== $new_data['state']) && ($new_data['state'] == Mage_Sales_Model_Order::STATE_CANCELED)) {
+            if (($original_data['state'] != $new_data['state']) && ($new_data['state'] == Mage_Sales_Model_Order::STATE_CANCELED)) {
                 Mage::log("Yes+Cancel", null, 'cancel-order.log', true);
-                /**
-                 * Close order in NetSuite when order is cancelled in Magento
-                 */
+                 //Close order in NetSuite when order is cancelled in Magento
+                 
                 $this->cancelSalesOrder($new_data['increment_id']);
 
                 // to display message after canceling the order
