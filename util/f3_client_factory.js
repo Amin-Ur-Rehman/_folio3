@@ -778,16 +778,6 @@ function F3OrsonGygiClient() {
         Utility.logDebug('setting payment ', '');
 
         //   rec.setFieldValue('tranid', order.increment_id);
-        var shipMethodDetail = order.shipment_method;
-        shipMethodDetail = (shipMethodDetail + '').split('_');
-
-        var shippingCarrier = shipMethodDetail.length === 2 ? shipMethodDetail[0] : '';
-        var shippingMethod = shipMethodDetail.length === 2 ? shipMethodDetail[1] : '';
-
-        shippingCarrier = FC_ScrubHandler.getMappedValue('ShippingCarrier', shippingCarrier);
-        shippingMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shippingMethod);
-
-        var shippingMethodLookupKey = order.shipment_method;
         Utility.logDebug('outside check', '');
         Utility.logDebug('order.shipment_method', order.shipment_method);
         Utility.logDebug('products', JSON.stringify(products));
@@ -796,60 +786,18 @@ function F3OrsonGygiClient() {
             Utility.logDebug('inside check', '');
             // If shipment_method iss empty, and all products in order are 'gift cards',
             // (Note: No shipping information required if you add only gift cards product in an order)
-            shippingMethodLookupKey = ConnectorConstants.DefaultValues.shippingMethod.UPS_EMPTY;
+            salesOrderObj.order.shipment_method = "DEFAULT_NS";
         }
 
-
-        Utility.logDebug('shippingMethodLookupKey_w', shippingMethodLookupKey);
-        var shippingMethodLookupValue = FC_ScrubHandler.getMappedKeyByValue('ShippingMethod', shippingMethodLookupKey);
-        Utility.logDebug('shippingMethodLookupValue_w', shippingMethodLookupValue);
-        if (!!shippingMethodLookupValue && shippingMethodLookupValue != shippingMethodLookupKey) {
-            var shippingMethodValuesArray = shippingMethodLookupValue.split('_');
-            shippingCarrier = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[0] : shippingCarrier;
-            shippingMethod = shippingMethodValuesArray.length === 2 ? shippingMethodValuesArray[1] : shippingMethod;
-        }
-
-        Utility.logDebug('finalShippingCarrier_w', shippingCarrier);
-        Utility.logDebug('finalShippingMethod_w', shippingMethod);
-
-        var shippingCost = order.shipping_amount || 0;
-
-        if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
-            rec.setFieldValue('shipcarrier', shippingCarrier);
-            rec.setFieldValue('shipmethod', shippingMethod);
-            rec.setFieldValue('shippingcost', shippingCost);
-        }
-        // rec.setFieldValue('taxitem',-2379);
-
-        Utility.logDebug('order.shipping_amount ', order.shipping_amount);
-        Utility.logDebug('setting method ', order.shipment_method);
-
+        // set csutomer in order
         rec.setFieldValue('entity', netsuiteCustomerId);
 
-        if (!ConnectorCommon.isDevAccount()) {
-            var orderClass = ConnectorCommon.getOrderClass(order.store_id);
-            //rec.setFieldValue('department', '20');// e-Commerce : Herman Street- Cost Service
-            //rec.setFieldValue('class', orderClass);
-            //rec.setFieldValue('location', 1);//Goddiva Warehous...ddiva Warehouse
-            //rec.setFieldValue('shippingtaxcode', '7625');// VAT:SR-GB
-        } else {
-            rec.setFieldValue('department', '1');// Admin
-        }
+        // set shipping information
+        this.setShippingInformation(salesOrderObj, rec);
 
-        //    rec.setFieldValue('shipmethod',732);
-
-        //if ( )shipcarrier  ups nonups
-
-        //Setting shipping
-        //ConnectorCommon.setAddressV2(rec, shippingAddress, 'T');
-        //Utility.logDebug('Setting Shipping Fields', '');
-
-        //Setting billing
-        //ConnectorCommon.setAddressV2(rec, billingAddress, 'F', 'T');
-        //Utility.logDebug('Setting Billing Fields', '');
 
         // set payment details
-        ConnectorCommon.setPayment(rec, payment);
+        //ConnectorCommon.setPayment(rec, payment);
 
 
         for (var x = 0; x < products.length; x++) {
@@ -1222,6 +1170,58 @@ function F3OrsonGygiClient() {
         }
 
         return giftCertcode;
+    };
+
+    /**
+     * This method sets the shipping cost,
+     * @param salesOrderObj
+     * @param rec
+     */
+    currentClient.setShippingInformation = function (salesOrderObj, rec) {
+        var systemId = ConnectorConstants.CurrentStore.systemId;
+        var order = salesOrderObj.order;
+
+        // settting shipping method: start
+
+        var orderShipMethod = order.shipment_method + '';
+        var shippingCost = order.shipping_amount || 0;
+
+        Utility.logDebug('XML', 'orderShipMethod: ' + orderShipMethod);
+
+        //var nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod_' + systemId, orderShipMethod);
+        var nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', orderShipMethod);
+        var shippingCarrier;
+        var shippingMethod;
+
+        Utility.logDebug('SCRUB', 'nsShipMethod: ' + nsShipMethod);
+
+        // if no mapping is found then search for default
+        if (orderShipMethod === nsShipMethod) {
+            //nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod_' + systemId, 'DEFAULT_NS');
+            nsShipMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', 'DEFAULT_NS');
+        }
+
+        Utility.logDebug('Final SCRUB', 'nsShipMethod: ' + nsShipMethod);
+
+        nsShipMethod = (nsShipMethod + '').split('_');
+
+        shippingCarrier = nsShipMethod.length === 2 ? nsShipMethod[0] : '';
+        shippingMethod = nsShipMethod.length === 2 ? nsShipMethod[1] : '';
+
+        if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
+            rec.setFieldValue('shipcarrier', shippingCarrier);
+            rec.setFieldValue('shipmethod', shippingMethod);
+            rec.setFieldValue('shippingcost', shippingCost);
+        } else {
+            rec.setFieldValue('shipcarrier', '');
+            rec.setFieldValue('shipmethod', '');
+            rec.setFieldValue('shippingcost', '');
+        }
+
+        Utility.logDebug('order.shipping_amount ', order.shipping_amount);
+        Utility.logDebug('setting method ', nsShipMethod.join(','));
+
+        // settting shipping method: end
     };
 
     return currentClient;

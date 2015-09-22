@@ -1135,15 +1135,18 @@ XmlUtility = (function() {
 
             productXml = productXml + '<products xsi:type="urn:shoppingCartProductEntityArray" soapenc:arrayType="urn:shoppingCartProductEntity[1]">';
 
-            for(var counter = 0; counter < items.length; counter++) {
+            for (var counter = 0; counter < items.length; counter++) {
                 var item = items[counter];
 
                 productXml += '<item>';
                 productXml += '<sku>' + encodeURIComponent(item.sku) + '</sku>';
                 productXml += '<qty>' + item.quantity + '</qty>';
                 productXml += '<customprice>' + item.price + '</customprice>';
-                productXml += '</item>';
 
+                // making xml for gift product if exist
+                productXml += this.getProductGiftInfoXml(item);
+
+                productXml += '</item>';
             }
 
             productXml = productXml + '</products>';
@@ -1152,8 +1155,53 @@ XmlUtility = (function() {
         },
 
         /**
+         * making xml for gift product if exist
+         * @param {Object} item
+         * @return {string}
+         */
+        getProductGiftInfoXml:function(item){
+            var xml = "";
+
+            // if item object is null or undefined then return blank
+            if (Utility.isBlankOrNull(item)) {
+                return xml;
+            }
+
+            // if item object don't has giftInfo property then return blank
+            if (!item.hasOwnProperty("giftInfo")) {
+                return xml;
+            }
+
+            var giftInfo = item.giftInfo;
+
+            // if item object has giftInfo object and andn gift info attributes count is zero then return blank
+            if (Object.keys(giftInfo).length === 0) {
+                return xml;
+            }
+
+            xml += '<f3_gc_info xsi:type="urn:f3GcInfoEntityArray" soapenc:arrayType="urn:f3GcInfoEntity[1]">';
+
+            xml += '<f3GcInfoEntity>';
+
+            xml += '<aw_gc_sender_name>' + giftInfo.giftCertFrom + '</aw_gc_sender_name>';
+            xml += '<aw_gc_sender_email>' + giftInfo.giftCertFromEmail + '</aw_gc_sender_email>';
+            xml += '<aw_gc_recipient_name>' + giftInfo.giftCertRecipientName + '</aw_gc_recipient_name>';
+            xml += '<aw_gc_recipient_email>' + giftInfo.giftCertRecipientEmail + '</aw_gc_recipient_email>';
+            xml += '<aw_gc_message>' + giftInfo.giftCertMessage + '</aw_gc_message>';
+            xml += '<aw_gc_code>' + giftInfo.giftCertNumber + '</aw_gc_code>';
+            xml += '<aw_gc_amount>' + giftInfo.giftCertAmount + '</aw_gc_amount>';
+            xml += '</f3GcInfoEntity>';
+
+            xml += '</f3_gc_info>';
+
+            return xml;
+        },
+
+        /**
          * Description of method getShippingAndPaymentXml
-         * @param parameter
+         * @param shipmentMethod
+         * @param paymentMethod
+         * @return {string}
          */
         getShippingAndPaymentXml: function(shipmentMethod, paymentMethod) {
 
@@ -1216,7 +1264,29 @@ XmlUtility = (function() {
 
             return statusXml;
         },
+        /**
+         * Create XML chunk for gift certificates applied to the order for discount
+         * @param {Array} giftCertificates
+         * @return {string}
+         */
+        getGiftCertificatesXml: function (giftCertificates) {
+            var giftCertificatesXml = "";
 
+            giftCertificatesXml += '<giftCodes xsi:type="urn:giftCodeEntityArray" soapenc:arrayType="urn:giftCodeEntity[' + giftCertificates.length + ']">';
+
+            for (var counter = 0; counter < giftCertificates.length; counter++) {
+                var giftCertificate = giftCertificates[counter];
+
+                giftCertificatesXml += '<giftCodeEntity>';
+                giftCertificatesXml += '<auth_code>' + giftCertificate.authCode + '</auth_code>';
+                giftCertificatesXml += '<auth_code_applied_amt>' + giftCertificate.authCodeAppliedAmt + '</auth_code_applied_amt>';
+                giftCertificatesXml += '</giftCodeEntity>';
+            }
+
+            giftCertificatesXml += '</giftCodes>';
+
+            return giftCertificatesXml;
+        },
         /**
          * Creates XML for Sales Order and returns
          * @param orderCreationInfo
@@ -1232,6 +1302,7 @@ XmlUtility = (function() {
             var paymentInfo = orderCreationInfo.paymentInfo;
             var history = orderCreationInfo.history;
             var status = orderCreationInfo.status;
+            var giftCertificates = orderCreationInfo.giftCertificates;
 
             var customerXml = this.getCustomerXmlForSaleOrder(customer);
             var productsXml = this.getProductsXmlForSaleOrder(items);
@@ -1239,6 +1310,7 @@ XmlUtility = (function() {
             var paymentXml = this.getPaymentXml(paymentInfo);
             var historyXml = this.getHistoryXml(history);
             var statusXml = this.getStatusXml(status);
+            var giftCertificatesXml = this.getGiftCertificatesXml(giftCertificates);
 
             orderXml = this.XmlHeader;
             orderXml = orderXml + '<urn:folio3_salesOrderCreateSalesOrder soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
@@ -1250,6 +1322,7 @@ XmlUtility = (function() {
             orderXml = orderXml + paymentXml;
             orderXml = orderXml + historyXml;
             orderXml = orderXml + statusXml;
+            orderXml = orderXml + giftCertificatesXml;
             orderXml = orderXml + '</urn:folio3_salesOrderCreateSalesOrder>';
             orderXml = orderXml + this.XmlFooter;
 

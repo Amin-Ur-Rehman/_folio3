@@ -368,6 +368,19 @@
                     </restriction>
                 </complexContent>
             </complexType>
+            <complexType name="giftCodeEntity">
+                <all>
+                    <element name="auth_code" type="xsd:string" minOccurs="1" maxOccurs="1"/>
+                    <element name="auth_code_applied_amt" type="xsd:string" minOccurs="1" maxOccurs="1"/>
+                </all>
+            </complexType>
+            <complexType name="giftCodeEntityArray">
+                <complexContent>
+                    <restriction base="soapenc:Array">
+                        <attribute ref="soapenc:arrayType" wsdl:arrayType="typens:giftCodeEntity[]"/>
+                    </restriction>
+                </complexContent>
+            </complexType>
         </schema>
     </types>
     <message name="folio3_salesOrderGetSalesOrderInfoRequest">
@@ -387,6 +400,7 @@
         <part name="paymentmethod" type="typens:shoppingCartPaymentMethodEntity"/>
         <part name="history" type="xsd:string" />
         <part name="status" type="xsd:string" />
+        <part name="giftCodes" type="typens:giftCodeEntityArray"/>
     </message>
     <message name="folio3_salesOrderCreateSalesOrderResponse">
         <part name="result" type="typens:customObjectEntityArray" />
