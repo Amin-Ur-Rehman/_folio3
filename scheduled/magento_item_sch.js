@@ -55,6 +55,7 @@ function getMagentoParents(itemId) {
  */
 function syncProduct(product, productRecordtype, product_id, sessionID, isParent) {
     try {
+        Utility.logDebug('Sync Product ',isParent);
         var itemXML;
         // check if Magento Item is in Netsuite
         if (!Utility.isBlankOrNull(product.magentoSKU)) {
@@ -64,7 +65,9 @@ function syncProduct(product, productRecordtype, product_id, sessionID, isParent
                 Utility.logDebug('Product couldn\'t update', product.magentoSKU);
                 return;
             }
+
             itemXML = XmlUtility.getUpdateItemXML(product, sessionID, magID, isParent);
+            Utility.logDebug('itemXML',itemXML);
             var responseMagento = XmlUtility.validateItemExportResponse(XmlUtility.soapRequestToMagento(itemXML), 'update');
             // If due to some reason Magento item is unable to update
             // Send Email Magento Side error
@@ -136,8 +139,13 @@ function ws_soaftsubm(type) {
                 var column = [];
 
                 filter.push(new nlobjSearchFilter('internalidnumber', null, 'greaterthan', !!paramInternalId ? paramInternalId : '-1', null));
+                //filter.push(new nlobjSearchFilter('internalid', null, 'is', '387'));
                 filter.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoSync, null, 'is', 'T', null));
                 filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', lastModifiedDate, null));
+                //filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', '8/18/2015 8:15 am', null));
+                // for test add this filter by allozhu
+                //filter.push(new nlobjSearchFilter('internalid', null, 'anyof', ["728"], null));
+
 
                 var col = new nlobjSearchColumn('internalid', null, null);
                 col.setSort(false);
@@ -145,7 +153,7 @@ function ws_soaftsubm(type) {
                 column.push(new nlobjSearchColumn('modified', null, null));
 
                 var records = nlapiSearchRecord('item', null, filter, column) || [];
-
+                Utility.logDebug('record count', ' ' + records.length);
                 Utility.logDebug('parammm', paramInternalId);
                 var skip = false;
 
@@ -165,37 +173,43 @@ function ws_soaftsubm(type) {
                         }
 
                         var itemRec = nlapiLoadRecord(records[j].getRecordType(), product_id, null);
-
+                        Utility.logDebug('itemRec', JSON.stringify(itemRec));
 
                         // handling multiple stores
 
+                        Utility.logDebug('externalSystemArr length', externalSystemArr.length + ' ');
                         externalSystemArr.forEach(function (store) {
+                            Utility.logDebug('Inside externalSystemArr', '');
                             ConnectorConstants.CurrentStore = store;
-
+                            Utility.logDebug('checkpoint', '1');
                             var magentoId = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
                             // parse object
                             magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
                             //getting magento id from json array for the store
                             magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, store.systemId);
-
+                            Utility.logDebug('checkpoint', '2');
                             // skip item if no magento id found
                             if (Utility.isBlankOrNull(magentoId)) {
+                                Utility.logDebug('checkpoint', '3');
                                 return;
                             }
-
+                            Utility.logDebug('checkpoint', '4');
                             // getting store price level
                             var soprice = store.entitySyncInfo.item.priceLevel;
                             Utility.logDebug('priceLevel', soprice);
+                            Utility.logDebug('checkpoint', '5');
                             var sessionID = store.sessionID;
                             var quantityLocation = store.entitySyncInfo.item.quantityLocation;
 
                             var product = {};
                             // product.queenStock = itemRec.getFieldValue('custitem_queenst_stock');
                             if (!ConnectorCommon.isDevAccount()) {
+                                Utility.logDebug('checkpoint', '6');
                                 // TODO: check multipricing feature
                                 product.price = itemRec.getLineItemValue('price', 'price_1_', soprice) || 0;
                                 // check  multi location feature
                                 if (Utility.isMultiLocInvt()) {
+                                    Utility.logDebug('checkpoint', '7');
                                     var locLine = itemRec.findLineItemValue('locations', 'location', quantityLocation);
                                     //product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', locLine) || 0;
                                     product.quatity = itemRec.getLineItemValue('locations', 'quantityavailable', locLine) || 0;
@@ -204,6 +218,7 @@ function ws_soaftsubm(type) {
                                 }
 
                             } else {
+                                Utility.logDebug('checkpoint', '8');
                                 product.price = itemRec.getLineItemValue('price1', 'price_1_', soprice) || 0;
                                 //product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', 1) || 0;
                                 product.quatity = itemRec.getLineItemValue('locations', 'quantityavailable', 1) || 0;
@@ -211,29 +226,34 @@ function ws_soaftsubm(type) {
 
                             var productRecordtype = records[j].getRecordType();
                             var matrixType = itemRec.getFieldValue('matrixtype');
-
+                            Utility.logDebug('checkpoint', '9');
                             // if matrix parent then getting magento ids from custom records
                             // TODO: changes matrix science
                             if (matrixType === 'PARENT') {
+                                Utility.logDebug('checkpoint', '10');
                                 var mgParentRecs = getMagentoParents(product_id);
                                 for (var p in mgParentRecs) {
                                     var mgParentRec = mgParentRecs[p];
                                     var mgProductId = mgParentRec.getValue('custrecord_mpss_magento_id');
                                     product.magentoSKU = mgProductId;
+                                    Utility.logDebug('updating now matrix... ', 'updating now... ');
                                     syncProduct(product, productRecordtype, product_id, sessionID, true);
                                 }
                                 // Updated Successfully
                                 Utility.logDebug('item id: ' + product_id, 'configurable items are synced successfully');
                                 //nlapiSubmitField(productRecordtype, product_id, 'custitem_item_sync', 'F');
                             } else {
+                                Utility.logDebug('checkpoint', '11');
                                 // if child matrix item
                                 product.magentoSKU = magentoId;
+                                Utility.logDebug('updating now... ', 'updating now... ');
                                 syncProduct(product, productRecordtype, product_id, sessionID, false);
                             }
 
                             // handle script rescheduling
                             var usageRemaining = context.getRemainingUsage();
                             if (usageRemaining < 2000) {
+                                Utility.logDebug('checkpoint', '12');
                                 var params = [];
                                 params[ConnectorConstants.ScriptParameters.LastInternalId] = product_id;
                                 params[ConnectorConstants.ScriptParameters.ScriptStartDate] = scriptStartDate;
@@ -256,6 +276,7 @@ function ws_soaftsubm(type) {
             } while (records.length > 0);
 
             // update date in custom record
+            Utility.logDebug('Last Run Date', scriptStartDate);
             InventorySyncScript.updateStatus('Last Run Date', scriptStartDate);
 
         } catch (e) {

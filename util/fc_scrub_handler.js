@@ -150,6 +150,59 @@ var FC_ScrubHandler = (function () {
         getMappedKeyByValue: function (objectType, value) {
             var val = scrubDataByLookup(objectType, value, true);
             return val;
+        },
+
+        /**
+         * For shipping methods mapping from Magento to NetSuite using custom script column
+         * @param objectType
+         * @param key
+         * @param dataObj
+         * @return {*}
+         * @private
+         */
+        _scrubDataByLookup: function (objectType, key, dataObj) {
+            var scrubbedValue = '';
+            var script;
+
+            var filters = [];
+
+            var filter = new nlobjSearchFilter('formulatext', null, 'is', objectType, null);
+            filter.setFormula('{custrecord_fc_scrub_type}');
+            filters.push(filter);
+
+            filters.push(new nlobjSearchFilter('custrecord_fc_scrub_key', null, 'is', key, null));
+
+            var columns = [];
+            columns.push(new nlobjSearchColumn('custrecord_fc_scrub_value', null, null));
+            columns.push(new nlobjSearchColumn('custrecord_fc_scrub_script', null, null));
+
+            var res = nlapiSearchRecord('customrecord_fc_scrub', null, filters, columns);
+            if (!!res && res.length > 0) {
+                // get javascript code
+                script = res[0].getValue('custrecord_fc_scrub_script', null, null);
+                if (!!script) {
+                    // make a javascript function using code of string
+                    var customFunction = new Function('return ' + script)();
+                    // call the recently made method
+                    scrubbedValue = customFunction(dataObj);
+                } else {
+                    scrubbedValue = res[0].getValue('custrecord_fc_scrub_value', null, null);
+                }
+            }
+
+            return !!scrubbedValue ? scrubbedValue : key;
+        },
+        /**
+         * Get value by key
+         * @param objectType
+         * @param key
+         * @param dataObj
+         * @return {*}
+         * @private
+         */
+        _getMappedValue: function (objectType, key, dataObj) {
+            var val = this._scrubDataByLookup(objectType, key, dataObj);
+            return val;
         }
 
     };

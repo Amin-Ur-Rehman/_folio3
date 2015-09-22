@@ -63,10 +63,10 @@ class F3_Generic_Api_Base
 
             $connectionRead = Mage::getSingleton('core/resource')->getConnection('core_read');
 
+            // SELECT quote_entity_id, giftcard_id, link_id, base_giftcard_amount, giftcard_amount, code FROM aw_giftcard_quote_totals JOIN aw_giftcard ON giftcard_id = entity_id WHERE quote_entity_id=123;
+
             // making select query
-            $select = $connectionRead->select()
-                ->from("aw_giftcard_quote_totals", array("quote_entity_id", "giftcard_id", "link_id", "base_giftcard_amount", "giftcard_amount"))
-                ->where("quote_entity_id" . '=?', $quoteId);
+            $select = "SELECT quote_entity_id, giftcard_id, link_id, base_giftcard_amount, giftcard_amount, code FROM aw_giftcard_quote_totals JOIN aw_giftcard ON giftcard_id = entity_id WHERE quote_entity_id = $quoteId";
 
             // we only need to know if the row exist or not
             $result = $connectionRead->fetchRow($select);
@@ -79,12 +79,14 @@ class F3_Generic_Api_Base
                 $responseData["linkId"] = $result["link_id"];
                 $responseData["baseGiftcardAmount"] = $result["base_giftcard_amount"];
                 $responseData["giftcardAmount"] = $result["giftcard_amount"];
+                $responseData["code"] = $result["code"];
             } else {
                 $responseData["quoteEentityId"] = null;
                 $responseData["giftcardId"] = null;
                 $responseData["linkId"] = null;
                 $responseData["baseGiftcardAmount"] = 0;
                 $responseData["giftcardAmount"] = 0;
+                $responseData["code"] = null;
             }
 
 

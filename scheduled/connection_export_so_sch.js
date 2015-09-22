@@ -35,7 +35,7 @@ var OrderExportHelper = (function () {
 
             var currentDate = Utility.getDateUTC(0);
             //Utility.logDebug('currentDate', currentDate);
-            var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
+            var oldDate = nlapiAddDays(currentDate, '-' + ageOfRecordsToSyncInDays);
             //Utility.logDebug('oldDate', oldDate);
             oldDate = nlapiDateToString(oldDate);
             //Utility.logDebug('first nlapiDateToString', oldDate);
@@ -43,14 +43,16 @@ var OrderExportHelper = (function () {
             //Utility.logDebug('oldDate toLowerCase', oldDate);
             oldDate = nlapiDateToString(nlapiStringToDate(oldDate, 'datetime'), 'datetime');
             //Utility.logDebug('oldNetsuiteDate', oldDate);
-            filters.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
+            // TODO: undo this check
+            //filters.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', oldDate, null));
 
             if (!allStores) {
                 filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             } else {
                 filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
-            //filters.push(new nlobjSearchFilter('internalid', null, 'is', '7173', null));
+            // testing - order # 123
+            filters.push(new nlobjSearchFilter('internalid', null, 'is', '147724', null));
             filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
@@ -234,6 +236,14 @@ var OrderExportHelper = (function () {
                 var itemPrice;
                 var line;
                 var itemIdsArr = [];
+                var giftInfo = {};
+                var giftCertRecipientEmail;
+                var giftCertFrom;
+                var giftCertFromEmail;
+                var giftCertRecipientName;
+                var giftCertMessage;
+                var giftCertNumber;
+                var giftCertAmount;
                 var totalLines = orderRecord.getLineItemCount('item');
 
                 for (line = 1; line <= totalLines; line++) {
@@ -252,11 +262,32 @@ var OrderExportHelper = (function () {
                     itemQty = orderRecord.getLineItemValue('item', 'quantity', line) || 0;
                     itemPrice = orderRecord.getLineItemValue('item', 'rate', line) || 0;
 
+                    // gift card item handling - assuming that if recipient email exit it means that gift item exit
+                    giftCertRecipientEmail = orderRecord.getLineItemValue('item', 'giftcertrecipientemail', line);
+                    if (!Utility.isBlankOrNull(giftCertRecipientEmail)) {
+                        giftCertFrom = orderRecord.getLineItemValue('item', 'giftcertfrom', line);
+                        giftCertRecipientName = orderRecord.getLineItemValue('item', 'giftcertrecipientname', line);
+                        giftCertMessage = orderRecord.getLineItemValue('item', 'giftcertmessage', line);
+                        giftCertNumber = orderRecord.getLineItemValue('item', 'giftcertnumber', line);
+                        giftCertAmount = orderRecord.getLineItemValue('item', 'amount', line);
+                        // if email not exist set dummy email address
+                        giftCertFromEmail = orderRecord.getFieldValue('email') || "empty@empty.com";
+
+                        giftInfo.giftCertRecipientEmail = giftCertRecipientEmail;
+                        giftInfo.giftCertFrom = giftCertFrom;
+                        giftInfo.giftCertFromEmail = giftCertFromEmail;
+                        giftInfo.giftCertRecipientName = giftCertRecipientName;
+                        giftInfo.giftCertMessage = giftCertMessage;
+                        giftInfo.giftCertNumber = giftCertNumber;
+                        giftInfo.giftCertAmount = giftCertAmount;
+                    }
+
                     var obj = {
                         itemId: itemId,
                         sku: sku,
                         quantity: itemQty,
-                        price: itemPrice
+                        price: itemPrice,
+                        giftInfo: giftInfo
                     };
                     arr.push(obj);
                 }
@@ -312,6 +343,35 @@ var OrderExportHelper = (function () {
 
             orderDataObject.paymentInfo = obj;
         },
+        /**
+         * This function appends the gift card certificates in order data object
+         * @param orderRecord
+         * @param orderDataObject
+         */
+        appendGiftCardInfoInDataObject: function (orderRecord, orderDataObject) {
+            var giftCertificates = [];
+
+            // getting gift certificates count
+            var count = orderRecord.getLineItemCount("giftcertredemption");
+
+            for (var line = 1; line <= count; line++) {
+                // getting gift code as text becasue value returns NetSuite's id of value and amount
+                var authCode = orderRecord.getLineItemText("giftcertredemption", "authcode", line);
+                var authCodeAppliedAmt = orderRecord.getLineItemValue("giftcertredemption", "authcodeapplied", line) || 0;
+
+                // amount is zero against gift card - skip it
+                if (parseFloat(authCodeAppliedAmt) === 0) {
+                    continue;
+                }
+
+                var obj = {};
+                obj.authCode = authCode;
+                obj.authCodeAppliedAmt = authCodeAppliedAmt;
+                giftCertificates.push(obj);
+            }
+
+            orderDataObject.giftCertificates = giftCertificates;
+        },
 
         /**
          * Gets a single Order
@@ -340,8 +400,9 @@ var OrderExportHelper = (function () {
                     this.appendItemsInDataObject(orderRecord, orderDataObject);
                     this.appendShippingInfoInDataObject(orderRecord, orderDataObject);
                     this.appendPaymentInfoInDataObject(orderRecord, orderDataObject);
+                    this.appendGiftCardInfoInDataObject(orderRecord, orderDataObject);
 
-                    if(!!orderDataObject.cancelledMagentoSOId) {
+                    if (!!orderDataObject.cancelledMagentoSOId) {
                         orderDataObject.history += orderDataObject.cancelledMagentoSOId + 'E';
                     }
 
@@ -381,9 +442,9 @@ var OrderExportHelper = (function () {
                 for (var i = 1; i <= soRecord.getLineItemCount('item'); i++) {
                     var itemId = soRecord.getLineItemValue('item', 'item', i);
                     var sku = lineItemData[itemId];
-                    if(!!sku) {
+                    if (!!sku) {
                         var magentoOrderLineId = magentoOrderLineIdData[sku];
-                        if(!!magentoOrderLineId) {
+                        if (!!magentoOrderLineId) {
                             soRecord.setLineItemValue('item', 'custcol_mg_order_item_id', i, magentoOrderLineId);
                         }
                     }
@@ -491,7 +552,7 @@ var ExportSalesOrders = (function () {
          * Send request to megento store
          * @param orderRecord
          */
-        sendRequestToMagento: function(internalId, orderRecord, store, attemptRetryIfNeeded) {
+        sendRequestToMagento: function (internalId, orderRecord, store, attemptRetryIfNeeded) {
             var magentoIdObjArrStr,
                 nsOrderUpdateStatus,
                 requestXml,
@@ -530,13 +591,13 @@ var ExportSalesOrders = (function () {
                 OrderExportHelper.setLineItemsMagentoOrderLineIds(internalId, orderRecord, magentoOrderLineIdData);
 
             } else {
-                if(attemptRetryIfNeeded) {
+                if (attemptRetryIfNeeded) {
                     Utility.logDebug('retrying', 'retrying record synching');
                     //Utility.logDebug('orderRecord.shipmentInfo.shipmentMethod', orderRecord.shipmentInfo.shipmentMethod);
 
                     var retryStatus = retrySync(responseMagento.faultString, ConnectorConstants.RetryAction.RecordTypes.SalesOrder, orderRecord);
                     //Utility.logDebug('retryStatus.status', retryStatus.status);
-                    if(retryStatus.status) {
+                    if (retryStatus.status) {
                         var modifiedRecordObj = retryStatus.recordObj;
                         //Utility.logDebug('modifiedRecordObj.shipmentInfo.shipmentMethod', modifiedRecordObj.shipmentInfo.shipmentMethod);
                         //Utility.logDebug('retrying', 'sending to magento again with modified object');
@@ -560,19 +621,19 @@ var ExportSalesOrders = (function () {
          * @param customer
          * @param store
          */
-        processCustomer: function(customerId, magentoCustomerIds, store) {
+        processCustomer: function (customerId, magentoCustomerIds, store) {
 
             try {
                 var customerAlreadySynched = this.customerAlreadySyncToStore(magentoCustomerIds, store.systemId);
                 Utility.logDebug('magentoCustomerIds  #  store.systemId', magentoCustomerIds + '  #  ' + store.systemId);
                 Utility.logDebug('customerAlreadySynched', customerAlreadySynched);
-                if(!customerAlreadySynched) {
+                if (!customerAlreadySynched) {
                     var customerObj = {};
                     customerObj.internalId = customerId;
                     customerObj.magentoCustomerIds = magentoCustomerIds;
                     Utility.logDebug('customerObj.internalId', customerObj.internalId);
                     Utility.logDebug('customerObj.magentoCustomerIds', customerObj.magentoCustomerIds);
-                    if(!!customerObj.magentoCustomerIds) {
+                    if (!!customerObj.magentoCustomerIds) {
                         createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
                     } else {
                         createCustomerInMagento(customerObj, store);
@@ -584,7 +645,7 @@ var ExportSalesOrders = (function () {
                     customerObj.internalId = customerId;
                     customerObj.magentoCustomerIds = magentoCustomerIds;
                     Utility.logDebug('inside If customer is already synced', 'Starting');
-                    if(customer.nsObj.getFieldValue(CustomerSync.FieldName.CustomerModified) === 'T') {
+                    if (customer.nsObj.getFieldValue(CustomerSync.FieldName.CustomerModified) === 'T') {
                         // mark customer as unmodified
                         Utility.logDebug('Customer is modified', 'Mark Customer unmodified and start syncing process');
                         nlapiSubmitField(CustomerSync.internalId, customerId, CustomerSync.FieldName.CustomerModified, 'F');
@@ -594,7 +655,7 @@ var ExportSalesOrders = (function () {
                             Utility.logDebug('Customer Syncing Starting - Store', JSON.stringify(store));
                             CustomerSync.updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
                             Utility.logDebug('Customer Syncing Finished', '');
-                        } catch(ex) {
+                        } catch (ex) {
                             Utility.logException('Error in updating Customer to Magento', ex);
                         }
                     }
@@ -610,7 +671,7 @@ var ExportSalesOrders = (function () {
          * @param magentoCustomerId
          * @param storeId
          */
-        customerAlreadySyncToStore: function(magentoCustomerId, storeId) {
+        customerAlreadySyncToStore: function (magentoCustomerId, storeId) {
             var alreadySync = false;
             try {
                 if (!!magentoCustomerId) {
