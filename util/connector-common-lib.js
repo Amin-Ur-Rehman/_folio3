@@ -235,3 +235,98 @@ function getBlankForNull(data) {
     return returnValue;
 
 }
+
+/**
+ * Check either to retry synchronization process
+ * @param message
+ * @param recordType
+ * @param recordObj
+ */
+function retrySync(providedMessage, recordType, recordObj) {
+    var result = {status: false, recordObj: null};
+    var statusObj = checkRetrySyncNeeded(providedMessage);
+    //Utility.logDebug('statusObj.status', statusObj.status);
+    if(statusObj.status) {
+        result.status = true;
+        result.recordObj = getModifiedObject(statusObj.message, recordType, recordObj);
+    }
+    return result;
+}
+
+/**
+ * Check either need to retry synchronization process or not
+ * @param message
+ */
+function checkRetrySyncNeeded(providedMessage) {
+    var result = {status: false, message: ''};
+    var messages = getRetryProcessMessagesList();
+    for (var i = 0; i < messages.length; i++) {
+        var message = messages[i];
+        providedMessage = providedMessage.toLowerCase();
+        //Utility.logDebug('providedMessage', providedMessage);
+        //Utility.logDebug('message', message.toLowerCase());
+        if(message.toLowerCase().indexOf(providedMessage) > -1) {
+            result.status = true;
+            result.message = message;
+            break;
+        }
+    }
+    return result;
+}
+
+/**
+ * Get retry messages list
+ * @returns {Array}
+ */
+function getRetryProcessMessagesList() {
+    var messagesArray = [];
+    messagesArray.push(ConnectorConstants.RetryAction.Messages.SpecifyShippingMethod);
+    return messagesArray;
+}
+
+function getModifiedObject(message, recordType, recordObj) {
+    if(recordType == ConnectorConstants.RetryAction.RecordTypes.SalesOrder) {
+        //Utility.logDebug('getModifiedObject.message', message);
+        if(message == ConnectorConstants.RetryAction.Messages.SpecifyShippingMethod) {
+            //Utility.logDebug('setting default shipmentMethod', ConnectorConstants.DefaultValues.shippingMethod);
+            var data = {};
+            data.shippingCountry = getShippingCountry(recordObj.customer.addresses);
+            //Set default shipping method
+            recordObj.shipmentInfo.shipmentMethod = getDefaultShippingMethod(data);
+        }
+    }
+
+    return recordObj;
+}
+
+/**
+ * Get default shipping method
+ * @param data
+ * @returns {string}
+ */
+function getDefaultShippingMethod(data) {
+    var defaultShippingMethod = '';
+    if(data.shippingCountry == 'US') {
+        defaultShippingMethod = ConnectorConstants.DefaultValues.shippingMethod.UPS_GND;
+    } else {
+        defaultShippingMethod = ConnectorConstants.DefaultValues.shippingMethod.UPS_XPD;
+    }
+    return defaultShippingMethod;
+}
+
+/**
+ * Get shipping country from addresses array
+ * @param addresses
+ * @returns {string}
+ */
+function getShippingCountry(addresses) {
+    var shippingCountry = '';
+    for (var i = 0; i < addresses.length; i++) {
+        var address = addresses[i];
+        if(address.mode = 'shipping') {
+            shippingCountry = address.country;
+            break;
+        }
+    }
+    return shippingCountry;
+}

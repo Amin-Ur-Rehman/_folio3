@@ -167,6 +167,12 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
+            //payflow_advanced
+            if (payment.method.toString() === 'payflow_advanced') {
+                rec.setFieldValue('paymentmethod', '7');// paypal
+                rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
+                return;
+            }
         },
         getNetsuiteProductIdByMagentoIdViaMap: function (netsuiteMagentoProductMap, magentoID) {
 
@@ -282,6 +288,7 @@ var ConnectorCommon = (function () {
             var magentoIdId = ConnectorConstants.Transaction.Fields.MagentoId;
             var magentoSyncId = 'custbody_magentosyncdev';
             var fils = [];
+            fils.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             fils.push(new nlobjSearchFilter(magentoIdId, null, 'is', orderId, null));
             fils.push(new nlobjSearchFilter(magentoSyncId, null, 'is', 'T', null));
@@ -301,21 +308,11 @@ var ConnectorCommon = (function () {
 
             return soUpdateDate
         },
-        setAddresses: function (rec, addresses) {
+        setAddresses: function (rec, addresses, type) {
             Utility.logDebug('in setAddresses() start', addresses.toSource());
 
-            //this.removeAllLineItems(rec, 'addressbook');
-
             for (var i in addresses) {
-                if (addresses[i].is_default_billing && addresses[i].is_default_shipping) {
-                    rec = this.setAddress(rec, addresses[i], 'T', 'T');
-                    break;
-                }
-                else if (addresses[i].is_default_billing == true) {
-                    rec = this.setAddress(rec, addresses[i], 'F', 'T');
-                } else if (addresses[i].is_default_shipping == true) {
-                    rec = this.setAddress(rec, addresses[i], 'T', 'F');
-                }
+                rec = this.setAddress(rec, addresses[i], type);
             }
             Utility.logDebug('DEBUG', 'in setAddresses() end');
             return rec;
@@ -328,26 +325,74 @@ var ConnectorCommon = (function () {
                 }
             }
         },
-        setAddress: function (rec, address, isShipAddr, isBillAddr) {
-            Utility.logDebug('in setAddress() start', address.toSource());
-            var addr = '';
-
-            if (isShipAddr == isBillAddr) {
-                addr = 'Address';
-            } else if (isShipAddr == 'T') {
-                addr = 'Shipping Address';
+        /**
+         * Get Magento Addresses and line numbers of current system/store
+         * @param rec
+         * @return {object}
+         */
+        getCustomerAddresses: function (rec) {
+            var addresess = {};
+            var line = 1;
+            var lineCount = rec.getLineItemCount('addressbook');
+            if (lineCount > 0) {
+                for (var line = 1; line <= lineCount; line++) {
+                    // load customer subrecord(address)
+                    var addressRec = rec.viewLineItemSubrecord('addressbook', 'addressbookaddress', line);
+                    var magentoId = addressRec.getFieldValue(ConnectorConstants.OtherCustom.MagentoId);
+                    magentoId = this.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
+                    if (!Utility.isBlankOrNull(magentoId)) {
+                        addresess[magentoId] = line;
+                    }
+                }
             }
-            else if (isBillAddr == 'T') {
-                addr = 'Billing Address';
+            return addresess;
+        },
+        /**
+         * Add/update addresses in customer record
+         * @param rec
+         * @param address
+         * @param customerAddresses
+         * @return {*}
+         */
+        setAddress: function (rec, address, type) {
+            var addr, addressId, city, company,
+                countryId, firstname, lastname,
+                postcode, region, regionId, street,
+                telephone, isDefaultBilling, isDefaultShipping,
+                addressObj, magentoId;
+
+            addressId = address.customer_address_id || '';
+            city = address.city || '';
+            company = address.company || '';
+            countryId = address.country_id || '';
+            firstname = address.firstname || '';
+            lastname = address.lastname || '';
+            postcode = address.postcode || '';
+            region = address.region || '';
+            regionId = address.region_id || '';
+            street = address.street || '';
+            telephone = address.telephone || '';
+            isDefaultBilling = address.is_default_billing ? 'T' : 'F';
+            isDefaultShipping = address.is_default_shipping ? 'T' : 'F';
+
+            if (Utility.isBlankOrNull(regionId)) {
+                regionId = FC_ScrubHandler.getMappedValue('State', regionId);
+            } else {
+                regionId = FC_ScrubHandler.getMappedValue('State', region);
             }
 
-            var stAddr = address.street;
+            if (type === 'order') {
+                addressId = ConnectorConstants.DefaultAddressId;
+            }
+
+            var stAddr = street;
 
             var stAddr1;
             var stAddr2;
 
             var subStr;
             var index;
+
             if (stAddr.length > 150) {
                 subStr = stAddr.substring(0, 150);
                 index = subStr.lastIndexOf(' ');
@@ -359,46 +404,63 @@ var ConnectorCommon = (function () {
                 stAddr2 = '';
             }
 
-            // check if address already exist
-            address.addressee = address.firstname + ' ' + address.lastname;
-            address.zip = address.postcode;
-            address.addr1 = stAddr1;
-            address.addr2 = stAddr2;
-            if (ConnectorCommon.addressExists(address, isBillAddr, isShipAddr, rec)) {
-                return;
+            addressObj = {};
+            addressObj.addr1 = stAddr1;
+            addressObj.addr2 = stAddr2;
+            addressObj.addressee = firstname + ' ' + lastname;
+            addressObj.city = city;
+            addressObj.state = regionId;
+            addressObj.zip = postcode;
+
+            var addressSubRec;
+
+            var isAddressExist = this.addressExists(addressObj, isDefaultBilling, isDefaultShipping, rec);
+
+            if (!isAddressExist) {
+                rec.selectNewLineItem('addressbook');
+
+                rec.setCurrentLineItemValue('addressbook', 'defaultshipping', isDefaultShipping);  //This field is not a subrecord field.
+                rec.setCurrentLineItemValue('addressbook', 'defaultbilling', isDefaultBilling);   //This field is not a subrecord field.
+                //rec.setCurrentLineItemValue('addressbook', 'label', addr);  //This field is not a subrecord field.
+                //rec.setCurrentLineItemValue('addressbook', 'isresidential', 'F');    //This field is not a subrecord field.
+
+                addressSubRec = rec.createCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
+
+                addressSubRec.setFieldValue('country', countryId); //Country must be set before setting the other address fields
+                addressSubRec.setFieldValue('attention', '');
+                addressSubRec.setFieldValue('addressee', firstname + ' ' + lastname);
+                addressSubRec.setFieldValue('addrphone', telephone);
+                addressSubRec.setFieldValue('addr1', stAddr1);
+                addressSubRec.setFieldValue('addr2', stAddr2);
+                addressSubRec.setFieldValue('city', city);
+
+                magentoId = ConnectorCommon.getMagentoIdObjectArrayString(ConnectorConstants.CurrentStore.systemId, addressId, 'create', null);
+
+                addressSubRec.setFieldValue(ConnectorConstants.OtherCustom.MagentoId, magentoId);
+
+                try {
+                    addressSubRec.setFieldValue('state', regionId);
+                }
+                catch (ex) {
+                    Utility.logException('State is a select Field', ex);
+                    addressSubRec.setFieldValue('state', regionId);
+                }
+
+                addressSubRec.setFieldValue('zip', postcode);
+
+                //commit subrecord and line item
+                addressSubRec.commit();
+
+                rec.commitLineItem('addressbook');
             }
 
-
-            rec.setFieldValue('phone', address.telephone);
-            rec.selectNewLineItem('addressbook');
-
-            rec.setCurrentLineItemValue('addressbook', 'label', addr);
-            rec.setCurrentLineItemValue('addressbook', 'defaultshipping', isShipAddr);
-            rec.setCurrentLineItemValue('addressbook', 'defaultbilling', isBillAddr);
-            rec.setCurrentLineItemValue('addressbook', 'addr1', stAddr1);
-            rec.setCurrentLineItemValue('addressbook', 'addr2', stAddr2);
-            rec.setCurrentLineItemValue('addressbook', 'addressee', address.firstname + ' ' + address.lastname);
-            rec.setCurrentLineItemValue('addressbook', 'phone', address.telephone);
-            rec.setCurrentLineItemValue('addressbook', 'country', address.country_id);
-            rec.setCurrentLineItemValue('addressbook', 'zip', address.postcode);
-            try {
-                rec.setCurrentLineItemValue('addressbook', 'state', address.region);
-            } catch (ex) {
-                Utility.logException('State is a select Field', ex);
-                rec.setCurrentLineItemText('addressbook', 'state', address.region);
-            }
-
-            rec.setCurrentLineItemValue('addressbook', 'city', address.city);
-
-            rec.commitLineItem('addressbook');
-
-            Utility.logDebug('DEBUG', 'in setAddress() start');
+            Utility.logDebug('DEBUG', 'in setAddress() end');
             return rec;
         },
         getMagentoMaxCustomerIdNetsuite: function (enviornment) {
-            var cols = new Array();
+            var cols = [];
             var maxValue;
-            var result = new Object();
+            var result = {};
 
             var magentoCustomerIdId;
 
@@ -451,7 +513,7 @@ var ConnectorCommon = (function () {
             result.errorMsg = '';
 
             try {
-                filterExpression = "[[";
+                /*filterExpression = "[[";
                 for (var x = 0; x < magentoIds.length; x++) {
                     // multiple store handling
                     var magentoIdForSearching = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoIds[x].product_id);
@@ -460,22 +522,40 @@ var ConnectorCommon = (function () {
                         filterExpression = filterExpression + ",'or' ,";
                     }
                 }
-
                 filterExpression = filterExpression + ']';
                 filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
                 Utility.logDebug(' filterExpression', filterExpression);
                 filterExpression = eval(filterExpression);
                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
+                var recs = nlapiSearchRecord('item', null, filterExpression, cols);*/
 
+                filterExpression = "[[";
+                for (var x = 0; x < magentoIds.length; x++) {
+                    // multiple store handling
+                    filterExpression = filterExpression + "['itemid','contains','" + magentoIds[x].product_id + "']";
+                    if ((x + 1) < magentoIds.length) {
+                        filterExpression = filterExpression + ",'or' ,";
+                    }
+                }
+                filterExpression = filterExpression + ']';
+                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                Utility.logDebug(' filterExpression', filterExpression);
+                filterExpression = eval(filterExpression);
+                cols.push(new nlobjSearchColumn(magentoIdId, null, null));
+                cols.push(new nlobjSearchColumn('itemid', null, null));
                 var recs = nlapiSearchRecord('item', null, filterExpression, cols);
 
                 if (recs && recs.length > 0) {
                     for (var i = 0; i < recs.length; i++) {
                         var obj = {};
                         obj.internalId = recs[i].getId();
-                        // multiple store handling
-                        var magentoIdObjArr = !!recs[i].getValue(magentoIdId) ? JSON.parse(recs[i].getValue(magentoIdId)) : [];
-                        obj.magentoID = this.getMagentoIdFromObjArray(magentoIdObjArr, ConnectorConstants.CurrentStore.systemId);
+
+                        var itemid = recs[i].getValue('itemid');
+                        if (!Utility.isBlankOrNull(itemid)) {
+                            var itemidArr = itemid.split(':');
+                            itemid = (itemidArr[itemidArr.length - 1]).trim();
+                        }
+                        obj.magentoID = itemid;
                         resultArray[resultArray.length] = obj;
                     }
                 }
@@ -732,7 +812,9 @@ var ConnectorCommon = (function () {
 
             for (var i = 0; i < statusHistory.length; i++) {
                 var comment = nlapiSelectValue(statusHistory[i], 'comment') + '';
-                if (comment.indexOf('Captured amount') !== -1 && comment.indexOf('Transaction ID:') !== -1) {
+                //Utility.logDebug('comment_w', comment);
+                var commentLowerCaseString = comment.toLowerCase();
+                if (commentLowerCaseString.indexOf(('Captured amount').toLowerCase()) !== -1 && commentLowerCaseString.indexOf(('Transaction ID:').toLowerCase()) !== -1) {
                     authorizedId = comment.substring(comment.indexOf('"') + 1, comment.lastIndexOf('"'));
                     break;
                 }
@@ -819,7 +901,7 @@ var ConnectorCommon = (function () {
         },
         /**
          * Getting magento id from array of objects with specified storeId
-         * @param {object[],[]} magentoIdObjArr
+         * @param {object[],[],string} magentoIdObjArr
          * @param {string} storeId
          * @return {string} Return magento id
          */
@@ -835,7 +917,15 @@ var ConnectorCommon = (function () {
             }
             return magentoId;
         },
-        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId) {
+        /**
+         * Get Magento Id from JSON
+         * @param storeId
+         * @param magentoId
+         * @param type
+         * @param existingId
+         * @return {*}
+         */
+        getMagentoIdObjectArrayString: function (storeId, magentoId, type, existingId, password) {
 
             var magentoIdObjArr = [];
 
@@ -844,6 +934,7 @@ var ConnectorCommon = (function () {
 
                 obj1.StoreId = storeId;
                 obj1.MagentoId = magentoId;
+                obj1.Password = password
                 magentoIdObjArr.push(obj1);
             }
             else if (type === 'update') {
@@ -862,6 +953,7 @@ var ConnectorCommon = (function () {
 
                         obj2.StoreId = storeId;
                         obj2.MagentoId = magentoId;
+                        obj2.Password = password;
                         magentoIdObjArr.push(obj2);
                     }
                 } else {
@@ -869,6 +961,7 @@ var ConnectorCommon = (function () {
 
                     obj3.StoreId = storeId;
                     obj3.MagentoId = magentoId;
+                    obj3.Password = password;
                     magentoIdObjArr.push(obj3);
                 }
             }
@@ -880,51 +973,63 @@ var ConnectorCommon = (function () {
 
             var result = true;
             var magentoStateCode;
+            var DEFAULT_STATE = 'NJ';
+            var DEFAULT_COUNTRY = 'US';
+            var DEFAULT_CITY = 'US';
+            var DEFAULT_TELEPHONE = '123-123-1234';
 
-            nlapiLogExecution('debug', 'netsuiteAddressObject', JSON.stringify(netsuiteAddressObject));
+            nlapiLogExecution('debug', 'netsuiteAddressObject before scan', JSON.stringify(netsuiteAddressObject));
+
 
             if (!!netsuiteAddressObject) {
 
-                if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
-                    result = false;
+                //if (isBlankOrNull(netsuiteAddressObject.firstname) || isBlankOrNull(netsuiteAddressObject.lastname) || isBlankOrNull(netsuiteAddressObject.street1) || isBlankOrNull(netsuiteAddressObject.city) || isBlankOrNull(netsuiteAddressObject.country) || isBlankOrNull(netsuiteAddressObject.telephone)) {
+                //    result = false;
+                //}
 
-                    nlapiLogExecution('debug', 'block-1');
+                if (isBlankOrNull(netsuiteAddressObject.street1)) {
+                    if (!isBlankOrNull(netsuiteAddressObject.street2))
+                        netsuiteAddressObject.street1 = netsuiteAddressObject.street2;
+                    else
+                        netsuiteAddressObject.street1 = "No Address Line";
                 }
-                else {
-                    //Will be handled via Custom Record to set the countries for which State is mandatory
-                    if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
-                        if (isBlankOrNull(netsuiteAddressObject.region)) {
-                            result = false;
 
-                            nlapiLogExecution('debug', 'block-2');
+                if (isBlankOrNull(netsuiteAddressObject.city))
+                    netsuiteAddressObject.city = DEFAULT_CITY;
 
-                        }
-                        else {
+                if (isBlankOrNull(netsuiteAddressObject.country))
+                    netsuiteAddressObject.country = DEFAULT_COUNTRY;
 
-                            nlapiLogExecution('debug', 'block-3-a', netsuiteAddressObject.region);
 
-                            magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+                if (isBlankOrNull(netsuiteAddressObject.telephone))
+                    netsuiteAddressObject.telephone = DEFAULT_TELEPHONE;
 
-                            nlapiLogExecution('debug', 'block-3-b', netsuiteAddressObject.region);
 
-                            if (!isBlankOrNull(magentoStateCode)) {
-                                netsuiteAddressObject.region = magentoStateCode;
-                                netsuiteAddressObject.region_text = '';
-                            }
-                            else {
-                                result = false;
-                                nlapiLogExecution('debug', 'block-3-c');
+                //Will be handled via Custom Record to set the countries for which State is mandatory
+                if (netsuiteAddressObject.country == 'US' || netsuiteAddressObject.country == 'CA') {
 
-                            }
-                        }
+                    if (isBlankOrNull(netsuiteAddressObject.region)) {
+                        //result = false;
+                        netsuiteAddressObject.region = DEFAULT_STATE;
+                    }
 
+
+                    //magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"},"default": {"value":"NJ"}}', netsuiteAddressObject.region);
+                    magentoStateCode = FC_ScrubHandler.scrubValue('{"lookup": {"value":"State"}}', netsuiteAddressObject.region);
+
+                    if (!isBlankOrNull(magentoStateCode) && magentoStateCode != netsuiteAddressObject.region) {
+                        netsuiteAddressObject.region = magentoStateCode;
+                        netsuiteAddressObject.region_text = '';
                     }
                     else {
-                        netsuiteAddressObject.region = '';
-
+                        //result = false;
+                        netsuiteAddressObject.region = DEFAULT_STATE;
                     }
 
+
                 }
+                else
+                    netsuiteAddressObject.region = '';
 
 
             }
@@ -983,16 +1088,20 @@ var ConnectorCommon = (function () {
 
                 fils.push(new nlobjSearchFilter('internalid', null, 'anyof', itemIdsArr, null));
                 cols.push(new nlobjSearchColumn(ConnectorConstants.Item.Fields.MagentoId, null, null));
+                cols.push(new nlobjSearchColumn('itemid', null, null));// this is purest specific
 
                 result = nlapiSearchRecord('item', null, fils, cols) || [];
 
                 if (result.length > 0) {
                     for (var i in result) {
-                        var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
-                        magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
-                        magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
+                        var magentoId = result[i].getValue('itemid');
+                        //var magentoId = result[i].getValue(ConnectorConstants.Item.Fields.MagentoId);
+                        //magentoId = !Utility.isBlankOrNull(magentoId) ? JSON.parse(magentoId) : [];
+                        //magentoId = ConnectorCommon.getMagentoIdFromObjArray(magentoId, ConnectorConstants.CurrentStore.systemId);
                         if (!Utility.isBlankOrNull(magentoId)) {
-                            magentoItemIds[result[i].getId()] = magentoId;
+                            magentoId = magentoId.split(':');
+                            //magentoItemIds[result[i].getId()] = magentoId;
+                            magentoItemIds[result[i].getId()] = (magentoId[magentoId.length - 1]).trim();
                         }
                     }
                 }
@@ -1125,21 +1234,35 @@ var ConnectorCommon = (function () {
          */
         addressExists: function (add, isBilling, isShipping, rec) {
             for (var t = 1; t <= rec.getLineItemCount('addressbook'); t++) {
-                if (rec.getLineItemValue('addressbook', 'addr1', t) == add.addr1.replace(/"/g, '') &&
-                    rec.getLineItemValue('addressbook', 'addr2', t) == add.addr2.replace(/"/g, '') &&
-                    rec.getLineItemValue('addressbook', 'addressee', t) == add.addressee.replace(/"/g, '') &&
-                    rec.getLineItemValue('addressbook', 'city', t) == add.city.replace(/"/g, '') &&
-                    rec.getLineItemValue('addressbook', 'state', t) == add.state.replace(/"/g, '') &&
-                    rec.getLineItemValue('addressbook', 'zip', t) == add.zip.replace(/"/g, '')) {
+                var str = '';
+
+                str += (rec.getLineItemValue('addressbook', 'addr1', t) || '') + ' === ' + add.addr1.replace(/"/g, '') + ' || ';
+                str += (rec.getLineItemValue('addressbook', 'addr2', t) || '') + ' === ' + add.addr2.replace(/"/g, '') + ' || ';
+                str += (rec.getLineItemValue('addressbook', 'addressee', t) || '') + ' === ' + add.addressee.replace(/"/g, '') + ' || ';
+                str += (rec.getLineItemValue('addressbook', 'city', t) || '') + ' === ' + add.city.replace(/"/g, '') + ' || ';
+                str += (rec.getLineItemValue('addressbook', 'state', t) || '') + ' === ' + add.state.replace(/"/g, '') + ' || ';
+                str += (rec.getLineItemValue('addressbook', 'zip', t) || '') + ' === ' + add.zip.replace(/"/g, '' + ' || ');
+                str += 'isShipping' + ' === ' + isShipping + ' || ';
+                str += 'isBilling' + ' === ' + isBilling;
+                Utility.logDebug('addressExists', str);
+
+                if ((rec.getLineItemValue('addressbook', 'addr1', t) || '').trim() === add.addr1.replace(/"/g, '').trim() &&
+                    (rec.getLineItemValue('addressbook', 'addr2', t) || '').trim() === add.addr2.replace(/"/g, '').trim() &&
+                    (rec.getLineItemValue('addressbook', 'addressee', t) || '').trim() === add.addressee.replace(/"/g, '').trim() &&
+                    (rec.getLineItemValue('addressbook', 'city', t) || '' ).trim() === add.city.replace(/"/g, '').trim() &&
+                    (rec.getLineItemValue('addressbook', 'state', t) || '').trim() === add.state.replace(/"/g, '').trim() &&
+                    (rec.getLineItemValue('addressbook', 'zip', t) || '' ).trim() === add.zip.replace(/"/g, '').trim()) {
                     if (isShipping === 'T') {
                         rec.setLineItemValue('addressbook', 'defaultshipping', t, isShipping);
                     }
                     if (isBilling === 'T') {
                         rec.setLineItemValue('addressbook', 'defaultbilling', t, isBilling);
                     }
+                    Utility.logDebug('addressExists', 'MATCHED');
                     return true;
                 }
             }
+            Utility.logDebug('addressExists', 'NOT MATCHED');
             return false;
         },
 

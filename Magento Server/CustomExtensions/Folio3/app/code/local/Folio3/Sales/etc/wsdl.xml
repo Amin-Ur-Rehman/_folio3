@@ -335,6 +335,20 @@
                     <element name="cc_exp_month" type="xsd:string" minOccurs="0"/>
                 </all>
             </complexType>
+            <complexType name="customOrderItemEntity">
+                <all>
+                    <element name="product_sku" type="xsd:string" />
+                    <element name="product_id" type="xsd:string" />
+                    <element name="order_item_id" type="xsd:string" />
+                </all>
+            </complexType>
+            <complexType name="customOrderItemEntityArray">
+                <complexContent>
+                    <restriction base="soapenc:Array">
+                        <attribute ref="soapenc:arrayType" wsdl:arrayType="typens:customOrderItemEntity[]" />
+                    </restriction>
+                </complexContent>
+            </complexType>
         </schema>
     </types>
     <message name="folio3_salesOrderGetSalesOrderInfoRequest">
@@ -350,10 +364,14 @@
         <part name="customer" type="typens:customCustomerEntity"/>
         <part name="products" type="typens:shoppingCartProductEntityArray"/>
         <part name="shippingmethod" type="xsd:string"/>
+        <part name="customshippingcost" type="xsd:double"/>
         <part name="paymentmethod" type="typens:shoppingCartPaymentMethodEntity"/>
+        <part name="history" type="xsd:string" />
+        <part name="status" type="xsd:string" />
     </message>
     <message name="folio3_salesOrderCreateSalesOrderResponse">
         <part name="result" type="typens:customObjectEntityArray" />
+        <part name="orderitementityarray" type="typens:customOrderItemEntityArray" />
     </message>
     <portType name="{{var wsdl.handler}}PortType">
         <operation name="folio3_salesOrderGetSalesOrderInfo">
