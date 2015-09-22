@@ -495,10 +495,11 @@ var ExportCustomerRefunds = (function () {
 
                         var records = this.getRecords(store.systemId);
 
-                        Utility.logDebug('fetched refunds count', records.length);
+
                         Utility.logDebug('debug', 'Step-3');
 
                         if (records !== null && records.length > 0) {
+                            Utility.logDebug('fetched refunds count', records.length);
                             this.processRecords(records, store);
                         } else {
                             Utility.logDebug('ExportCustomerRefunds.scheduled', 'No records found to process - StoreId: ' + store.systemId);

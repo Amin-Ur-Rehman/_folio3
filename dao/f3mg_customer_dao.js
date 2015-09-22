@@ -14,8 +14,6 @@
  * - util/f3_utility_methods.js
  * - util/f3_customerExport_lib.js
  */
-
-
 CustomerSync = (function () {
     return {
         internalId: 'customer',
@@ -37,40 +35,26 @@ CustomerSync = (function () {
             var customerAddressObject;
             var names;
 
-
-            if (customerRecord != null) {
+            if (!!customerRecord) {
                 customerDataObject = new Object();
-
-
                 customerDataObject.isPerson = customerRecord.getFieldValue('isperson');
-
                 customerDataObject.email = getBlankForNull(customerRecord.getFieldValue('email'));
-
                 customerDataObject.companyName = getBlankForNull(customerRecord.getFieldValue('companyname'));
-
                 customerDataObject.entityid = getBlankForNull(customerRecord.getFieldValue('entityid'));
-
-
-                if (customerDataObject.isPerson == "T") {
+                if (customerDataObject.isPerson === "T") {
                     customerDataObject.firstname = customerRecord.getFieldValue('firstname');
                     customerDataObject.middlename = getBlankForNull(customerRecord.getFieldValue('middlename'));
                     customerDataObject.lastname = customerRecord.getFieldValue('lastname');
                 } else {
-
-                    if (customerDataObject.companyName == "") {
+                    if (customerDataObject.companyName === "") {
                         customerDataObject.companyName = customerDataObject.entityid;
                     }
-
                     names = this.getFirstNameLastName(customerDataObject.companyName);
-
                     customerDataObject.firstname = names['firstName'];
                     customerDataObject.middlename = "";
                     customerDataObject.lastname = names['lastName'];
                 }
-
-
                 customerDataObject.password = this.getRandomPassword();
-
                 customerDataObject.website_id = "1";
                 //customerDataObject.store_id = storeInfo.systemId;
                 // Further we will get this store ID from configuration
@@ -83,9 +67,7 @@ CustomerSync = (function () {
                 customerDataObject.gender = "";
                 customerDataObject.nsObj = customerRecord;
             }
-
             return customerDataObject;
-
         },
 
         /**
@@ -104,39 +86,26 @@ CustomerSync = (function () {
             var addressSynched;
             var customerSynched = false;
 
-
             if (!!customerRecord) {
-
                 customerRecord.magentoId = magentoId;
                 requsetXML = this.getMagentoUpdateCustomerRequestXML(customerRecord, store.sessionID);
                 ConnectorCommon.createLogRec('Sameer-test', requsetXML);
                 responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
-
-                if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {
-
+                if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated === "true") {
                     //magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
-
                     //nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
-
                     customerRecord = this.getCustomer(nsCustomerObject.internalId, store);
-
-
                     //if (nsCustomerUpdateStatus) {
                     //Address Sync
                     customerSynched = this.updateAddressesInMagento(customerRecord, store, magentoId);
                     //}
-
                     nlapiSubmitRecord(customerRecord.nsObj);
-
                 } else {
                     errorMsg = responseMagento.faultCode + '    ' + responseMagento.faultString;
                     Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
                 }
-
             }
-
             return customerSynched;
-
         },
 
         /**
@@ -147,8 +116,6 @@ CustomerSync = (function () {
          * @returns {boolean}
          */
         updateAddressesInMagento: function (customerRecordObject, store, magentoCustomerId) {
-
-
             var customerAddresses = this.getNSCustomerAddresses(customerRecordObject);
             var scannedAddressForMagento;
             var allAddressedSynched = true;
@@ -157,34 +124,22 @@ CustomerSync = (function () {
             var thisStoreAddressInfo;
             var currentAddressStoresInfo;
             var magentoIdStoreRef;
-
-
             for (var adr = 0; adr < customerAddresses.length; adr++) {
-
                 scannedAddressForMagento = ConnectorCommon.getScannedAddressForMagento(customerAddresses[adr]);
-
                 if (scannedAddressForMagento) {
-
                     magentoIdStoreRef = customerAddresses[adr].magentoIdStoreRef;
                     currentAddressStoresInfo = this.getStoreCustomerIdAssociativeArray(magentoIdStoreRef);
-
-
                     if (isBlankOrNull(magentoIdStoreRef) || isBlankOrNull(currentAddressStoresInfo[store.systemId]) || currentAddressStoresInfo[store.systemId] === '0') //Create
                     {
                         allAddressedSynched = this.createSingleAddressInMagento(customerRecordObject, customerAddresses[adr], (adr + 1), scannedAddressForMagento, magentoCustomerId, store);
-
                     } else if (currentAddressStoresInfo[store.systemId] !== '-1') {
                         //Address Update
                         allAddressedSynched = this.UpdateSingleAddressInMagento(customerRecordObject, customerAddresses[adr], (adr + 1), scannedAddressForMagento, magentoCustomerId, store, currentAddressStoresInfo);
                     }
-
-
                 }
-
             }
             return allAddressedSynched;
         },
-
         /**
          * @param data
          * @returns {Array}
@@ -195,15 +150,12 @@ CustomerSync = (function () {
 
             if (!!data) {
                 storeIdCustomerIdArray = JSON.parse(data);
-
                 if (!!storeIdCustomerIdArray && storeIdCustomerIdArray.length > 0) {
                     for (var i = 0; i < storeIdCustomerIdArray.length; i++) {
                         associativeArray[storeIdCustomerIdArray[i].StoreId] = storeIdCustomerIdArray[i].MagentoId;
                     }
                 }
-
             }
-
             return associativeArray;
         },
 
@@ -225,44 +177,27 @@ CustomerSync = (function () {
             var thisStoreAddressInfo;
             var currentAddressSubRecord;
             var createOrUpdateMagentoJSONRef = 'create';
-
             requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
             ConnectorCommon.createLogRec('Sameer-test', requsetXML);
             responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
 
             if (!responseMagento.status) {
-
                 errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
-                ;
                 addressCreated = false;
-
             } else {
-
                 otherStoreAddressInfo = customerAddressObj.magentoIdStoreRef;
-
                 if (!!isBlankOrNull(otherStoreAddressInfo))
                     createOrUpdateMagentoJSONRef = 'update';
-
                 Utility.logDebug('address store info  ', 'store.systemId  ' + store.systemId + '    ' + responseMagento.magentoAddressId + '    ' + createOrUpdateMagentoJSONRef + '    ' + JSON.stringify(otherStoreAddressInfo));
-
-
                 thisStoreAddressInfo = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoAddressId, createOrUpdateMagentoJSONRef, otherStoreAddressInfo);
-
-
                 customerRecordObject.nsObj.selectLineItem('addressbook', customerAddressLineNo);
-
                 currentAddressSubRecord = customerRecordObject.nsObj.editCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
                 currentAddressSubRecord.setFieldValue(ConnectorConstants.OtherCustom.MagentoId, thisStoreAddressInfo);
                 currentAddressSubRecord.commit();
-
                 customerRecordObject.nsObj.commitLineItem('addressbook');
-
             }
-
-
             return addressCreated;
         },
-
 
         /**
          * Update Single Address in Magento Store
@@ -280,20 +215,15 @@ CustomerSync = (function () {
             var addressCreated = true;
             var requsetXML;
             var responseMagento;
-
             requsetXML = getMagentoUpdateAddressRequestXML(scannedAddressForMagento, store.sessionID, currentAddressStoresInfo[store.systemId]);
             ConnectorCommon.createLogRec('Sameer-test', requsetXML);
             responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
-
             if (!responseMagento.status) {
-                errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
-                ;
+                errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;;
                 addressCreated = false;
             }
-
             return addressCreated;
         },
-
 
         /**
          * Get First and Last name of Customer
@@ -301,49 +231,44 @@ CustomerSync = (function () {
          * @returns {Array}
          */
         getFirstNameLastName: function (data) {
-
-            var array = data.split(' ');
+            var customerData = data.split(' ');
             var firstName = '';
             var lastName;
             var result = [];
-
-            lastName = array[array.length - 1];
-
-            for (var i = 0; i < array.length - 1; i++) {
-                firstName = firstName + array[i] + ' ';
-
+            lastName = customerData[customerData.length - 1];
+            for (var i = 0; i < customerData.length - 1; i++) {
+                firstName = firstName + customerData[i] + ' ';
             }
-
             firstName = firstName.trim();
-
             result['firstName'] = firstName;
             result['lastName'] = lastName;
-
             if (isBlankOrNull(result['firstName'])) {
                 result['firstName'] = result['lastName'];
             }
-
-
             if (isBlankOrNull(result['lastName']))
                 result['lastName'] = '';
-
-
             return result;
-
         },
+
         /**
          * Generates a random password
          * @returns {string}
          */
-        getRandomPassword: function() {
+        getRandomPassword: function () {
             var randomstring = Math.random().toString(36).slice(-8);
             return randomstring;
         },
-        getMagentoUpdateCustomerRequestXML: function(customerDataObject, sessionId) {
+
+        /**
+         *
+         * @param customerDataObject
+         * @param sessionId
+         * @returns {string}
+         */
+        getMagentoUpdateCustomerRequestXML: function (customerDataObject, sessionId) {
             var xml = '';
 
             if (customerDataObject != null) {
-
                 xml = xml + '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento">';
                 xml = xml + '<soapenv:Header/>';
                 xml = xml + '<soapenv:Body>';
@@ -370,18 +295,16 @@ CustomerSync = (function () {
                 xml = xml + '</soapenv:Body>';
                 xml = xml + '</soapenv:Envelope>';
             }
-
             return xml;
-
         },
         getMagentoIdMyStore: function (array, storeId) {
             var id;
             Utility.logDebug('store', storeId);
             Utility.logDebug('array', JSON.stringify(array));
             var array = JSON.parse(array);
-            for (var i =0; i< array.length; i++) {
+            for (var i = 0; i < array.length; i++) {
                 Utility.logDebug('Inside For', i);
-                if (array[i].StoreId == storeId) {
+                if (array[i].StoreId === storeId) {
                     Utility.logDebug('Condition passed', i + ' array[i].StoreId ' + array[i].StoreId + ' storeId ' + storeId);
                     id = array[i].MagentoId;
                     Utility.logDebug('id', id);
@@ -389,7 +312,7 @@ CustomerSync = (function () {
             }
             return id;
         },
-        getNSCustomerAddresses: function(customerRecordObject) {
+        getNSCustomerAddresses: function (customerRecordObject) {
             var customerAddresses = [];
             var addressObject;
             var names;
@@ -401,26 +324,14 @@ CustomerSync = (function () {
                 addressObject.defaultshipping = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'defaultshipping', i));
                 addressObject.defaultbilling = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'defaultbilling', i));
                 addressObject.country = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'country', i)));
-
-
-
                 addressObject.firstname = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addressee', i)));
-
-
-
                 names = this.getFirstNameLastName(addressObject.firstname);
-
-
-
                 addressObject.firstname = nlapiEscapeXML(names['firstName']);
                 addressObject.lastname = nlapiEscapeXML(names['lastName']);
-
-                if (addressObject.firstname == "")
+                if (addressObject.firstname === "")
                     addressObject.firstname = customerRecordObject.firstname;
-
-                if (addressObject.lastname == "")
+                if (addressObject.lastname === "")
                     addressObject.lastname = customerRecordObject.lastname;
-
                 addressObject.middlename = '';
                 addressObject.suffix = '';
                 addressObject.prefix = '';
@@ -428,29 +339,18 @@ CustomerSync = (function () {
                 addressObject.prefix = '';
                 addressObject.fax = '';
                 addressObject.vatnumber = '';
-
-
                 addressObject.telephone = getBlankForNull(customerRecord.getLineItemValue('addressbook', 'phone', i));
                 addressObject.city = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'city', i)));
                 addressObject.street1 = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addr1', i)));
                 addressObject.street2 = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'addr2', i)));
-
-
                 addressObject.region = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'state', i)));
                 addressObject.region_text = addressObject.region;
-
-
                 addressObject.postcode = nlapiEscapeXML(getBlankForNull(customerRecord.getLineItemValue('addressbook', 'zip', i)));
-
-
                 customerRecord.selectLineItem('addressbook', i);
                 addressSubRecord = customerRecord.viewCurrentLineItemSubrecord('addressbook', 'addressbookaddress');
                 addressObject.magentoIdStoreRef = getBlankForNull(addressSubRecord.getFieldValue('custrecord_magento_id'));
-
                 customerAddresses.push(addressObject);
-
             }
-
             return customerAddresses;
 
         }
