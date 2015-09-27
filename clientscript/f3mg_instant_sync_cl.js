@@ -231,8 +231,6 @@ function InstantSyncclientPageInit(type) {
  * @returns {Boolean} True to continue save, false to abort save
  */
 function InstantSyncclientSaveRecord() {
-
-    return
     return InstantSync.clientSaveRecord();
 }
 

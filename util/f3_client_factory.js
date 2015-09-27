@@ -212,6 +212,8 @@ function F3ClientBase() {
                     rec.setLineItemValue('item', 'quantity', x + 1, products[x].qty_ordered);
                     rec.setLineItemValue('item', 'price', x + 1, 1);
                     rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                    // it will be utilized in creating fulfilment and credit memos
+                    rec.setLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, x + 1, products[x].orderItemId);
                 }
                 else {
                     if (ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.setDummyItem) {
@@ -369,6 +371,9 @@ function F3ClientBase() {
             //  rec.setFieldValue('salutation','');
 
             try {
+
+                Utility.logDebug('magentoCustomerObj =', JSON.stringify(magentoCustomerObj));
+
                 result.id = nlapiSubmitRecord(rec, false, true);
             } catch (ex) {
                 result.errorMsg = ex.toString();
@@ -1233,7 +1238,7 @@ function F3OrsonGygiClient() {
  * @constructor
  */
 function F3JetClient() {
-    var currentClient = F3ClientBase();
+    var currentClient = new F3ClientBase();
 
     /**
      * Description of method setCustomerAddressFields

@@ -27,6 +27,10 @@ ConnectorConstants = (function () {
         ScheduleScriptInvokedFormUserEvent: 'custscript_sch_invoke_from_ue',
         ExternalSystemConfig: [],
         CurrentStore: {},
+        /**
+         * Current Wrapper that is being referred to in Scheduled Scripts and User Events
+         */
+        CurrentWrapper: {},
         Client: null,
         NSToMGShipMap: {},
         DummyItem: {
@@ -46,7 +50,8 @@ ConnectorConstants = (function () {
                 MagentoSync: 'custbody_magentosyncdev',
                 MagentoStore: 'custbody_f3mg_magento_store',
                 MagentoSyncStatus: 'custbody_f3mg_magento_sync_status',
-                CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
+                CreditMemoMagentoId: 'custbody_credit_memo_magentoid'
+		CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
                 CustomerRefundMagentoId: 'custbody_cash_refund_magentoid',
                 DontSyncToMagento: 'custbody_f3mg_dont_sync_to_magento'
             }
@@ -158,6 +163,7 @@ ConnectorConstants = (function () {
          * Init method
          */
         initialize: function () {
+            //this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.Client = F3ClientFactory.createClient('OrsonGygi');
             this.NSToMGShipMap = NSToMGShipMethodMap.getMap();

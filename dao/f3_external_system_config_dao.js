@@ -23,7 +23,8 @@ ExternalSystemConfig = (function () {
             UserName: 'custrecord_esc_username',
             Password: 'custrecord_esc_password',
             Endpoint: 'custrecord_esc_endpoint',
-            EntitySyncInfo: 'custrecord_esc_entity_sync_info'
+            EntitySyncInfo: 'custrecord_esc_entity_sync_info',
+            SystemType: 'custrecord_system_type'
         },
         /**
          * Perform a record search using filters and columns.
@@ -69,6 +70,9 @@ ExternalSystemConfig = (function () {
                 var endpoint = config.getValue(this.FieldName.Endpoint, null, null);
                 var entitySyncInfo = JSON.parse(config.getValue(this.FieldName.EntitySyncInfo, null, null));
 
+                //TODO: Need to pick this from Database
+                var systemType = config.getValue(this.FieldName.SystemType, null, null);
+
                 var obj = {
                     internalId:internalId,
                     systemId: systemId,
@@ -76,10 +80,50 @@ ExternalSystemConfig = (function () {
                     userName: userName,
                     password: password,
                     endpoint: endpoint,
-                    entitySyncInfo: entitySyncInfo
+                    entitySyncInfo: entitySyncInfo,
+                    systemType: systemType
                 };
 
                 systemConfig[systemId] = obj;
+            }
+            Utility.logDebug('ExternalSystemConfig.getConfig', JSON.stringify(systemConfig));
+            return systemConfig;
+        },
+
+        /**
+         * Gets All Configuration Information
+         * @returns {Array} Returns an array of objects
+         */
+        getAll: function () {
+            var systemConfig = [];
+            var res = this.lookup(new nlobjSearchFilter('isinactive',null,'is','F'));
+
+            for (var i in res) {
+                var config = res[i];
+
+                var internalId = config.getId();
+                var systemId = config.getValue(this.FieldName.SystemId, null, null);
+                var systemDisplayName = config.getText(this.FieldName.SystemDisplayName, null, null);
+                var userName = config.getValue(this.FieldName.UserName, null, null);
+                var password = config.getValue(this.FieldName.Password, null, null);
+                var endpoint = config.getValue(this.FieldName.Endpoint, null, null);
+                var entitySyncInfo = JSON.parse(config.getValue(this.FieldName.EntitySyncInfo, null, null));
+
+                //TODO: Need to pick this from Database
+                var systemType = config.getValue(this.FieldName.SystemType, null, null);
+
+                var obj = {
+                    internalId:internalId,
+                    systemId: systemId,
+                    systemDisplayName: systemDisplayName,
+                    userName: userName,
+                    password: password,
+                    endpoint: endpoint,
+                    entitySyncInfo: entitySyncInfo,
+                    systemType: systemType
+                };
+
+                systemConfig.push(obj);
             }
             Utility.logDebug('ExternalSystemConfig.getConfig', JSON.stringify(systemConfig));
             return systemConfig;

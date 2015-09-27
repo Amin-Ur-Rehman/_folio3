@@ -124,6 +124,90 @@ ConnectorModels = (function () {
             result[result.length] = address;
 
             return result;
+        },
+
+        addressModel: function () {
+            return {
+                address_id: '',
+                city: '',
+                country_id: '',
+                firstname: '',
+                lastname: '',
+                postcode: '',
+                region: '',
+                region_id: '',
+                street: '',
+                telephone: '',
+                is_default_billing: false,
+                is_default_shipping: false,
+                address1: ''
+            };
+        },
+
+        customerModel: function () {
+            return {
+                customer_id: '',
+                email: '',
+                firstname: '',
+                middlename: '',
+                lastname: '',
+                group_id: '',
+                prefix: '',
+                suffix: '',
+                dob: ''
+            };
+        },
+
+        productModel: function () {
+            return {
+                increment_id: '',
+                product_id: 0,
+                shipping_amount: 0,
+                shipment_method: '',
+                quantity: 0,
+                fulfillment_service: '',
+                fulfillment_status: null,
+                gift_card: false,
+                grams: 0,
+                id: 0,
+                price: '',
+                requires_shipping: false,
+                sku: '',
+                taxable: true,
+                title: '',
+                variant_id: 0,
+                variant_title: '',
+                vendor: '',
+                name: '',
+                variant_inventory_management: null,
+                properties: [],
+                product_exists: false,
+                fulfillable_quantity: 0,
+                total_discount: '',
+                tax_lines: []
+            };
+        },
+
+        salesOrderModel: function () {
+            return {
+                increment_id: '',
+                shipping_amount: 0,
+                shipment_method: '',
+                customer_id: '',
+                email: '',
+                store_id: '',
+                firstname: '',
+                middlename: '',
+                lastname: '',
+                group_id: '',
+                prefix: '',
+                suffix: '',
+                dob: '',
+                shippingAddress: ConnectorModels.addressModel(),
+                billingAddress: ConnectorModels.addressModel(),
+                payment: {},
+                products: []
+            };
         }
     };
 })();

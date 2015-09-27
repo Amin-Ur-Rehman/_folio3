@@ -1453,6 +1453,97 @@ XmlUtility = (function() {
                 Utility.logException('XmlUtility.validateAddCommentResponse', ex);
             }
             return responseMagento;
+        },
+
+        getSessionIDFromServer: function(userName, apiKey) {
+            var sessionID = null;
+            var loginXML = this.getLoginXml(userName, apiKey);
+            try {
+                var responseXML = this.soapRequestToServer(loginXML);
+                sessionID = nlapiSelectValue(responseXML, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:loginResponse/loginReturn");
+            } catch (ex) {
+                Utility.logException('MagentoWrapper.getSessionIDFromServer', ex);
+            }
+            return sessionID;
+        },
+
+        /**
+         * Gets Sales Order from Magento
+         * @param order
+         * @param sessionID
+         * @returns {*}
+         */
+        getSalesOrders : function (order, sessionID) {
+            var orderXML = MagentoWrapper.getSalesOrderListXML(order, sessionID);
+            // Make Call and Get Data
+            var responseMagentoOrders = MagentoWrapper.validateResponse(MagentoWrapper.soapRequestToServer(orderXML), 'order');
+
+            // If some problem
+            if (!responseMagentoOrders.status) {
+                var result = {};
+                result.errorMsg = responseMagentoOrders.faultCode + '--' + responseMagentoOrders.faultString;
+                return result;
+            }
+
+            return responseMagentoOrders;
+        },
+
+        getSalesOrderInfo: function (increment_id, sessionID) {
+            var productXML = MagentoWrapper.getSalesOrderInfoXML(increment_id, sessionID);
+
+            var responseMagentoProducts = MagentoWrapper.validateResponse(MagentoWrapper.soapRequestToServer(productXML), 'product');
+
+            // If some problem
+            if (!responseMagentoProducts.status) {
+                var result = {};
+                result.errorMsg = responseMagentoProducts.faultCode + '--' + responseMagentoProducts.faultString;
+                return result;
+            }
+
+            return responseMagentoProducts;
+        },
+
+        updateItem: function (product, sessionID, magID, isParent) {
+            var itemXML = MagentoWrapper.getUpdateItemXML(product, sessionID, magID, isParent);
+
+            var responseMagento = MagentoWrapper.validateItemExportResponse(MagentoWrapper.soapRequestToServer(itemXML), 'update');
+
+            return responseMagento;
+        },
+
+        getProduct: function (sessionID, product) {
+            var xml = MagentoWrapper.getProductListXML(sessionID, product);
+            var response = MagentoWrapper.validateGetIDResponse(MagentoWrapper.soapRequestToServer(xml));
+
+            return response;
+        },
+
+        createFulfillment: function(sessionID, magentoItemIds, magentoSOId) {
+            var fulfillmentXML = MagentoWrapper.getCreateFulfillmentXML(sessionID, magentoItemIds, magentoSOId);
+
+            Utility.logDebug('MagentoWrapper.getCreateFulfillmentXML', 'EOS ' + fulfillmentXML);
+
+            var responseMagento = MagentoWrapper.validateFulfillmentExportResponse(MagentoWrapper.soapRequestToServer(fulfillmentXML));
+
+            return responseMagento;
+        },
+
+        createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
+            var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
+
+            var responseTracking = MagentoWrapper.validateTrackingCreateResponse(MagentoWrapper.soapRequestToServer(trackingXML));
+
+            return responseTracking;
+        },
+
+        getCustomerAddress: function(customerID, sessionID) {
+            var custAddrXML = MagentoWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+
+            var addressResponse =
+                MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrXML));
+
+            return addressResponse;
+
         }
     };
 })();

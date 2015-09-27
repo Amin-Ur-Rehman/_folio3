@@ -42,6 +42,30 @@ CUSTOMER = {
         return result;
     },
 
+getCustomersCount: function() {
+        var arrFils = [];
+        var recs;
+        var result = [];
+        var arrCols = [];
+        var resultObject;
+        var CUSTOMER_STATUSES = ConnectorConstants.CustomerTypesToExport;
+        arrFils.push(new nlobjSearchFilter('entitystatus', null, 'anyof', CUSTOMER_STATUSES));
+        arrFils.push(new nlobjSearchFilter('custentity_magentosync_dev', null, 'is', 'F'));
+        arrFils.push(new nlobjSearchFilter('custentity_magentosync_msg', null, 'isempty'));
+        arrFils.push(new nlobjSearchFilter('custentity_magentosync_msg', null, 'isempty'));
+        arrCols.push(new nlobjSearchColumn('custentity_magento_custid'));
+        recs = nlapiSearchRecord('customer', null, arrFils, arrCols);
+        if (recs != null && recs.length > 0) {
+            for (var i = 0; i < recs.length; i++) {
+                resultObject = new Object();
+                resultObject.internalId = recs[i].getId();
+                resultObject.magentoCustomerIds = recs[i].getValue('custentity_magento_custid');
+                result.push(resultObject);
+            }
+        }
+        return result;
+    },
+
     getCustomersSubmittedFromUserEvent: function() {
         var recs;
         var result = [];

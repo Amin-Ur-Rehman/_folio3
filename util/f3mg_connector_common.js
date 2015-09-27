@@ -305,12 +305,16 @@ var ConnectorCommon = (function () {
             }
             return false;
         },
-        getUpdateDate: function (days) {
+        getUpdateDate: function (days, format) {
             var currentDate = new Date();
             var soUpdateDate;
             soUpdateDate = nlapiAddDays(currentDate, days);
-            //soUpdateDate=addZeroes(soUpdateDate.getDate(),2) + '-' + addZeroes((soUpdateDate.getMonth()+1),2) + '-' +  soUpdateDate.getFullYear() + ' ' + soUpdateDate.getHours()  + ':'+ soUpdateDate.getMinutes() + ':' + '00';
-            soUpdateDate = soUpdateDate.getFullYear() + '-' + Utility.addZeroes((soUpdateDate.getMonth() + 1), 2) + '-' + Utility.addZeroes(soUpdateDate.getDate(), 2) + ' ' + Utility.addZeroes(soUpdateDate.getHours(), 2) + ':' + Utility.addZeroes(soUpdateDate.getMinutes(), 2) + ':' + '00';
+
+            if (format === 'ISO') {
+                soUpdateDate = soUpdateDate.toISOString();
+            } else {
+                soUpdateDate = soUpdateDate.getFullYear() + '-' + Utility.addZeroes((soUpdateDate.getMonth() + 1), 2) + '-' + Utility.addZeroes(soUpdateDate.getDate(), 2) + ' ' + Utility.addZeroes(soUpdateDate.getHours(), 2) + ':' + Utility.addZeroes(soUpdateDate.getMinutes(), 2) + ':' + '00';
+            }
 
             return soUpdateDate
         },

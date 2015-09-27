@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" ng-app="RDash">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>RDash AngularJS</title>
+
+    <script> var f3_base_url = '<BASE_URL>'; </script>
+    <!-- STYLES -->
+    <link rel="stylesheet" href="<BASE_URL>f3-dash/lib/css/main.min.css"/>
+    <link rel="stylesheet" href="<BASE_URL>f3-dash/lib/css/angular-chart.css"/>
+    <!-- SCRIPTS -->
+
+    <script src="<BASE_URL>f3-dash/lib/js/main.min.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/lib/js/Chart.min.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/lib/js/angular-chart.min.js"></script>
+
+
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/dashboard.min.js"></script>
+</head>
+<body ng-controller="MasterCtrl">
+<div id="page-wrapper" ng-class="{'open': toggle}" ng-cloak>
+
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+        <ul class="sidebar">
+            <li class="sidebar-main">
+                <a ng-click="toggleSidebar()">
+                    Dashboard
+                    <span class="menu-icon glyphicon glyphicon-transfer"></span>
+                </a>
+            </li>
+[SIDE_BAR]
+        </ul>
+    </div>
+    <!-- End Sidebar -->
+
+    <div id="content-wrapper">
+        <div class="page-content">
+
+            <div ui-view></div>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

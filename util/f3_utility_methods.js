@@ -178,6 +178,16 @@ Utility = (function () {
         isMultiLocInvt: function () {
             return nlapiGetContext().getFeature('MULTILOCINVT');
         },
+	/**
+         * Throw Custom NetSuite Expcetion
+         * @param code
+         * @param message
+         * @return {nlobjError}
+         */
+        throwException: function (code, message) {
+            code = code || 'CustomException';
+            throw nlapiCreateError(code, message, true);
+        },
 
         isMultiCurrency: function () {
             return nlapiGetContext().getFeature('MULTICURRENCY');
@@ -188,3 +198,29 @@ Utility = (function () {
         }
     };
 })();
+
+if ( !Date.prototype.toISOString ) {
+    ( function() {
+
+        function pad(number) {
+            var r = String(number);
+            if ( r.length === 1 ) {
+                r = '0' + r;
+            }
+            return r;
+        }
+
+        Date.prototype.toISOString = function() {
+            return this.getUTCFullYear()
+              + '-' + pad( this.getUTCMonth() + 1 )
+              + '-' + pad( this.getUTCDate() )
+              + 'T' + pad( this.getUTCHours() )
+              + ':' + pad( this.getUTCMinutes() )
+              + ':' + pad( this.getUTCSeconds() )
+              + '.' + String( (this.getUTCMilliseconds()/1000).toFixed(3) ).slice( 2, 5 )
+              + 'Z';
+        };
+
+    }() );
+}
+
