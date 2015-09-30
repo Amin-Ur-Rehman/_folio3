@@ -320,12 +320,12 @@ function F3ClientBase() {
             var addresses = {};
 
             if (!isGuest) {
-                custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
-                responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+                responseMagento = ConnectorConstants.CurrentWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
 
                 if (!responseMagento.status) {
                     result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
-                    Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' + magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
+                    Utility.logDebug('Importing Customer', 'Customer having Magento Id: ' +
+                        magentoCustomerObj.customer_id + ' has not imported. -- ' + result.errorMsg);
                     return result;
                 }
 
@@ -413,9 +413,9 @@ function F3ClientBase() {
             var responseMagento;
             var addresses;
 
-            custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+            custAddrXML = MagentoWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
 
-            responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+            responseMagento = MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrXML));
 
             if (!responseMagento.status) {
                 result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
@@ -492,7 +492,7 @@ function F3ClientBase() {
             var results;
             var resultobj = {'status': false};
 
-            magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoId);
+            magentoFormattedId = ConnectorCommon.getMagentoIdForSearching(ConnectorConstants.CurrentStore.systemId, magentoId);
             cols.push(new nlobjSearchColumn(ConnectorConstants.Entity.Fields.MagentoId, null, null));
             cols.push(new nlobjSearchColumn('internalid', null, null).setSort(false));
 

@@ -54,8 +54,8 @@ var SO_IMPORT_MIN_USAGELIMIT = 1000;        // For the safe side its 1000, we ca
 function syncSalesOrderMagento(sessionID, updateDate) {
     var order = {};
 
-    var responseMagentoOrders;
-    var responseMagentoProducts;
+    var serverOrdersResponse;
+    var salesOrderDetails;
     var orders;
     var orderXML;
     var productXML;
@@ -72,21 +72,19 @@ function syncSalesOrderMagento(sessionID, updateDate) {
         result.infoMsg = '';
         order.updateDate = updateDate;
 
-        // Make XML to get Order
-        orderXML = XmlUtility.getSalesOrderListXML(order, sessionID);
 
-        Utility.logDebug('request_orderXML', orderXML);
 
         // Make Call and Get Data
-        responseMagentoOrders = XmlUtility.validateResponse(XmlUtility.soapRequestToMagento(orderXML), 'order');
+        serverOrdersResponse = ConnectorConstants.CurrentWrapper.getSalesOrders(order, sessionID);
+        Utility.logDebug('syncSalesOrderMagento > serverOrdersResponse', JSON.stringify(serverOrdersResponse));
 
         // If some problem
-        if (!responseMagentoOrders.status) {
-            result.errorMsg = responseMagentoOrders.faultCode + '--' + responseMagentoOrders.faultString;
+        if (!serverOrdersResponse.status) {
+            result.errorMsg = serverOrdersResponse.faultCode + '--' + serverOrdersResponse.faultString;
             return result;
         }
 
-        orders = responseMagentoOrders.orders;
+        orders = serverOrdersResponse.orders;
 
         if (orders !== null) {
             result.infoMsg = orders.length + ' Order(s) Found for Processing ';
@@ -104,27 +102,22 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         continue;
                     }
 
-                    //Utility.logDebug('stages_w', 'Step-a');
 
-                    // Getting sales order information from Magento
-                    productXML = XmlUtility.getSalesOrderInfoXML(orders[i].increment_id, sessionID);
+                    salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
 
-                    //Utility.logDebug('stages_w', 'Step-b');
-                    //Utility.logDebug('productXML_w', productXML);
-                    responseMagentoProducts = XmlUtility.validateResponse(XmlUtility.soapRequestToMagento(productXML), 'product');
 
                     //Utility.logDebug('stages_w', 'Step-c');
 
                     // Could not fetch sales order information from Magento
-                    if (!responseMagentoProducts.status) {
+                    if (!salesOrderDetails.status) {
                         Utility.logDebug('Could not fetch sales order information from Magento', 'orderId: ' + orders[i].increment_id);
-                        result.errorMsg = responseMagentoOrders.faultCode + '--' + responseMagentoOrders.faultString;
+                        result.errorMsg = salesOrderDetails.faultCode + '--' + salesOrderDetails.faultString;
                         continue;
                     }
-                    //Utility.logDebug('stages_w', 'Step-d');
-                    var shippingAddress = responseMagentoProducts.shippingAddress;
-                    var billingAddress = responseMagentoProducts.billingAddress;
-                    var payment = responseMagentoProducts.payment;
+
+                    var shippingAddress = salesOrderDetails.shippingAddress;
+                    var billingAddress = salesOrderDetails.billingAddress;
+                    var payment = salesOrderDetails.payment;
 
                     /*if (isBlankOrNull(payment.csTranId)) {
                      var ccdate;
@@ -142,7 +135,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                      }
                      }*/
 
-                    products = responseMagentoProducts.products;
+                    products = salesOrderDetails.products;
 
                     Utility.logDebug('products', JSON.stringify(products));
                     netsuiteMagentoProductMap = ConnectorCommon.getNetsuiteProductIdsByMagentoIds(products, 'pro');
@@ -196,7 +189,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         if (!!customerNSInternalId) {
                             // make order data object
-                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress, billingAddress, payment);
+                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products,
+                                netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress,
+                                    billingAddress, payment);
                             ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                         }
                     }
@@ -206,18 +201,21 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         Utility.logDebug('Magento Customer Id: ', customer[customerIndex].customer_id);
 
                         // searching customer record in NetSuite
-                        customerSearchObj = ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, customer[customerIndex].customer_id);
+                        customerSearchObj =
+                          ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, customer[customerIndex].customer_id);
 
                         // if customer record found in NetSuite, update the customer record
                         if (customerSearchObj.status) {
-                            ConnectorConstants.Client.updateCustomerInNetSuite(customerSearchObj.netSuiteInternalId, customer[customerIndex], sessionID);
+                            ConnectorConstants.Client.updateCustomerInNetSuite(
+                                customerSearchObj.netSuiteInternalId, customer[customerIndex], sessionID);
                             customerNSInternalId = customerSearchObj.netSuiteInternalId;
                             Utility.logDebug('Customer Updated in NetSuite', 'Customer Id: ' + customerNSInternalId);
                         }
                         else {
                             // if customer record not found in NetSuite, create a lead record in NetSuite
                             Utility.logDebug('Start Creating Lead', '');
-                            leadCreateAttemptResult = ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, false);
+                            leadCreateAttemptResult =
+                              ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, false);
                             Utility.logDebug('Attempt to create lead', JSON.stringify(leadCreateAttemptResult));
                             if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg) || !Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
                                 continue;
@@ -227,7 +225,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         }
 
                         // make order data object
-                        salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress, billingAddress, payment);
+                        salesOrderObj = ConnectorModels.getSalesOrderObject(
+                            orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
+                                shippingAddress, billingAddress, payment);
                         // create sales order
                         ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                     }
@@ -305,15 +305,18 @@ function startup(type) {
                     // set store for ustilizing in other functions
                     ConnectorConstants.CurrentStore = store;
 
+                    ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                    ConnectorConstants.CurrentWrapper.initialize(store);
                     ConnectorConstants.initializeDummyItem();
 
                     var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
                     //var sofrequency = 120;
 
-                    soUpdateDate = ConnectorCommon.getUpdateDate(-1 * sofrequency);
+                    soUpdateDate = ConnectorCommon.getUpdateDate(-1 * sofrequency,
+                        ConnectorConstants.CurrentWrapper.getDateFormat());
                     Utility.logDebug('soUpdateDate', soUpdateDate);
 
-                    sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+                    sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
 
                     if (!sessionID) {
                         Utility.logDebug('sessionID', 'sessionID is empty');

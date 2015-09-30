@@ -13,18 +13,23 @@
  *   -
  *   -
  */
-XmlUtility = (function() {
+MagentoWrapper = (function() {
     return {
         /**
          * Init method
          */
-        initialize: function() {
-
-        },
+        initialize: function(storeInfo) {},
         XmlHeader: '<soapenv:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:Magento"><soapenv:Header/><soapenv:Body>',
         XmlFooter: '</soapenv:Body></soapenv:Envelope>',
 
-        soapRequestToMagento: function(xml) {
+        /**
+         * Gets supported Date Format
+         * @returns {string}
+         */
+        getDateFormat: function() {
+            return 'MAGENTO_CUSTOM';
+        },
+        soapRequestToServer: function(xml) {
             var res = nlapiRequestURL(ConnectorConstants.CurrentStore.endpoint, xml);
             var body = res.getBody();
             Utility.logDebug('requestbody', body);
@@ -32,7 +37,7 @@ XmlUtility = (function() {
 
             return responseXML;
         },
-        soapRequestToMagentoSpecificStore: function(xml, store) {
+        soapRequestToServerSpecificStore: function(xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
             var body = res.getBody();
             Utility.logDebug('requestbody', body);
@@ -203,7 +208,7 @@ XmlUtility = (function() {
 
         },
         getUpdateItemXML: function(item, sessionID, magID, isParent) {
-            nlapiLogExecution('DEBUG', 'item json', JSON.stringify(item));
+            Utility.logDebug('item json', JSON.stringify(item));
 
             var xml = '';
 
@@ -365,7 +370,7 @@ XmlUtility = (function() {
 
             xml = xml + '</productData>';
             xml = xml + '</urn:catalogProductCreate>';
-            nlapiLogExecution('DEBUG', 'response', (xml));
+            Utility.logDebug('response', (xml));
             xml = xml + this.XmlFooter;
 
             return xml;
@@ -392,11 +397,11 @@ XmlUtility = (function() {
             return xml;
         },
         getUpdateFulfillmentXML: function(fulfillmentId, sessionID) {
-            nlapiLogExecution('DEBUG', 'Enter in getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+            Utility.logDebug('Enter in getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
 
             var xml = '';
 
-            nlapiLogExecution('DEBUG', 'Exit from getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
+            Utility.logDebug('Exit from getUpdateFulfillmentXML() funciton', 'fulfillmentId: ' + fulfillmentId);
 
             return xml;
 
@@ -606,7 +611,7 @@ XmlUtility = (function() {
                 var payment = nlapiSelectNodes(xml, "//payment");
                 var statusHistory = nlapiSelectNodes(xml, "//status_history/item");
                 var authorizedId;
-                nlapiLogExecution('DEBUG', 'payment XXL', payment);
+                Utility.logDebug('payment XXL', payment);
                 faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 if(!Utility.isBlankOrNull(faultCode)) {
@@ -651,9 +656,9 @@ XmlUtility = (function() {
         },
         validateResponseCustomer: function(xml) {
 
-            nlapiLogExecution('Debug', 'validateResponse started');
+            Utility.logDebug('Debug', 'validateResponse started');
 
-            nlapiLogExecution('DEBUG', 'response', nlapiXMLToString(xml));
+            Utility.logDebug('response', nlapiXMLToString(xml));
 
             var responseMagento = {};
 
@@ -701,7 +706,7 @@ XmlUtility = (function() {
 
 
             } catch(ex) {
-                Utility.logException('XmlUtility.validateItemExportResponse', ex);
+                Utility.logException('MagentoWrapper.validateItemExportResponse', ex);
             }
 
 
@@ -709,7 +714,7 @@ XmlUtility = (function() {
                 responseMagento.status = false; // Means There is fault
                 responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
-                nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
+                Utility.logDebug('Mageno-Item Export Operation Faild', responseMagento.faultString);
             } else if(!Utility.isBlankOrNull(magentoItemID)) {
                 responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
@@ -718,7 +723,7 @@ XmlUtility = (function() {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
                 responseMagento.faultString = 'Unexpected Error';
-                nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
+                Utility.logDebug('Mageno-Item Export Operation Faild', responseMagento.faultString);
 
             }
 
@@ -739,14 +744,14 @@ XmlUtility = (function() {
 
 
             } catch(ex) {
-                Utility.logException('XmlUtility.validateGetIDResponse', ex);
+                Utility.logException('MagentoWrapper.validateGetIDResponse', ex);
             }
 
             if(!Utility.isBlankOrNull(faultCode)) {
                 responseMagento.status = false; // Means There is fault
                 responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
-                nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
+                Utility.logDebug('Mageno-Item Export Operation Faild', responseMagento.faultString);
             } else if(!Utility.isBlankOrNull(magentoItemID)) {
                 responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
@@ -755,7 +760,7 @@ XmlUtility = (function() {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
                 responseMagento.faultString = 'Unexpected Error';
-                nlapiLogExecution('Debug', 'Mageno-Item Export Operation Faild', responseMagento.faultString);
+                Utility.logDebug('Mageno-Item Export Operation Faild', responseMagento.faultString);
 
             }
 
@@ -845,7 +850,7 @@ XmlUtility = (function() {
             } catch(ex) {
 
 
-                Utility.logException('XmlUtility.validateCustomerExportOperationResponse', ex);
+                Utility.logException('MagentoWrapper.validateCustomerExportOperationResponse', ex);
 
             }
 
@@ -898,16 +903,16 @@ XmlUtility = (function() {
                 }
 
             } catch(ex) {
-                Utility.logException('XmlUtility.validateCustomerAddressExportOperationResponse', ex);
+                Utility.logException('MagentoWrapper.validateCustomerAddressExportOperationResponse', ex);
             }
 
 
-            nlapiLogExecution('debug', 'responseMagento', JSON.stringify(responseMagento));
+            Utility.logDebug('responseMagento', JSON.stringify(responseMagento));
 
             return responseMagento;
         },
         validateTrackingCreateResponse: function(xml, operation) {
-            nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(xml));
+            Utility.logDebug('XML', nlapiEscapeXML(xml));
             var responseMagento = {};
             var magentoFulfillmentID;
             var faultCode;
@@ -925,7 +930,7 @@ XmlUtility = (function() {
 
 
             } catch(ex) {
-                Utility.logException('XmlUtility.validateTrackingCreateResponse', ex);
+                Utility.logException('MagentoWrapper.validateTrackingCreateResponse', ex);
             }
 
 
@@ -933,7 +938,7 @@ XmlUtility = (function() {
                 responseMagento.status = false; // Means There is fault
                 responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
-                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                Utility.logDebug('Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
                 ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed  ' + responseMagento.faultString, '', 'order');
             } else if(magentoFulfillmentID != null) {
                 responseMagento.status = true; // Means There is fault
@@ -943,7 +948,7 @@ XmlUtility = (function() {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
                 responseMagento.faultString = 'Unexpected Error';
-                nlapiLogExecution('Debug', 'Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
+                Utility.logDebug('Tracking Number Add Operation Failed', responseMagento.faultString + ' - ' + responseMagento.faultCode);
                 ConnectorCommon.generateErrorEmail('Tracking Number Add Operation Failed ' + responseMagento.faultString, '', 'order');
 
             }
@@ -968,7 +973,7 @@ XmlUtility = (function() {
 
 
             } catch(ex) {
-                Utility.logException('XmlUtility.validateFulfillmentExportResponse', ex);
+                Utility.logException('MagentoWrapper.validateFulfillmentExportResponse', ex);
             }
 
 
@@ -976,7 +981,7 @@ XmlUtility = (function() {
                 responseMagento.status = false; // Means There is fault
                 responseMagento.faultCode = faultCode; // Fault Code
                 responseMagento.faultString = faultString; //Fault String
-                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                Utility.logDebug('Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
                 ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
             } else if(magentoFulfillmentID != null) {
                 responseMagento.status = true; // Means There is fault
@@ -986,7 +991,7 @@ XmlUtility = (function() {
                 responseMagento.status = false;
                 responseMagento.faultCode = '000';
                 responseMagento.faultString = 'Unexpected Error';
-                nlapiLogExecution('Debug', 'Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
+                Utility.logDebug('Mageno-Fulfillment Export Operation Failed', responseMagento.faultString);
                 ConnectorCommon.generateErrorEmail('Fulfilment couldnt get to Magento , Please convey this to folio3 : ' + responseMagento.faultString, '', 'order');
 
             }
@@ -1009,7 +1014,7 @@ XmlUtility = (function() {
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 responseMagento.data = method(xml);
             } catch(ex) {
-                Utility.logException('XmlUtility.validateAndTransformResponse', ex);
+                Utility.logException('MagentoWrapper.validateAndTransformResponse', ex);
             }
 
             if(!Utility.isBlankOrNull(faultCode)) {
@@ -1351,6 +1356,154 @@ XmlUtility = (function() {
 
             return obj;
         },
+	getCreateCategoryXML: function(category, sessionID) {
+            var categoryXML = '';
+            categoryXML = this.XmlHeader + '<urn:catalogCategoryCreate>';
+            categoryXML = categoryXML + '<sessionId xsi:type="xsd:string">' + sessionID + '</sessionId>';
+            if (!isBlankOrNull(category.magentoParentID)) categoryXML = categoryXML + '<parentId xsi:type="xsd:string">' + category.magentoParentID + '</parentId>';
+            else //It is root category
+                categoryXML = categoryXML + '<parentId xsi:type="xsd:string">1</parentId>';
+            categoryXML = categoryXML + '<categoryData xsi:type="urn:catalogCategoryEntityCreate">';
+            //categoryXML = categoryXML + '<name xsi:type="xsd:string">'+extractCategoryName(category.name)+'</name>';
+            categoryXML = categoryXML + '<name xsi:type="xsd:string">' + category.name + '</name>';
+            categoryXML = categoryXML + '<is_active xsi:type="xsd:int">' + category.active + '</is_active>';
+            if (!isBlankOrNull(category.level)) categoryXML = categoryXML + '<position xsi:type="xsd:int">' + (category.level + 1) + '</position>';
+            else categoryXML = categoryXML + '<position xsi:type="xsd:int">1</position>';
+            categoryXML = categoryXML + '<available_sort_by SOAP-ENC:arrayType="xsd:string[0]" xsi:type="urn:ArrayOfString">';
+            categoryXML = categoryXML + '<item xsi:type="xsd:string">position</item>';
+            categoryXML = categoryXML + '</available_sort_by>';
+            //categoryXML = categoryXML + '<custom_design xsi:type="xsd:string"></custom_design>';
+            //categoryXML = categoryXML +  '<custom_design_apply  xsi:type="xsd:int"></custom_design_apply>';
+            //categoryXML = categoryXML +  '<custom_design_from xsi:type="xsd:string"></custom_design_from>';
+            //categoryXML = categoryXML + '<custom_design_to xsi:type="xsd:string"></custom_design_to>';
+            //categoryXML = categoryXML + '<custom_layout_update xsi:type="xsd:string"></custom_layout_update>';
+            categoryXML = categoryXML + '<default_sort_by xsi:type="xsd:string">position</default_sort_by>';
+            //categoryXML = categoryXML + '<description xsi:type="xsd:string"></description>';
+            //categoryXML = categoryXML + '<display_mode xsi:type="xsd:string"></display_mode>';
+            //categoryXML = categoryXML + '<is_anchor xsi:type="xsd:int"></is_anchor>';
+            //categoryXML = categoryXML + '<landing_page xsi:type="xsd:int"></landing_page>';
+            //categoryXML = categoryXML + '<meta_description xsi:type="xsd:string"></meta_description>';
+            //categoryXML = categoryXML + '<meta_keywords xsi:type="xsd:string"></meta_keywords>';
+            //categoryXML = categoryXML + '<meta_title xsi:type="xsd:string"></meta_title>';
+            //categoryXML = categoryXML + '<page_layout xsi:type="xsd:string"></page_layout>';
+            //categoryXML = categoryXML + '<url_key xsi:type="xsd:string"></url_key>';
+            categoryXML = categoryXML + '<include_in_menu xsi:type="xsd:int">1</include_in_menu>';
+            categoryXML = categoryXML + '</categoryData>';
+            categoryXML = categoryXML + '<storeView xsi:type="xsd:string">1</storeView>';
+            categoryXML = categoryXML + '</urn:catalogCategoryCreate>';
+            categoryXML = categoryXML + this.XmlFooter;
+            return categoryXML;
+        },
+        getUpdateCategoryXML: function(category, sessionID) {
+            var categoryXML = '';
+            categoryXML = this.XmlHeader + '<urn:catalogCategoryUpdate>';
+            categoryXML = categoryXML + '<sessionId xsi:type="xsd:string">' + sessionID + '</sessionId>';
+            categoryXML = categoryXML + '<categoryId xsi:type="xsd:int" xs:type="type:int" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + category.magentoId + '</categoryId>';
+            categoryXML = categoryXML + '<categoryData xsi:type="urn:catalogCategoryEntityCreate">';
+            //categoryXML = categoryXML + '<name xsi:type="xsd:string">'+extractCategoryName(category.name)+'</name>';
+            categoryXML = categoryXML + '<name xsi:type="xsd:string">' + category.name + '</name>';
+            categoryXML = categoryXML + '<is_active xsi:type="xsd:int">' + category.active + '</is_active>';
+            categoryXML = categoryXML + '<available_sort_by SOAP-ENC:arrayType="xsd:string[0]" xsi:type="urn:ArrayOfString">';
+            categoryXML = categoryXML + '<item xsi:type="xsd:string">position</item>';
+            categoryXML = categoryXML + '</available_sort_by>';
+            //categoryXML = categoryXML + '<custom_design xsi:type="xsd:string"></custom_design>';
+            //categoryXML = categoryXML +  '<custom_design_apply  xsi:type="xsd:int"></custom_design_apply>';
+            //categoryXML = categoryXML +  '<custom_design_from xsi:type="xsd:string"></custom_design_from>';
+            //categoryXML = categoryXML + '<custom_design_to xsi:type="xsd:string"></custom_design_to>';
+            //categoryXML = categoryXML + '<custom_layout_update xsi:type="xsd:string"></custom_layout_update>';
+            categoryXML = categoryXML + '<default_sort_by xsi:type="xsd:string">position</default_sort_by>';
+            //categoryXML = categoryXML + '<description xsi:type="xsd:string"></description>';
+            //categoryXML = categoryXML + '<display_mode xsi:type="xsd:string"></display_mode>';
+            //categoryXML = categoryXML + '<is_anchor xsi:type="xsd:int"></is_anchor>';
+            //categoryXML = categoryXML + '<landing_page xsi:type="xsd:int"></landing_page>';
+            //categoryXML = categoryXML + '<meta_description xsi:type="xsd:string"></meta_description>';
+            //categoryXML = categoryXML + '<meta_keywords xsi:type="xsd:string"></meta_keywords>';
+            //categoryXML = categoryXML + '<meta_title xsi:type="xsd:string"></meta_title>';
+            //categoryXML = categoryXML + '<page_layout xsi:type="xsd:string"></page_layout>';
+            //categoryXML = categoryXML + '<url_key xsi:type="xsd:string"></url_key>';
+            categoryXML = categoryXML + '<include_in_menu xsi:type="xsd:int">1</include_in_menu>';
+            categoryXML = categoryXML + '</categoryData>';
+            categoryXML = categoryXML + '<storeView xsi:type="xsd:string">1</storeView>';
+            categoryXML = categoryXML + '</urn:catalogCategoryUpdate>';
+            categoryXML = categoryXML + this.XmlFooter;
+            return categoryXML;
+        },
+	validateCreateCategoryOperationResponse: function(xml, operation) {
+            var faultCode = "";
+            var faultString;
+            var responseMagento = {};
+            var magentoCategoryId;
+            var updated;
+            responseMagento.status = true;
+            try {
+                if (operation == "create") {
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
+                    }
+                    if (responseMagento.status) {
+                        magentoCategoryId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogCategoryCreateResponse/result");
+                        responseMagento.magentoCategoryId = magentoCategoryId;
+                    }
+                } else if (operation == "update") {
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
+                    }
+                    if (responseMagento.status) {
+                        responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogCategoryUpdateResponse/result");
+                    }
+                }
+            } catch (ex) {
+                Utility.logException('MagentoWrapper.validateCategoryExportOperationResponse', ex);
+            }
+            return responseMagento;
+        },
+	
+	validateItemOperationResponse: function(xml, operation) {
+            var faultCode = "";
+            var faultString;
+            var responseMagento = {};
+            var magentoItemId;
+            var updated;
+            responseMagento.status = true;
+            try {
+                if (operation == "create") {
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
+                    }
+                    if (responseMagento.status) {
+                        magentoItemId = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductCreateResponse/result");
+                        responseMagento.magentoItemId = magentoItemId;
+                    }
+                } else if (operation == "update") {
+                    faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
+                    faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
+                    responseMagento.faultCode = faultCode;
+                    responseMagento.faultString = faultString;
+                    if (!!responseMagento.faultCode) {
+                        responseMagento.status = false;
+                    }
+                    if (responseMagento.status) {
+                        responseMagento.updated = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductUpdateResponse/result");
+                    }
+                }
+            } catch (ex) {
+                Utility.logException('MagentoWrapper.validateItemOperationResponse', ex);
+            }
+            return responseMagento;
+        },
+	
         transformCreateSalesOrderResponseForOrderLineId: function(xml) {
             var obj = {};
 

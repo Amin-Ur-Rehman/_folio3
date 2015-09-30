@@ -879,8 +879,8 @@ var ConnectorCommon = (function () {
             }
         },
         getProductMagentoID: function (sessionID, product) {
-            var xml = XmlUtility.getProductListXML(sessionID, product);
-            var response = XmlUtility.validateGetIDResponse(XmlUtility.soapRequestToMagento(xml));
+            var response = MagentoWrapper.getProduct(sessionID, product);
+
             if (response.status) {
                 return response.result;
             }
@@ -903,7 +903,7 @@ var ConnectorCommon = (function () {
          * @param storeId
          * @param magentoId
          */
-        getMagentoIdForSearhing: function (storeId, magentoId) {
+        getMagentoIdForSearching: function (storeId, magentoId) {
             var magentoFormattedId = ConnectorConstants.MagentoIdFormat;
             magentoFormattedId = magentoFormattedId.replace('<STOREID>', storeId);
             magentoFormattedId = magentoFormattedId.replace('<MAGENTOID>', magentoId);
@@ -1324,7 +1324,11 @@ var ConnectorCommon = (function () {
             Utility.logDebug('addressExists', 'NOT MATCHED');
             return false;
         },
-
+        /**
+         * Create log record for exporting historic sales order for testing
+         * @param order
+         * @param xml
+         */
         createLogRec: function (order, xml) {
             try {
                 var rec = nlapiCreateRecord('customrecord_xml_log', null);
@@ -1337,6 +1341,105 @@ var ConnectorCommon = (function () {
             }
         },
 
+	/**
+         * Get Magento Order Item Ids and SKUs map from sales order info response
+         * @param orderId
+         * @param magentoItemsMap magentoItemsMap[nsId] = sku
+         * @return {}
+         */
+        getMagentoOrderItemIdsMap: function (orderId, magentoItemsMap) {
+            var requestXml,
+                responseMagento,
+                magentoOrderItemIdsMap,
+                mgNsOrderItemIdsMap = null;
+
+            requestXml = MagentoWrapper.getSalesOrderInfoXML(orderId, ConnectorConstants.CurrentStore.sessionID);
+            responseMagento = MagentoWrapper.validateAndTransformResponse(MagentoWrapper.soapRequestToServer(requestXml), MagentoWrapper.transformSalesOrderInfoResponseIntoOrderItemIds);
+
+            if (responseMagento.status) {
+
+                // format: magentoOrderItemIdsMap[sku] = magentoOrderId
+                magentoOrderItemIdsMap = responseMagento.result.orderItemIds;
+
+                mgNsOrderItemIdsMap = {};
+
+                for (var nsId in magentoItemsMap) {
+                    var sku = magentoItemsMap[nsId];
+                    mgNsOrderItemIdsMap[nsId] = magentoOrderItemIdsMap[sku];
+                }
+                Utility.logDebug('ConnectorCommon.getMagentoOrderItemIdsMap - mgNsOrderItemIdsMap', JSON.stringify(mgNsOrderItemIdsMap));
+            } else {
+                Utility.logDebug('ConnectorCommon.getMagentoOrderItemIdsMap', responseMagento.faultString);
+                Utility.throwException(null, 'ConnectorCommon.getMagentoOrderItemIdsMap: ' + responseMagento.faultString);
+            }
+
+            return mgNsOrderItemIdsMap;
+        },
+
+	/**
+         * Gets the value of object, based on row and column
+         * @param row
+         * @param cols
+         * @returns {*}
+         */
+        getObjects: function (records) {
+            var result = [];
+            if (!!records && records.length > 0) {
+                var cols = records[0].getAllColumns();
+                var columnNames = [];
+
+                for (var j = 0; j < cols.length; j++) {
+                    var item = cols[j];
+                    var label = item.getLabel();
+                    var nm = null;
+                    if (!!label) {
+                        label = label.toLowerCase();
+                        label = label.indexOf('_') == 0 ? label.substr(1) : label;
+                        label = label.trim().replace(/ /gi, '_');
+
+                        nm = label;
+                    }
+                    else {
+                        nm = item.getName();
+                    }
+                    columnNames.push(nm);
+                }
+
+                for (var x = 0; x < records.length; x++) {
+                    result.push(this.getObject(records[x], cols, columnNames));
+                }
+            }
+            return result;
+        },
+
+        /**
+         * Gets the value of object, based on row and column
+         * @param row
+         * @param cols
+         * @returns {*}
+         */
+        getObject: function (row, cols, columnNames) {
+            var obj = null;
+            if (row) {
+                obj = { id: row.getId(), recordType: row.getRecordType() };
+                var nm = null, item, val, text;
+                for (var x = 0; x < cols.length; x++) {
+                    item = cols[x];
+                    nm = (columnNames && columnNames[x]) || item.getName();
+                    val = row.getValue(item);
+                    text = row.getText(item);
+
+                    if (!!text && val != text) {
+                        obj[nm] = {text: text, value: val};
+                    }
+                    else {
+                        obj[nm] = val;
+                    }
+                }
+            }
+            return obj;
+        },
+	
         /**
          * Get environment base url
          * @param environment

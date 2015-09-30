@@ -40,8 +40,8 @@ function customerExport() {
 
         externalSystemConfig.forEach(function(store) {
             ConnectorConstants.CurrentStore = store;
-            var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
-            Utility.logDebug('sessionID', sessionID);
+            ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+            var sessionID = MagentoWrapper.getSessionIDFromServer(store.userName, store.password);
             if (!sessionID) {
                 Utility.logDebug('empty sessionID', 'sessionID is empty');
                 return;
@@ -175,7 +175,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
         requsetXML = CUSTOMER.getMagentoCreateCustomerRequestXML(customerRecord, store.sessionID);
         Utility.logDebug('customer_requsetXML ', requsetXML);
         Utility.logDebug('store_wahaj ', JSON.stringify(store));
-        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
+        responseMagento = MagentoWrapper.validateCustomerExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'create');
         Utility.logDebug('responseMagento_wahaj ', JSON.stringify(responseMagento));
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
@@ -225,7 +225,7 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
         customerRecord.magentoId = magentoId;
         requsetXML = CUSTOMER.getMagentoUpdateCustomerRequestXML(customerRecord, store.sessionID);
         nlapiLogExecution('DEBUG', 'updateCustomerInMagento_requsetXML_w', requsetXML);
-        responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
+        responseMagento = MagentoWrapper.validateCustomerExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'update');
 
         if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {
 
@@ -338,7 +338,7 @@ function createSingleAddressInMagento(customerRecordObject, customerAddressObj, 
 
     requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
 
-    responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
+    responseMagento = MagentoWrapper.validateCustomerAddressExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'create');
 
     if (!responseMagento.status) {
 
@@ -380,7 +380,7 @@ function UpdateSingleAddressInMagento(customerRecordObject, customerAddressObj, 
 
     requsetXML = CUSTOMER.getMagentoUpdateAddressRequestXML(scannedAddressForMagento, store.sessionID, currentAddressStoresInfo[store.systemId]);
 
-    responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
+    responseMagento = MagentoWrapper.validateCustomerAddressExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'update');
 
     if (!responseMagento.status) {
         errorMsg=errorMsg+'   ' + responseMagento.faultCode + '    ' + responseMagento.faultString; ;

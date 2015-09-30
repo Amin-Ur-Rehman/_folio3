@@ -66,9 +66,8 @@ function syncProduct(product, productRecordtype, product_id, sessionID, isParent
                 return;
             }
 
-            itemXML = XmlUtility.getUpdateItemXML(product, sessionID, magID, isParent);
-            Utility.logDebug('itemXML',itemXML);
-            var responseMagento = XmlUtility.validateItemExportResponse(XmlUtility.soapRequestToMagento(itemXML), 'update');
+            var responseMagento = MagentoWrapper.updateItem(product, sessionID, magID, isParent);
+
             // If due to some reason Magento item is unable to update
             // Send Email Magento Side error
             if (!responseMagento.status) {
@@ -98,8 +97,10 @@ function ws_soaftsubm(type) {
 
         externalSystemConfig.forEach(function (store) {
             ConnectorConstants.CurrentStore = store;
+            ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+            ConnectorConstants.CurrentWrapper.initialize(store);
             if (store.entitySyncInfo.item.isSync) {
-                var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+                var sessionID = MagentoWrapper.getSessionIDFromServer(store.userName, store.password);
                 if (!sessionID) {
                     Utility.logDebug('sessionID', 'sessionID is empty');
                     return;
@@ -181,6 +182,10 @@ function ws_soaftsubm(type) {
                         externalSystemArr.forEach(function (store) {
                             Utility.logDebug('Inside externalSystemArr', '');
                             ConnectorConstants.CurrentStore = store;
+
+                            ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                            ConnectorConstants.CurrentWrapper.initialize(store);
+			    
                             Utility.logDebug('checkpoint', '1');
                             var magentoId = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
                             // parse object

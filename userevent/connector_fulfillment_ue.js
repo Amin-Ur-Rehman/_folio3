@@ -43,12 +43,9 @@ function syncFulfillmentsMagento(sessionID, magentoSO) {
     var magentoSOId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
     var magentoItemIds = ConnectorCommon.getMagentoItemIds(ConnectorCommon.getFulfillmentItems());
 
-    // getting xml for creating fulfillemnt/shipment in Magento
-    fulfillmentXML = XmlUtility.getCreateFulfillmentXML(sessionID, magentoItemIds, magentoSOId);
-    Utility.logDebug('XmlUtility.getCreateFulfillmentXML', 'EOS ' + fulfillmentXML);
 
     // create shipment in Magento
-    responseMagento = XmlUtility.validateFulfillmentExportResponse(XmlUtility.soapRequestToMagento(fulfillmentXML));
+    responseMagento = ConnectorConstants.CurrentWrapper.createFulfillment(sessionID, magentoItemIds, magentoSOId);
 
     if (!responseMagento.status) {
         Utility.logDebug('Error', 'Export fulfillment record -- ID: ' + '--' + responseMagento.faultCode + '--' + responseMagento.faultString);
@@ -81,9 +78,9 @@ function syncFulfillmentsMagento(sessionID, magentoSO) {
         for (var p = 1; p <= totalPackages; p++) {
             var tracking = nlapiGetLineItemValue('package' + upsPackage, 'packagetrackingnumber' + upsPackage, p);
             if (!Utility.isBlankOrNull(tracking)) {
-            // Setting Tracking Number
-            var trackingXML = XmlUtility.createTrackingXML(responseMagento.result, carrier, carrierText, tracking, sessionID);
-            var responseTracking = XmlUtility.validateTrackingCreateResponse(XmlUtility.soapRequestToMagento(trackingXML));
+            var responseTracking =
+              ConnectorConstants.CurrentWrapper.createTracking(responseMagento.result, carrier, carrierText, tracking, sessionID, magentoSOId);
+
             Utility.logDebug('CHECK', 'I tried setting shipment tracking id Got this in response : ' + responseTracking.result);
                 trackingNumbersIds.push(responseTracking.result);
             }
@@ -142,7 +139,8 @@ function startup(type) {
             })(externalSystemConfig, salesOrderStore);
 
             ConnectorConstants.CurrentStore = store;
-            sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+            ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+            sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
 
             // if session id is not captured then terminate
             if (Utility.isBlankOrNull(sessionID)) {

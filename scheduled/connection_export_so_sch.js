@@ -496,7 +496,7 @@ var OrderExportHelper = (function () {
          * @param sessionId
          */
         getMagentoRequestXml: function (orderRecord, sessionId) {
-            return XmlUtility.getCreateSalesOrderXml(orderRecord, sessionId);
+            return ConnectorConstants.CurrentWrapper.getCreateSalesOrderXml(orderRecord, sessionId);
         }
     };
 })();
@@ -522,7 +522,8 @@ var ExportSalesOrders = (function () {
 
             externalSystemConfig.forEach(function (store) {
                 ConnectorConstants.CurrentStore = store;
-                var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+                ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
                 if (!sessionID) {
                     Utility.logDebug('sessionID', 'sessionID is empty');
                     return;
@@ -575,19 +576,19 @@ var ExportSalesOrders = (function () {
             Utility.logDebug('store.endpoint', store.endpoint);
             Utility.logDebug('requestXml', requestXml);
 
-            var xml = XmlUtility.soapRequestToMagento(requestXml);
+            var xml = ConnectorConstants.CurrentWrapper.soapRequestToMagento(requestXml);
 
-            responseMagento = XmlUtility.validateAndTransformSalesorderCreationResponse(xml, 0);
+            responseMagento = ConnectorConstants.CurrentWrapper.validateAndTransformSalesorderCreationResponse(xml, 0);
 
             Utility.logDebug('debug', 'Step-5c');
 
             if (responseMagento.status) {
                 Utility.logDebug('debug', 'Step-6');
 
-                var incrementalIdData = XmlUtility.transformCreateSalesOrderResponse(xml);
+                var incrementalIdData = ConnectorConstants.CurrentWrapper.transformCreateSalesOrderResponse(xml);
                 Utility.logDebug('incrementalIdData', incrementalIdData.orderIncrementId);
 
-                var magentoOrderLineIdData = XmlUtility.transformCreateSalesOrderResponseForOrderLineId(xml);
+                var magentoOrderLineIdData = ConnectorConstants.CurrentWrapper.transformCreateSalesOrderResponseForOrderLineId(xml);
 
                 OrderExportHelper.setOrderMagentoId(incrementalIdData.orderIncrementId, internalId);
                 OrderExportHelper.setLineItemsMagentoOrderLineIds(internalId, orderRecord, magentoOrderLineIdData);
@@ -732,7 +733,7 @@ var ExportSalesOrders = (function () {
                         var store = externalSystemArr[i];
 
                         ConnectorConstants.CurrentStore = store;
-
+                        ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                         Utility.logDebug('debug', 'Step-2');
 
                         orderIds = OrderExportHelper.getOrders(false, store.systemId);
