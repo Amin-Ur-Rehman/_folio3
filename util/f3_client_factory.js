@@ -27,8 +27,8 @@ F3ClientFactory = (function () {
                 case 'Jet':
                     client = new F3JetClient();
                     break;
-                case 'OrsonGygi':
-                    client = new F3OrsonGygiClient();
+                case 'F3BaseV1':
+                    client = new F3BaseV1Client();
                     break;
                 default :
                     client = new F3ClientBase();
@@ -750,7 +750,7 @@ function F3PurestColloidsClient() {
     return currentClient;
 }
 
-function F3OrsonGygiClient() {
+function F3BaseV1Client() {
     var currentClient = new F3ClientBase();
 
     /**
@@ -981,8 +981,8 @@ function F3OrsonGygiClient() {
         var addresses = {};
 
         if (!isGuest) {
-            custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
-            responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+            custAddrXML = ConnectorConstants.CurrentWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+            responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(custAddrXML));
 
             if (!responseMagento.status) {
                 result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
@@ -1090,9 +1090,9 @@ function F3OrsonGygiClient() {
         var responseMagento;
         var addresses;
 
-        custAddrXML = XmlUtility.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+        custAddrXML = ConnectorConstants.CurrentWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
 
-        responseMagento = XmlUtility.validateCustomerAddressResponse(XmlUtility.soapRequestToMagento(custAddrXML));
+        responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(custAddrXML));
 
         if (!responseMagento.status) {
             result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;

@@ -90,7 +90,7 @@ CustomerSync = (function () {
                 customerRecord.magentoId = magentoId;
                 requsetXML = this.getMagentoUpdateCustomerRequestXML(customerRecord, store.sessionID);
                 ConnectorCommon.createLogRec('Sameer-test', requsetXML);
-                responseMagento = XmlUtility.validateCustomerExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
+                responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerExportOperationResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(requsetXML, store), 'update');
                 if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated === "true") {
                     //magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, magentoId, 'update', existingMagentoReferenceInfo);
                     //nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
@@ -179,7 +179,7 @@ CustomerSync = (function () {
             var createOrUpdateMagentoJSONRef = 'create';
             requsetXML = CUSTOMER.getMagentoCreateAddressRequestXML(scannedAddressForMagento, store.sessionID, magentoCustomerId);
             ConnectorCommon.createLogRec('Sameer-test', requsetXML);
-            responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'create');
+            responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressExportOperationResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(requsetXML, store), 'create');
 
             if (!responseMagento.status) {
                 errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
@@ -217,9 +217,9 @@ CustomerSync = (function () {
             var responseMagento;
             requsetXML = getMagentoUpdateAddressRequestXML(scannedAddressForMagento, store.sessionID, currentAddressStoresInfo[store.systemId]);
             ConnectorCommon.createLogRec('Sameer-test', requsetXML);
-            responseMagento = XmlUtility.validateCustomerAddressExportOperationResponse(XmlUtility.soapRequestToMagentoSpecificStore(requsetXML, store), 'update');
+            responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressExportOperationResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(requsetXML, store), 'update');
             if (!responseMagento.status) {
-                errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;;
+                errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
                 addressCreated = false;
             }
             return addressCreated;

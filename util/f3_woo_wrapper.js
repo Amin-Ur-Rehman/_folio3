@@ -269,7 +269,7 @@ WooWrapper = (function () {
 
         var finalInfo = oauth.authorize(httpRequestData, null);
 
-        Utility.logDebug('finalInfo = ', finalInfo);
+        Utility.logDebug('finalInfo = ', JSON.stringify(finalInfo));
 
         var signedUrl = oauth.generateQueryParam(finalInfo);
 
@@ -285,13 +285,19 @@ WooWrapper = (function () {
         }
 
         Utility.logDebug('Request headers = ', JSON.stringify(httpRequestData.headers));
+        Utility.logDebug('httpRequestData = ', JSON.stringify(httpRequestData));
 
         var body = '';
         var serverResponse = null;
 
         if (httpRequestData.method === 'GET') {
             if (typeof nlapiRequestURL !== "undefined") {
+                Utility.logDebug("httpRequestData.method === GET", "");
                 res = nlapiRequestURL(finalUrl, null, httpRequestData.headers);
+		body = res.getBody();
+                Utility.logDebug("res", res.getBody());
+                Utility.logDebug("code", res.getCode());
+		serverResponse = eval('(' + body + ')');
             } else {
                 jQuery.ajax({
                     url: finalUrl,
@@ -304,10 +310,14 @@ WooWrapper = (function () {
 
         } else {
             var postDataString =
-              typeof httpRequestData.data === "object" ? JSON.stringify(httpRequestData.data) : httpRequestData.data;
+                typeof httpRequestData.postData === "object" ?
+                    JSON.stringify(httpRequestData.postData) : httpRequestData.postData;
 
             if (typeof nlapiRequestURL !== "undefined") {
+                Utility.logDebug("httpRequestData.method !== GET", "");
                 res = nlapiRequestURL(finalUrl, postDataString, httpRequestData.headers, httpRequestData.method);
+                Utility.logDebug("res", res.getBody());
+                Utility.logDebug("code", res.getCode());
                 body = res.getBody();
                 serverResponse = eval('(' + body + ')');
 
@@ -351,7 +361,7 @@ WooWrapper = (function () {
         Password: '',
         AuthHeader: '',
 
-        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v2/',
+        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v1/',
 
         /**
          * Gets supported Date Format
@@ -487,12 +497,22 @@ WooWrapper = (function () {
          */
         updateItem: function (product, sessionID, magID, isParent) {
 
+            // first get the product id here
+            var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
+            var firstProduct = productInfo[0];
             var httpRequestData = {
-                url: 'products/' + magID,
-                method: 'POST',
-                data: {
+                additionalUrl: 'products/' + magID + '.json',
+                method: 'PUT',
+                postData: {
                     product: {
-                        title: 'Xperia Z4'
+                        id: magID,
+                        variants: [{
+                            id: firstProduct.variants[0].id,
+                            price: product.price,
+                            inventory_quantity: product.quantity,
+                            product_id: magID
+                        }
+                        ]
                     }
                 }
             };
@@ -537,10 +557,11 @@ WooWrapper = (function () {
         getProduct: function (sessionID, product, variantRequest) {
 
             var httpRequestData = {
-                url: 'products/' +
-                product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : ''),
+                url: 'products',
                 method: 'GET',
-                data: {}
+                data: {
+                    ids: product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : '')
+                }
             };
 
             var serverResponse = null;
