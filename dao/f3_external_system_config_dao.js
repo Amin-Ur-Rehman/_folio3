@@ -24,7 +24,8 @@ ExternalSystemConfig = (function () {
             Password: 'custrecord_esc_password',
             Endpoint: 'custrecord_esc_endpoint',
             EntitySyncInfo: 'custrecord_esc_entity_sync_info',
-            SystemType: 'custrecord_system_type'
+            SystemType: 'custrecord_esc_system_type',
+            Permission: 'custrecord_esc_permission'
         },
         /**
          * Perform a record search using filters and columns.
@@ -69,6 +70,7 @@ ExternalSystemConfig = (function () {
                 var password = config.getValue(this.FieldName.Password, null, null);
                 var endpoint = config.getValue(this.FieldName.Endpoint, null, null);
                 var entitySyncInfo = JSON.parse(config.getValue(this.FieldName.EntitySyncInfo, null, null));
+                var permission = JSON.parse(config.getValue(this.FieldName.Permission, null, null) || "[]");
 
                 //TODO: Need to pick this from Database
                 var systemType = config.getValue(this.FieldName.SystemType, null, null);
@@ -81,7 +83,8 @@ ExternalSystemConfig = (function () {
                     password: password,
                     endpoint: endpoint,
                     entitySyncInfo: entitySyncInfo,
-                    systemType: systemType
+                    systemType: systemType,
+                    permission: permission
                 };
 
                 systemConfig[systemId] = obj;

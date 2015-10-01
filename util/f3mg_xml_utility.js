@@ -1,7 +1,7 @@
 /**
  * Created by zahmed on 14-Jan-15.
  *
- * Class Name: XmlUtility
+ * Class Name: MagentoWrapper
  *
  * Description:
  * - This script is responsible for handling xml

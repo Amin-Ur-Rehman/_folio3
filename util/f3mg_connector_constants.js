@@ -20,7 +20,7 @@ ConnectorConstants = (function () {
             City: 'US',
             Telephone: '123-123-1234',
             Zip: '08060',
-            Address : 'No Address Line'
+            Address: 'No Address Line'
         },
         CustomerTypesToExport: ['13'],      //Customer Or Lead Or Prospectus or All etc
         DefaultAddressId: '-1',
@@ -50,12 +50,11 @@ ConnectorConstants = (function () {
                 MagentoSync: 'custbody_magentosyncdev',
                 MagentoStore: 'custbody_f3mg_magento_store',
                 MagentoSyncStatus: 'custbody_f3mg_magento_sync_status',
-                CreditMemoMagentoId: 'custbody_credit_memo_magentoid'
-		CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
+                CreditMemoMagentoId: 'custbody_credit_memo_magentoid',
+                CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
                 CustomerRefundMagentoId: 'custbody_cash_refund_magentoid',
                 DontSyncToMagento: 'custbody_f3mg_dont_sync_to_magento'
-            }
-            ,
+            },
             Columns: {
                 MagentoOrderId: 'custcol_mg_order_item_id'
             }
@@ -113,7 +112,7 @@ ConnectorConstants = (function () {
             ScriptStartDate: 'custscript_start_date'
         },
         SuiteScripts: {
-            Suitelet : {
+            Suitelet: {
                 GenericDataExport: {
                     id: 'customscript_f3mg_generic_data_exp_sl',
                     deploymentId: 'customdeploy_f3mg_generic_data_exp_sl_de'
@@ -131,10 +130,10 @@ ConnectorConstants = (function () {
                 }
             }
         },
-        NSRecordTypes : {
+        NSRecordTypes: {
             PromotionCode: 'promotioncode',
             PriceLevel: 'pricelevel',
-            PaymentTerm : 'term'
+            PaymentTerm: 'term'
         },
         RetryAction: {
             Messages: {
@@ -165,7 +164,7 @@ ConnectorConstants = (function () {
         initialize: function () {
             //this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
-            this.Client = F3ClientFactory.createClient('OrsonGygi');
+            this.Client = F3ClientFactory.createClient('F3BaseV1');
             this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
         initializeDummyItem: function () {
