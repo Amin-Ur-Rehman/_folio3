@@ -1,4 +1,8 @@
-This file contains the data which is required to setup in custom records.
+====================================================================================================
+                                    NetSuite Configuration DETAIL
+====================================================================================================
+
+Following the data which is required to setup in custom records.
 
 NetSuite Config Production
 
@@ -16,3 +20,46 @@ Magento Credentials
 ADMIN URL: http://nsmg.folio3.com:4545/f3store5/index.php/admin
 USERNAME: netsuite
 PASSWORD: folio3@
+
+====================================================================================================
+                                    EXTERNAL SYSTEM DETAIL
+====================================================================================================
+
+Shopify
+
+Admin: https://f3-test-store-001-2.myshopify.com/admin
+username: snasir@folio3.com
+password: click123
+
+Store URL: http://f3-test-store-001-2.myshopify.com/
+To access store use (kruvew) as password. Remove brackets in password.
+
+
+WooCommerce
+
+Admin: http://nsmg.folio3.com:4545/woosite1/wp-admin/
+username: sahmed
+password: click123
+
+Store URL: http://nsmg.folio3.com:4545/woosite1/shop/
+
+
+Magento
+
+Admin: http://nsmg.folio3.com:4545/f3store5/index.php/admin
+username: netsuite
+password: folio3@
+
+Store URL: http://nsmg.folio3.com:4545/f3store5/index.php/
+
+
+NetSuite Details
+
+Account ID: TSTDRV965817
+Name: UnifiedConnectorV1
+
+Connector has been deployed on this account.
+
+====================================================================================================
+                                        OTHER DETAIL
+====================================================================================================

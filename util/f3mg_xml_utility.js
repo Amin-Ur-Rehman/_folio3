@@ -314,7 +314,7 @@ MagentoWrapper = (function() {
             nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(tShipmentXML));
             return tShipmentXML;
         },
-        getCustomerAddressXML: function(customerID, sessionID) {
+        getCustomerAddress: function(customerID, sessionID) {
             var custAddrListXML;
 
             custAddrListXML = this.XmlHeader;
@@ -326,7 +326,10 @@ MagentoWrapper = (function() {
 
             custAddrListXML = custAddrListXML + this.XmlFooter;
 
-            return custAddrListXML;
+
+            var responseMagento = MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrListXML));
+
+            return responseMagento;
         },
         getCreateItemXML: function(product, sessionID, categoryIds) {
             var xml = '';
@@ -1690,7 +1693,7 @@ MagentoWrapper = (function() {
         },
 
         getCustomerAddress: function(customerID, sessionID) {
-            var custAddrXML = MagentoWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
+            var custAddrXML = MagentoWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
 
             var addressResponse =
                 MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrXML));

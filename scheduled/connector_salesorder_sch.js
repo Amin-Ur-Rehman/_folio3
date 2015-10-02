@@ -95,15 +95,15 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                 try {
                     Utility.logDebug('orders[' + i + ']', JSON.stringify(orders[i]));
-
+                    Utility.logDebug('ConnectorConstants.CurrentStore.systemId', ConnectorConstants.CurrentStore.systemId);
                     // Check if this SO already exists
                     if (ConnectorCommon.isOrderSynced(orders[i].increment_id, ConnectorConstants.CurrentStore.systemId)) {
                         Utility.logDebug('Sales Order already exist with Magento Id: ', orders[i].increment_id);
                         continue;
                     }
 
-
                     salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
+                    //Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
 
 
                     //Utility.logDebug('stages_w', 'Step-c');
@@ -156,6 +156,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     //Utility.logDebug('stages_w', 'Step-g');
                     // adding shipping and billing address in customer object getting from sales order
                     customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
+                    //Utility.logDebug('ZEE->customer', JSON.stringify(customer));
                     var customerNSInternalId = null;
                     var customerSearchObj = {};
                     var customerIndex = 0;
@@ -192,6 +193,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                             salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products,
                                 netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress,
                                     billingAddress, payment);
+
+                            Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
+
                             ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                         }
                     }
@@ -228,6 +232,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         salesOrderObj = ConnectorModels.getSalesOrderObject(
                             orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
                                 shippingAddress, billingAddress, payment);
+                        Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
                         // create sales order
                         ConnectorConstants.Client.createSalesOrder(salesOrderObj);
                     }
@@ -289,7 +294,8 @@ function startup(type) {
 
             // getting last store id if script has been rescheduled
             lastStoreId = context.getSetting('SCRIPT', ConnectorConstants.ScriptParameters.LastStoreIdSalesOrder);
-            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 1 : parseInt(lastStoreId);
+            // TODO: remove hard coding
+            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 2 : parseInt(lastStoreId);
 
             for (var system = lastStoreId; system < externalSystemConfig.length; system++) {
                 // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first

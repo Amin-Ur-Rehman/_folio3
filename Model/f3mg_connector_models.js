@@ -93,14 +93,14 @@ ConnectorModels = (function () {
 
             address.address_id = shippingAddress.address_id;
             address.city = shippingAddress.city;
-            address.country_id = shippingAddress.country;
+            address.country_id = shippingAddress.country_id;
             address.firstname = shippingAddress.firstname;
             address.lastname = shippingAddress.lastname;
-            address.postcode = shippingAddress.zip;
-            address.region = shippingAddress.state;
+            address.postcode = shippingAddress.postcode;
+            address.region = shippingAddress.region;
             address.region_id = shippingAddress.region_id;
             address.street = shippingAddress.street;
-            address.telephone = shippingAddress.phone;
+            address.telephone = shippingAddress.telephone;
             address.is_default_billing = false;
             address.is_default_shipping = true;
 
@@ -110,11 +110,11 @@ ConnectorModels = (function () {
 
             address.address_id = billingAddress.address_id;
             address.city = billingAddress.city;
-            address.country_id = billingAddress.country;
+            address.country_id = billingAddress.country_id;
             address.firstname = billingAddress.firstname;
             address.lastname = billingAddress.lastname;
-            address.postcode = billingAddress.zip;
-            address.region = billingAddress.state;
+            address.postcode = billingAddress.postcode;
+            address.region = billingAddress.region;
             address.region_id = billingAddress.region_id;
             address.street = billingAddress.street;
             address.telephone = billingAddress.phone;
@@ -206,8 +206,20 @@ ConnectorModels = (function () {
                 shippingAddress: ConnectorModels.addressModel(),
                 billingAddress: ConnectorModels.addressModel(),
                 payment: {},
-                products: []
-            };
+                products: [],
+                order_id: '',
+                created_at: '',
+                shipping_description: '',
+                customer_firstname: '',
+                customer_lastname: '',
+                grandtotal: '',
+                discount_amount: '',
+                discount_description: '',
+                customer_group_id: '',
+                quote_id: '',
+                customer_middlename: ''
+
+        };
         }
     };
 })();
