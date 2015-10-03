@@ -31,7 +31,7 @@ WooWrapper = (function () {
 
         var localOrder = ConnectorModels.salesOrderModel();
 
-        localOrder.increment_id = serverOrder.id;
+        localOrder.increment_id = serverOrder.order_number;
 
         if (serverOrder.shipping_lines && serverOrder.shipping_lines.length > 0) {
             localOrder.shipping_amount = serverOrder.shipping_lines[0].total;
@@ -49,24 +49,42 @@ WooWrapper = (function () {
             localOrder.prefix = '';
             localOrder.suffix = '';
             localOrder.dob = '';
+
+            localOrder.customer_firstname  = localOrder.firstname;
+            localOrder.customer_middlename = localOrder.middlename;
+            localOrder.customer_lastname   = localOrder.lastname;
         }
 
         if (serverOrder.shipping_address) {
             localOrder.shippingAddress.address_id = 0;
             localOrder.shippingAddress.city = serverOrder.shipping_address.city;
-            localOrder.shippingAddress.country_id = serverOrder.shipping_address.country_code;
+            localOrder.shippingAddress.country_id = serverOrder.shipping_address.country;
             localOrder.shippingAddress.firstname = serverOrder.shipping_address.first_name;
             localOrder.shippingAddress.lastname = serverOrder.shipping_address.last_name;
-            localOrder.shippingAddress.postcode = serverOrder.shipping_address.zip;
-            localOrder.shippingAddress.region = serverOrder.shipping_address.province;
-            localOrder.shippingAddress.region_id = '';
-            localOrder.shippingAddress.street = serverOrder.shipping_address.address1;
-            localOrder.shippingAddress.telephone = serverOrder.shipping_address.phone;
+            localOrder.shippingAddress.postcode = serverOrder.shipping_address.postcode;
+            localOrder.shippingAddress.region = serverOrder.shipping_address.state;
+            localOrder.shippingAddress.region_id = serverOrder.shipping_address.state;
+            localOrder.shippingAddress.street = serverOrder.shipping_address.address_1 + ' ' + serverOrder.shipping_address.address_2;
+            localOrder.shippingAddress.telephone = "";
+            // TODO: handle flag conditionally
             localOrder.shippingAddress.is_default_billing = false;
             localOrder.shippingAddress.is_default_shipping = true;
         }
 
-        localOrder.billingAddress = localOrder.shippingAddress;
+        if (serverOrder.billing_address) {
+            localOrder.billingAddress.address_id = 0;
+            localOrder.billingAddress.city = serverOrder.billing_address.city;
+            localOrder.billingAddress.country_id = serverOrder.billing_address.country;
+            localOrder.billingAddress.firstname = serverOrder.billing_address.first_name;
+            localOrder.billingAddress.lastname = serverOrder.billing_address.last_name;
+            localOrder.billingAddress.postcode = serverOrder.billing_address.postcode;
+            localOrder.billingAddress.region = serverOrder.billing_address.state;
+            localOrder.billingAddress.region_id = serverOrder.billing_address.state;
+            localOrder.billingAddress.street = serverOrder.billing_address.address_1 + ' ' + serverOrder.billing_address.address_2;
+            localOrder.billingAddress.telephone = serverOrder.billing_address.phone;
+            localOrder.billingAddress.is_default_billing = true;
+            localOrder.billingAddress.is_default_shipping = false;
+        }
 
         if (serverOrder.line_items && serverOrder.line_items.length > 0) {
 
@@ -120,8 +138,8 @@ WooWrapper = (function () {
         localProduct.increment_id = serverProduct.id;
         localProduct.shipping_amount = serverProduct.price;
         localProduct.shipment_method = serverProduct.shipment_method;
-        localProduct.product_id = serverProduct.id;
-        localProduct.quantity = serverProduct.quantity;
+        localProduct.product_id = serverProduct.sku;
+        localProduct.qty_ordered = serverProduct.quantity;
         localProduct.fulfillment_service = serverProduct.fulfillment_service;
         localProduct.fulfillment_status = serverProduct.fulfillment_status;
         localProduct.gift_card = serverProduct.gift_card;
@@ -142,6 +160,7 @@ WooWrapper = (function () {
         localProduct.fulfillable_quantity = serverProduct.fulfillable_quantity;
         localProduct.total_discount = serverProduct.total_discount;
         localProduct.tax_lines = serverProduct.tax_lines;
+        localProduct.item_id = "";
 
         return localProduct;
     }
@@ -200,7 +219,7 @@ WooWrapper = (function () {
         localAddress.lastname = serverAddress.last_name;
         localAddress.postcode = serverAddress.zip;
         localAddress.region = serverAddress.province;
-        localAddress.region_id = '';
+        localAddress.region_id = serverAddress.province;
         localAddress.street = serverAddress.address1;
         localAddress.telephone = serverAddress.phone;
 

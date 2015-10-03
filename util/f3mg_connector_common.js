@@ -295,6 +295,7 @@ var ConnectorCommon = (function () {
             var magentoSyncId = 'custbody_magentosyncdev';
             var fils = [];
             fils.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
+            fils.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
             fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
             fils.push(new nlobjSearchFilter(magentoIdId, null, 'is', orderId, null));
             fils.push(new nlobjSearchFilter(magentoSyncId, null, 'is', 'T', null));
@@ -385,10 +386,10 @@ var ConnectorCommon = (function () {
             isDefaultBilling = address.is_default_billing ? 'T' : 'F';
             isDefaultShipping = address.is_default_shipping ? 'T' : 'F';
 
-            if (Utility.isBlankOrNull(regionId)) {
-                regionId = FC_ScrubHandler.getMappedValue('State', regionId);
+            if (!Utility.isBlankOrNull(region)) {
+                regionId = region;
             } else {
-                regionId = FC_ScrubHandler.getMappedValue('State', region);
+                regionId = FC_ScrubHandler.getMappedValue('State', regionId);
             }
 
             if (type === 'order') {
@@ -542,7 +543,7 @@ var ConnectorCommon = (function () {
                 filterExpression = "[[";
                 for (var x = 0; x < magentoIds.length; x++) {
                     // multiple store handling
-                    filterExpression = filterExpression + "['itemid','contains','" + magentoIds[x].product_id + "']";
+                    filterExpression = filterExpression + "['itemid','is','" + magentoIds[x].product_id + "']";
                     if ((x + 1) < magentoIds.length) {
                         filterExpression = filterExpression + ",'or' ,";
                     }

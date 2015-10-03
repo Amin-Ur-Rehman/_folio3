@@ -409,13 +409,10 @@ function F3ClientBase() {
 
             // zee: get customer address list: start
 
-            var custAddrXML;
             var responseMagento;
             var addresses;
 
-            custAddrXML = MagentoWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
-
-            responseMagento = MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrXML));
+            responseMagento = ConnectorConstants.CurrentWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
 
             if (!responseMagento.status) {
                 result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
@@ -890,7 +887,7 @@ function F3BaseV1Client() {
 
         try {
             rec.setFieldValue(magentoSyncId, 'T');
-            rec.setFieldValue(magentoIdId, order.increment_id);
+            rec.setFieldValue(magentoIdId, order.increment_id.toString());
             //rec.setFieldValue('memo', 'Test Folio3');
             if (isDummyItemSetInOrder) {
                 // A = Pending Approval
@@ -981,8 +978,7 @@ function F3BaseV1Client() {
         var addresses = {};
 
         if (!isGuest) {
-            custAddrXML = ConnectorConstants.CurrentWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
-            responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(custAddrXML));
+            responseMagento = ConnectorConstants.CurrentWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
 
             if (!responseMagento.status) {
                 result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
@@ -1090,9 +1086,7 @@ function F3BaseV1Client() {
         var responseMagento;
         var addresses;
 
-        custAddrXML = ConnectorConstants.CurrentWrapper.getCustomerAddressXML(magentoCustomerObj.customer_id, sessionID);
-
-        responseMagento = ConnectorConstants.CurrentWrapper.validateCustomerAddressResponse(ConnectorConstants.CurrentWrapper.soapRequestToServer(custAddrXML));
+        responseMagento = ConnectorConstants.CurrentWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
 
         if (!responseMagento.status) {
             result.errorMsg = responseMagento.faultCode + '--' + responseMagento.faultString;
