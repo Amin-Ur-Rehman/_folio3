@@ -48,6 +48,9 @@ ShopifyWrapper = (function () {
             localOrder.prefix = '';
             localOrder.suffix = '';
             localOrder.dob = '';
+            localOrder.customer_firstname  = localOrder.firstname;
+            localOrder.customer_middlename = localOrder.middlename;
+            localOrder.customer_lastname   = localOrder.lastname;
         }
 
         if (serverOrder.shipping_address) {
@@ -57,15 +60,28 @@ ShopifyWrapper = (function () {
             localOrder.shippingAddress.firstname = serverOrder.shipping_address.first_name;
             localOrder.shippingAddress.lastname = serverOrder.shipping_address.last_name;
             localOrder.shippingAddress.postcode = serverOrder.shipping_address.zip;
-            localOrder.shippingAddress.region = serverOrder.shipping_address.province;
-            localOrder.shippingAddress.region_id = '';
+            localOrder.shippingAddress.region = serverOrder.shipping_address.province_code;
+            localOrder.shippingAddress.region_id = serverOrder.shipping_address.province_code;
             localOrder.shippingAddress.street = serverOrder.shipping_address.address1;
             localOrder.shippingAddress.telephone = serverOrder.shipping_address.phone;
             localOrder.shippingAddress.is_default_billing = false;
             localOrder.shippingAddress.is_default_shipping = true;
         }
 
-        localOrder.billingAddress = localOrder.shippingAddress;
+        if (serverOrder.billing_address) {
+            localOrder.billingAddress.address_id = 0;
+            localOrder.billingAddress.city = serverOrder.billing_address.city;
+            localOrder.billingAddress.country_id = serverOrder.billing_address.country_code;
+            localOrder.billingAddress.firstname = serverOrder.billing_address.first_name;
+            localOrder.billingAddress.lastname = serverOrder.billing_address.last_name;
+            localOrder.billingAddress.postcode = serverOrder.billing_address.zip;
+            localOrder.billingAddress.region = serverOrder.billing_address.province_code;
+            localOrder.billingAddress.region_id = serverOrder.billing_address.province_code;
+            localOrder.billingAddress.street = serverOrder.billing_address.address_1 + ' ' + serverOrder.billing_address.address_2;
+            localOrder.billingAddress.telephone = serverOrder.billing_address.phone;
+            localOrder.billingAddress.is_default_billing = true;
+            localOrder.billingAddress.is_default_shipping = false;
+        }
 
         if (serverOrder.line_items && serverOrder.line_items.length > 0) {
 
@@ -119,8 +135,7 @@ ShopifyWrapper = (function () {
         localProduct.increment_id = serverProduct.id;
         localProduct.shipping_amount = serverProduct.price;
         localProduct.shipment_method = serverProduct.shipment_method;
-        localProduct.product_id = serverProduct.product_id;
-        //localProduct.quantity = serverProduct.quantity;
+        localProduct.product_id = serverProduct.sku;
         localProduct.qty_ordered = serverProduct.quantity;
         localProduct.fulfillment_service = serverProduct.fulfillment_service;
         localProduct.fulfillment_status = serverProduct.fulfillment_status;
@@ -201,8 +216,8 @@ ShopifyWrapper = (function () {
         localAddress.firstname = serverAddress.first_name;
         localAddress.lastname = serverAddress.last_name;
         localAddress.postcode = serverAddress.zip;
-        localAddress.region = serverAddress.province;
-        localAddress.region_id = '';
+        localAddress.region = serverAddress.province_code;
+        localAddress.region_id = serverAddress.province_code;
         localAddress.street = serverAddress.address1;
         localAddress.telephone = serverAddress.phone;
 
@@ -456,8 +471,7 @@ ShopifyWrapper = (function () {
                 postData: {
                     product: {
                         id: magID,
-                        variants: [
-                            {
+                        variants: [{
                                 id: firstProduct.variants[0].id,
                                 price: product.price,
                                 inventory_quantity: product.quantity,
@@ -474,7 +488,8 @@ ShopifyWrapper = (function () {
             var serverFinalResponse = {
                 status: false,
                 faultCode: '',
-                faultString: ''
+                faultString: '',
+                product: {}
             };
 
             try {
@@ -485,15 +500,9 @@ ShopifyWrapper = (function () {
                 Utility.logException('Error during updateItem', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var orders = parseSalesOrderResponse(serverResponse);
+            if (!!serverResponse && serverResponse.product) {
+                serverFinalResponse.product = parseSingleProductResponse(serverResponse.product);
 
-                if (!!orders && orders.length > 0) {
-                    serverFinalResponse.customer_id = orders[0].customer_id;
-                    serverFinalResponse.shippingAddress = orders[0].shippingAddress;
-                    serverFinalResponse.billingAddress = orders[0].billingAddress;
-                    serverFinalResponse.payment = orders[0].payment;
-                }
             }
 
             // If some problem
@@ -525,7 +534,8 @@ ShopifyWrapper = (function () {
             var serverFinalResponse = {
                 status: false,
                 faultCode: '',
-                faultString: ''
+                faultString: '',
+                product: {}
             };
 
             try {
@@ -537,14 +547,9 @@ ShopifyWrapper = (function () {
             }
 
             if (!!serverResponse && serverResponse.products) {
-                var products = parseProductResponse(serverResponse);
+                serverFinalResponse.product = parseProductResponse(serverResponse.products);
 
-                if (!!products && products.length > 0) {
-                    serverFinalResponse.customer_id = products[0].customer_id;
-                    serverFinalResponse.shippingAddress = products[0].shippingAddress;
-                    serverFinalResponse.billingAddress = products[0].billingAddress;
-                    serverFinalResponse.payment = products[0].payment;
-                }
+                
             }
 
             // If some problem
