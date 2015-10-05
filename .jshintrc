@@ -274,7 +274,6 @@
 
         // Magento Connector Constants
 
-        "NSToMGShipMethodMap": true,
         "InventorySyncScript": true,
         "ExternalSystemConfig": true,
         "MC_SYNC_CONSTANTS": true,

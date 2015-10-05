@@ -275,7 +275,7 @@ WooWrapper = (function () {
 
         httpRequestData.url = finalUrl;
 
-        //Utility.logDebug('Request final = ', finalUrl);
+        Utility.logDebug('Request final = ', finalUrl);
 
         var oauth = OAuth({
             consumer: {
@@ -380,7 +380,7 @@ WooWrapper = (function () {
         Password: '',
         AuthHeader: '',
 
-        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v1/',
+        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v3/',
 
         /**
          * Gets supported Date Format
@@ -517,7 +517,7 @@ WooWrapper = (function () {
         updateItem: function (product, sessionID, magID, isParent) {
 
             // first get the product id here
-            var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
+            /*var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
             var firstProduct = productInfo[0];
             var httpRequestData = {
                 additionalUrl: 'products/' + magID + '.json',
@@ -533,6 +533,15 @@ WooWrapper = (function () {
                         }
                         ]
                     }
+                }
+            };*/
+            var httpRequestData = {
+                url: 'product/' + magID.toString(),
+                method: 'PUT',
+                data: {
+                    id: magID.toString(),
+                    price: product.price,
+                    inventory_quantity: product.quatity
                 }
             };
 
@@ -579,7 +588,7 @@ WooWrapper = (function () {
                 url: 'products',
                 method: 'GET',
                 data: {
-                    ids: product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : '')
+                    sku: product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : '')
                 }
             };
 
@@ -601,8 +610,8 @@ WooWrapper = (function () {
                 Utility.logException('Error during getProduct', e);
             }
 
-            if (!!serverResponse && serverResponse.product) {
-                serverFinalResponse.product = parseSingleProductResponse(serverResponse.product);
+            if (!!serverResponse && serverResponse.hasOwnProperty("products") && serverResponse.products.length > 0) {
+                serverFinalResponse.product = parseSingleProductResponse(serverResponse.products[0]);
             }
 
             // If some problem

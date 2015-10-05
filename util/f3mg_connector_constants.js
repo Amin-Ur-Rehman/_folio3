@@ -165,7 +165,6 @@ ConnectorConstants = (function () {
             //this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.Client = F3ClientFactory.createClient('F3BaseV1');
-            this.NSToMGShipMap = NSToMGShipMethodMap.getMap();
         },
         initializeDummyItem: function () {
             this.DummyItem.Id = ConnectorCommon.getDummyItemId(this.DummyItem.ItemId);

@@ -57,7 +57,7 @@ function syncProduct(product, productRecordtype, product_id, sessionID, isParent
     try {
         Utility.logDebug('Sync Product ',isParent);
         var itemXML;
-        // check if Magento Item is in Netsuite
+        // check if Magento Item is in NetSuite
         if (!Utility.isBlankOrNull(product.magentoSKU)) {
             var magID = ConnectorCommon.getProductMagentoID(sessionID, product);
             //var magID = product.magentoSKU;
@@ -66,7 +66,7 @@ function syncProduct(product, productRecordtype, product_id, sessionID, isParent
                 return;
             }
 
-            var responseMagento = MagentoWrapper.updateItem(product, sessionID, magID, isParent);
+            var responseMagento = ConnectorConstants.CurrentWrapper.updateItem(product, sessionID, magID, isParent);
 
             // If due to some reason Magento item is unable to update
             // Send Email Magento Side error
@@ -100,7 +100,7 @@ function ws_soaftsubm(type) {
             ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
             ConnectorConstants.CurrentWrapper.initialize(store);
             if (store.entitySyncInfo.item.isSync) {
-                var sessionID = MagentoWrapper.getSessionIDFromServer(store.userName, store.password);
+                var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
                 if (!sessionID) {
                     Utility.logDebug('sessionID', 'sessionID is empty');
                     return;
@@ -142,8 +142,9 @@ function ws_soaftsubm(type) {
                 filter.push(new nlobjSearchFilter('internalidnumber', null, 'greaterthan', !!paramInternalId ? paramInternalId : '-1', null));
                 //filter.push(new nlobjSearchFilter('internalid', null, 'is', '387'));
                 filter.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoSync, null, 'is', 'T', null));
-                filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', lastModifiedDate, null));
-                //filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', '8/18/2015 8:15 am', null));
+                // TODO: undo filter
+                //filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', lastModifiedDate, null));
+                filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', '8/18/2015 8:15 am', null));
                 // for test add this filter by allozhu
                 //filter.push(new nlobjSearchFilter('internalid', null, 'anyof', ["728"], null));
 
@@ -210,8 +211,8 @@ function ws_soaftsubm(type) {
                             // product.queenStock = itemRec.getFieldValue('custitem_queenst_stock');
                             if (!ConnectorCommon.isDevAccount()) {
                                 Utility.logDebug('checkpoint', '6');
-                                // TODO: check multipricing feature
-                                product.price = itemRec.getLineItemValue('price', 'price_1_', soprice) || 0;
+                                // TODO: check multipricing feature & update dynamic sublist id
+                                product.price = itemRec.getLineItemValue('price1', 'price_1_', soprice) || 0;
                                 // check  multi location feature
                                 if (Utility.isMultiLocInvt()) {
                                     Utility.logDebug('checkpoint', '7');

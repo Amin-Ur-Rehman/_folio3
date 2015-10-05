@@ -291,14 +291,12 @@ var ConnectorCommon = (function () {
             return '';
         },
         isOrderSynced: function (orderId, storeId) {
-            var magentoIdId = ConnectorConstants.Transaction.Fields.MagentoId;
-            var magentoSyncId = 'custbody_magentosyncdev';
             var fils = [];
             fils.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             fils.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
-            fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
-            fils.push(new nlobjSearchFilter(magentoIdId, null, 'is', orderId, null));
-            fils.push(new nlobjSearchFilter(magentoSyncId, null, 'is', 'T', null));
+            fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId.toString(), null));
+            fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'is', orderId.toString(), null));
+            fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'T', null));
             var res = nlapiSearchRecord('transaction', null, fils, null);
 
             if (res && res.length > 0) {
@@ -880,10 +878,10 @@ var ConnectorCommon = (function () {
             }
         },
         getProductMagentoID: function (sessionID, product) {
-            var response = MagentoWrapper.getProduct(sessionID, product);
+            var response = ConnectorConstants.CurrentWrapper.getProduct(sessionID, product);
 
             if (response.status) {
-                return response.result;
+                return response.product.id;
             }
         },
         getLastModifiedDate: function () {
