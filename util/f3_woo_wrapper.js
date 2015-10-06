@@ -282,7 +282,7 @@ WooWrapper = (function () {
                 public: WooWrapper.UserName,
                 secret: WooWrapper.Password
             },
-            last_ampersand: false,
+            last_ampersand: true,
             signature_method: 'HMAC-SHA256'
         });
 
