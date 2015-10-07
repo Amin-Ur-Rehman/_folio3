@@ -50,9 +50,9 @@ WooWrapper = (function () {
             localOrder.suffix = '';
             localOrder.dob = '';
 
-            localOrder.customer_firstname  = localOrder.firstname;
+            localOrder.customer_firstname = localOrder.firstname;
             localOrder.customer_middlename = localOrder.middlename;
-            localOrder.customer_lastname   = localOrder.lastname;
+            localOrder.customer_lastname = localOrder.lastname;
         }
 
         if (serverOrder.shipping_address) {
@@ -190,16 +190,27 @@ WooWrapper = (function () {
     }
 
     function parseFulfillmentResponse(serverResponse) {
-        var finalResult = [];
+        /*var finalResult = [];
+         try {
+         if (!!serverResponse && serverResponse.length > 0) {
+         for (var i = 0; i < serverResponse.length; i++) {
+         var serverFulfillment = serverResponse[i];
+
+         var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
+
+         finalResult.push(localFulfillment);
+         }
+         }
+         } catch (e) {
+         Utility.logException('Error during parseFulfillmentResponse', e);
+         }*/
+        var finalResult = {
+            isOrderStatusCompleted: false
+        };
         try {
-            if (!!serverResponse && serverResponse.length > 0) {
-                for (var i = 0; i < serverResponse.length; i++) {
-                    var serverFulfillment = serverResponse[i];
-
-                    var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
-
-                    finalResult.push(localFulfillment);
-                }
+            if (serverResponse.hasOwnProperty("status") && serverResponse.status.toString() === "completed") {
+                finalResult.isOrderStatusCompleted = true;
+                finalResult.orderNumber = serverResponse.order_number;
             }
         } catch (e) {
             Utility.logException('Error during parseFulfillmentResponse', e);
@@ -227,7 +238,7 @@ WooWrapper = (function () {
         localAddress.is_default_shipping = false;
 
         if (!!serverAddress.default && (serverAddress.default === true ||
-          serverAddress.default === 'true')) {
+            serverAddress.default === 'true')) {
             localAddress.is_default_billing = true;
             localAddress.is_default_shipping = true;
         }
@@ -313,10 +324,10 @@ WooWrapper = (function () {
             if (typeof nlapiRequestURL !== "undefined") {
                 Utility.logDebug("httpRequestData.method === GET", "");
                 res = nlapiRequestURL(finalUrl, null, httpRequestData.headers);
-		body = res.getBody();
+                body = res.getBody();
                 Utility.logDebug("res", res.getBody());
                 Utility.logDebug("code", res.getCode());
-		serverResponse = eval('(' + body + ')');
+                serverResponse = eval('(' + body + ')');
             } else {
                 jQuery.ajax({
                     url: finalUrl,
@@ -380,7 +391,7 @@ WooWrapper = (function () {
         Password: '',
         AuthHeader: '',
 
-        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v3/',
+        ServerUrl: 'http://nsmg.folio3.com:4545/woosite2/wc-api/v3/',
 
         /**
          * Gets supported Date Format
@@ -518,30 +529,32 @@ WooWrapper = (function () {
 
             // first get the product id here
             /*var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
-            var firstProduct = productInfo[0];
+             var firstProduct = productInfo[0];
+             var httpRequestData = {
+             additionalUrl: 'products/' + magID + '.json',
+             method: 'PUT',
+             postData: {
+             product: {
+             id: magID,
+             variants: [{
+             id: firstProduct.variants[0].id,
+             price: product.price,
+             inventory_quantity: product.quantity,
+             product_id: magID
+             }
+             ]
+             }
+             }
+             };*/
             var httpRequestData = {
-                additionalUrl: 'products/' + magID + '.json',
+                url: 'products/' + magID.toString(),
                 method: 'PUT',
                 postData: {
                     product: {
-                        id: magID,
-                        variants: [{
-                            id: firstProduct.variants[0].id,
-                            price: product.price,
-                            inventory_quantity: product.quantity,
-                            product_id: magID
-                        }
-                        ]
+                        regular_price: product.price,
+                        sale_price: 0,
+                        stock_quantity: product.quantity
                     }
-                }
-            };*/
-            var httpRequestData = {
-                url: 'product/' + magID.toString(),
-                method: 'PUT',
-                data: {
-                    id: magID.toString(),
-                    price: product.price,
-                    inventory_quantity: product.quatity
                 }
             };
 
@@ -588,7 +601,7 @@ WooWrapper = (function () {
                 url: 'products',
                 method: 'GET',
                 data: {
-                    sku: product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : '')
+                    "filter[sku]": product.magentoSKU
                 }
             };
 
@@ -622,23 +635,34 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
+        /**
+         * This method should create a shippment on WOO Commerce but
+         * there is no shipment record on WOO Commerce. So,
+         * change order status to Complete as an alternate & will be
+         * assumed as shipped order in WOO
+         * @param sessionID
+         * @param serverItemIds
+         * @param serverSOId
+         * @return {{status: boolean, faultCode: string, faultString: string, result: Array}}
+         *
+         * Note: There is no shipment record in WOO, so no partial fulfillment is supported
+         */
         createFulfillment: function (sessionID, serverItemIds, serverSOId) {
 
             var httpRequestData = {
-                additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
+                url: 'orders/' + serverSOId,
                 method: 'PUT',
                 postData: {
-                    "fulfillment": {
-                        "tracking_number": null,
-                        "line_items": []
+                    "order": {
+                        "status": "completed"
                     }
                 }
             };
 
-            for (var i = 0; i < serverItemIds.length; i++) {
-                var serverItem = serverItemIds[i];
-                httpRequestData.postData.fulfillment.line_items.push(serverItem);
-            }
+            /*for (var i = 0; i < serverItemIds.length; i++) {
+             var serverItem = serverItemIds[i];
+             httpRequestData.postData.fulfillment.line_items.push(serverItem);
+             }*/
 
             var serverResponse = null;
 
@@ -658,11 +682,13 @@ WooWrapper = (function () {
                 Utility.logException('Error during createFulfillment', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var fulfillmentArray = parseFulfillmentResponse(serverResponse);
+            if (!!serverResponse && serverResponse.order) {
+                var fulfillmentObj = parseFulfillmentResponse(serverResponse.order);
 
-                if (!!fulfillmentArray && fulfillmentArray.length > 0) {
-                    serverFinalResponse.result = fulfillmentArray;
+                // check if order status is changed to complete
+                if (!!fulfillmentObj && fulfillmentObj.isOrderStatusCompleted) {
+                    // for setting order id as shipment id in item fulfillment
+                    serverFinalResponse.result = fulfillmentObj.orderNumber;
                 }
             }
 
@@ -675,18 +701,19 @@ WooWrapper = (function () {
         },
 
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
-            var trackingRequest = WooWrapper.createTrackingRequest(result, carrier, carrierText, tracking, sessionID);
+            var noteTemplate = "Carrier: <CARRIER> \nTitle: <TITLE> \nTracking Number: <TRACKING_NUMBER>";
 
-            var responseTracking = WooWrapper.validateTrackingCreateResponse(WooWrapper.soapRequestToServer(trackingRequest));
-
-            return responseTracking;
+            var note = noteTemplate.replace("<CARRIER>", carrier || "");
+            note = note.replace("<TITLE>", carrierText || "");
+            note = note.replace("<TRACKING_NUMBER>", tracking || "");
 
             var httpRequestData = {
-                additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
-                method: 'PUT',
+                url: 'orders/' + serverSOId + '/notes',
+                method: 'POST',
                 postData: {
-                    "fulfillment": {
-                        "tracking_number": tracking
+                    "order_note": {
+                        "note": note,
+                        "customer_note": false
                     }
                 }
             };
@@ -709,12 +736,8 @@ WooWrapper = (function () {
                 Utility.logException('Error during createFulfillment', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var fulfillmentArray = parseFulfillmentResponse(serverResponse);
-
-                if (!!fulfillmentArray && fulfillmentArray.length > 0) {
-                    serverFinalResponse.result = fulfillmentArray;
-                }
+            if (!!serverResponse && serverResponse.order_note) {
+                serverFinalResponse.result.push(serverResponse.order_note);
             }
 
             // If some problem
