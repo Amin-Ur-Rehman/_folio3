@@ -72,8 +72,9 @@ var ConnectorDashboardApi = (function () {
             var storeFilter = new nlobjSearchFilter(storeField, null, 'anyof', storeId);
             var results = nlapiSearchRecord(null, savedSearchName, storeFilter);
 
+            //Utility.logDebug('savedSearchName # storeId # storeField # results.length', savedSearchName + ' # ' +storeId+ ' # ' +storeField+ ' # ' + (!!results ? results.length : 'null'));
             if (results != null && results.length > 0) {
-
+                //Utility.logDebug('results', JSON.stringify(results));
                 finalResponse = ConnectorCommon.getObjects(results);
             }
             return finalResponse;
