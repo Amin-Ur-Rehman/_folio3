@@ -119,7 +119,15 @@ var ConnectorDashboardApi = (function () {
 var ConnectorDashboard = (function () {
     return {
 
-        SIDEBAR_TEMPLATE : '<li class="sidebar-title"><a href="[BASE_URL]#/">[PRODUCT_NAME]</a></li><li class="sidebar-list"><a href="[BASE_URL]#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a></li>',
+        SIDEBAR_TEMPLATE : '<li class="sidebar-title">' +
+                            '<a href="[BASE_URL]#/">[PRODUCT_NAME]</a>' +
+                            '</li>' +
+                            '<li class="sidebar-list">' +
+                            '<a href="[BASE_URL]#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a>' +
+                            '</li>' +
+                            '<li class="sidebar-list">' +
+                            '<a href="[BASE_URL]#/actions">Actions <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '</li>',
 
         /**
          * Description of method getFileUrl
