@@ -52,7 +52,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr ng-repeat="x in failedSalesOrders">
+                        <tr ng-repeat="x in failedSalesOrders track by $index">
                             <td class=text-center><a target="_blank" href="{{ x.url }}">{{ x.internalid }}</a></td>
                             <td>{{ x.tranid }}</td>
                             <td>{{ x.trandate }}</td>
