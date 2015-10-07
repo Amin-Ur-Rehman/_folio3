@@ -68,7 +68,7 @@ var FulfillmentExportHelper = (function () {
                     upsPackage = 'fedex';
                 }
                 // from SO
-                var carrier = magentoSO.getFieldValue('shipcarrier');
+                var carrier = magentoSO.getFieldValue('carrier');
                 totalPackages = nlapiGetLineItemCount('package' + upsPackage);
                 var carrierText = magentoSO.getFieldText('shipmethod');
 
@@ -189,6 +189,7 @@ var FulfillmentExport = (function () {
 
                     ConnectorConstants.CurrentStore = store;
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                    ConnectorConstants.CurrentWrapper.initialize(store);
                     sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
 
                     // if session id is not captured then terminate
