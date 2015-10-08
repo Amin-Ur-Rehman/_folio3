@@ -277,6 +277,14 @@ WooWrapper = (function () {
     }
 
     /**
+     * Parses Customer Response
+     * @param serverResponse
+     */
+    function parseCustomerResponse(serverResponse){
+
+    }
+
+    /**
      * Sends request to server
      * @param httpRequestData
      */
@@ -778,6 +786,177 @@ WooWrapper = (function () {
 
             if (!!serverResponse && serverResponse.customer) {
                 serverFinalResponse.addresses = parseCustomerAddressResponse(serverResponse.customer);
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+
+        // TODO: under development
+        createSalesOrder: function (internalId, orderRecord, store, sessionId) {
+
+            var httpRequestData = {
+                url: 'orders',
+                method: 'POST',
+                data: {
+                    "order": {
+                        "payment_details": {
+                            "method_id": "bacs",
+                            "method_title": "Direct Bank Transfer",
+                            "paid": true
+                        },
+                        "billing_address": {
+                            "first_name": "John",
+                            "last_name": "Doe",
+                            "address_1": "969 Market",
+                            "address_2": "",
+                            "city": "San Francisco",
+                            "state": "CA",
+                            "postcode": "94103",
+                            "country": "US",
+                            "email": "john.doe@example.com",
+                            "phone": "(555) 555-5555"
+                        },
+                        "shipping_address": {
+                            "first_name": "John",
+                            "last_name": "Doe",
+                            "address_1": "969 Market",
+                            "address_2": "",
+                            "city": "San Francisco",
+                            "state": "CA",
+                            "postcode": "94103",
+                            "country": "US"
+                        },
+                        "customer_id": 2,
+                        "line_items": [
+                            {
+                                "product_id": 546,
+                                "quantity": 2
+                            },
+                            {
+                                "product_id": 613,
+                                "quantity": 1
+                            }
+                        ],
+                        "shipping_lines": [
+                            {
+                                "method_id": "flat_rate",
+                                "method_title": "Flat Rate",
+                                "total": 10
+                            }
+                        ]
+                    }
+                }
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during createSalesOrder', e);
+            }
+
+            if (!!serverResponse && serverResponse.order) {
+                var order = parseSingleSalesOrderResponse(serverResponse.order);
+
+                if (!!order) {
+                    serverFinalResponse.customer_id = order.customer_id;
+                    serverFinalResponse.shippingAddress = order.shippingAddress;
+                    serverFinalResponse.billingAddress = order.billingAddress;
+                    serverFinalResponse.payment = order.payment;
+                    serverFinalResponse.products = order.products;
+                }
+
+                // TODO: also need to set Line Items here - currenlty it is now needed
+
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+
+        hasDifferentLineItemIds: function() {
+            return false;
+        },
+
+        // TODO: under development
+        createCustomer: function () {
+            var httpRequestData = {
+                url: 'customers',
+                method: 'POST',
+                data: {
+                    "customer": {
+                        "email": "john.doe@example.com",
+                        "first_name": "John",
+                        "last_name": "Doe",
+                        "username": "john.doe",
+                        "billing_address": {
+                            "first_name": "John",
+                            "last_name": "Doe",
+                            "company": "",
+                            "address_1": "969 Market",
+                            "address_2": "",
+                            "city": "San Francisco",
+                            "state": "CA",
+                            "postcode": "94103",
+                            "country": "US",
+                            "email": "john.doe@example.com",
+                            "phone": "(555) 555-5555"
+                        },
+                        "shipping_address": {
+                            "first_name": "John",
+                            "last_name": "Doe",
+                            "company": "",
+                            "address_1": "969 Market",
+                            "address_2": "",
+                            "city": "San Francisco",
+                            "state": "CA",
+                            "postcode": "94103",
+                            "country": "US"
+                        }
+                    }
+                }
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during getSalesOrders', e);
+            }
+
+            if (!!serverResponse && serverResponse.order) {
+                var customer = parseCustomerResponse(serverResponse.order);
+
+                if (!!customer) {
+                    // todo return customer object
+                }
             }
 
             // If some problem

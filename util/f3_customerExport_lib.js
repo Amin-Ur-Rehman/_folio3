@@ -139,18 +139,10 @@ getCustomersCount: function() {
 
         if (customerRecord != null) {
             customerDataObject = new Object();
-
-
             customerDataObject.isPerson = customerRecord.getFieldValue('isperson');
-
             customerDataObject.email = getBlankForNull(customerRecord.getFieldValue('email'));
-
             customerDataObject.companyName = getBlankForNull(customerRecord.getFieldValue('companyname'));
-
             customerDataObject.entityid = getBlankForNull(customerRecord.getFieldValue('entityid'));
-
-
-
 
             if (customerDataObject.isPerson == "T") {
                 customerDataObject.firstname = customerRecord.getFieldValue('firstname');
@@ -168,7 +160,6 @@ getCustomersCount: function() {
                 customerDataObject.middlename = "";
                 customerDataObject.lastname = names['lastName'];
             }
-
 
             customerDataObject.password = this.getRandomPassword();
 
@@ -192,7 +183,6 @@ getCustomersCount: function() {
         }
 
         return customerDataObject;
-
     },
 
     getNSCustomerAddresses: function(customerRecordObject) {

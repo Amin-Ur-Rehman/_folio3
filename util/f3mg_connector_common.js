@@ -163,7 +163,6 @@ var ConnectorCommon = (function () {
             }
 
 
-
             //paypal_express
             if (payment.method.toString() === 'paypal_express') {
                 var paymentMethod_paypal = '7';
@@ -523,20 +522,20 @@ var ConnectorCommon = (function () {
 
             try {
                 /*filterExpression = "[[";
-                for (var x = 0; x < magentoIds.length; x++) {
-                    // multiple store handling
-                    var magentoIdForSearching = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoIds[x].product_id);
-                    filterExpression = filterExpression + "['" + magentoIdId + "','contains','" + magentoIdForSearching + "']";
-                    if ((x + 1) < magentoIds.length) {
-                        filterExpression = filterExpression + ",'or' ,";
-                    }
-                }
-                filterExpression = filterExpression + ']';
-                filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
-                Utility.logDebug(' filterExpression', filterExpression);
-                filterExpression = eval(filterExpression);
-                cols.push(new nlobjSearchColumn(magentoIdId, null, null));
-                var recs = nlapiSearchRecord('item', null, filterExpression, cols);*/
+                 for (var x = 0; x < magentoIds.length; x++) {
+                 // multiple store handling
+                 var magentoIdForSearching = ConnectorCommon.getMagentoIdForSearhing(ConnectorConstants.CurrentStore.systemId, magentoIds[x].product_id);
+                 filterExpression = filterExpression + "['" + magentoIdId + "','contains','" + magentoIdForSearching + "']";
+                 if ((x + 1) < magentoIds.length) {
+                 filterExpression = filterExpression + ",'or' ,";
+                 }
+                 }
+                 filterExpression = filterExpression + ']';
+                 filterExpression += ',"AND",["type", "anyof", "InvtPart", "NonInvtPart"]]';
+                 Utility.logDebug(' filterExpression', filterExpression);
+                 filterExpression = eval(filterExpression);
+                 cols.push(new nlobjSearchColumn(magentoIdId, null, null));
+                 var recs = nlapiSearchRecord('item', null, filterExpression, cols);*/
 
                 filterExpression = "[[";
                 for (var x = 0; x < magentoIds.length; x++) {
@@ -1325,14 +1324,20 @@ var ConnectorCommon = (function () {
         },
         /**
          * Create log record for exporting historic sales order for testing
-         * @param order
-         * @param xml
+         * @param recordType
+         * @param recordId
+         * @param requestData
          */
-        createLogRec: function (order, xml) {
+        createLogRec: function (recordId, requestData, recordType) {
+            var rec;
+            recordType = recordType || "";
+            recordId = recordId || "";
+            requestData = requestData || "";
             try {
-                var rec = nlapiCreateRecord('customrecord_xml_log', null);
-                rec.setFieldValue('custrecord_xml', xml);
-                rec.setFieldValue('custrecord_order', order);
+                rec = nlapiCreateRecord('customrecord_data_log', null);
+                rec.setFieldValue('custrecord_record_type', recordType);
+                rec.setFieldValue('custrecord_record_id', recordId);
+                rec.setFieldValue('custrecord_request_data', requestData);
                 nlapiSubmitRecord(rec, true);
             }
             catch (e) {
@@ -1340,7 +1345,7 @@ var ConnectorCommon = (function () {
             }
         },
 
-	/**
+        /**
          * Get Magento Order Item Ids and SKUs map from sales order info response
          * @param orderId
          * @param magentoItemsMap magentoItemsMap[nsId] = sku
@@ -1375,7 +1380,7 @@ var ConnectorCommon = (function () {
             return mgNsOrderItemIdsMap;
         },
 
-	/**
+        /**
          * Gets the value of object, based on row and column
          * @param row
          * @param cols
@@ -1420,7 +1425,7 @@ var ConnectorCommon = (function () {
         getObject: function (row, cols, columnNames) {
             var obj = null;
             if (row) {
-                obj = { id: row.getId(), recordType: row.getRecordType() };
+                obj = {id: row.getId(), recordType: row.getRecordType()};
                 var nm = null, item, val, text;
                 for (var x = 0; x < cols.length; x++) {
                     item = cols[x];
@@ -1438,15 +1443,15 @@ var ConnectorCommon = (function () {
             }
             return obj;
         },
-	
+
         /**
          * Get environment base url
          * @param environment
          * @returns {string}
          */
-        getEnvironmentBaseUrl: function(environment){
+        getEnvironmentBaseUrl: function (environment) {
             var baseUrl = 'https://system.na1.netsuite.com';
-            if(environment === 'SANDBOX') {
+            if (environment === 'SANDBOX') {
                 baseUrl = 'https://system.sandbox.netsuite.com';
             }
             return baseUrl;
@@ -1456,12 +1461,12 @@ var ConnectorCommon = (function () {
          * Get eligible record type for 'Sync to magento' button
          * @returns {string}
          */
-        getEligibleRecordTypeForExportButton: function(){
-           var eligibleRecordTypes = [
-               ConnectorConstants.NSRecordTypes.PromotionCode,
-               ConnectorConstants.NSRecordTypes.PriceLevel,
-               ConnectorConstants.NSRecordTypes.PaymentTerm
-           ];
+        getEligibleRecordTypeForExportButton: function () {
+            var eligibleRecordTypes = [
+                ConnectorConstants.NSRecordTypes.PromotionCode,
+                ConnectorConstants.NSRecordTypes.PriceLevel,
+                ConnectorConstants.NSRecordTypes.PaymentTerm
+            ];
             return eligibleRecordTypes;
         },
 
@@ -1471,27 +1476,27 @@ var ConnectorCommon = (function () {
          * @param magentoIncrementId
          * @returns {*}
          */
-        getNetSuiteRecordInternalId: function(recordType, magentoIncrementId, storeId) {
+        getNetSuiteRecordInternalId: function (recordType, magentoIncrementId, storeId) {
             var netSuiteRecordId = null;
             try {
-                if(!magentoIncrementId) {
+                if (!magentoIncrementId) {
                     return null;
                 }
 
                 var filters = [];
 
-                if(recordType == ConnectorConstants.NSTransactionTypes.SalesOrder) {
+                if (recordType == ConnectorConstants.NSTransactionTypes.SalesOrder) {
                     filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, '', 'is', magentoIncrementId.trim()));
                     filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, '', 'is', storeId.trim()));
                 }
-                else if(recordType == ConnectorConstants.NSTransactionTypes.CashRefund) {
+                else if (recordType == ConnectorConstants.NSTransactionTypes.CashRefund) {
                     filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, '', 'is', magentoIncrementId.trim()));
                 }
                 var result = nlapiSearchRecord(recordType, null, filters);
-                if(!!result && result.length > 0) {
+                if (!!result && result.length > 0) {
                     netSuiteRecordId = result[0].getId();
                 }
-            } catch (ex){
+            } catch (ex) {
                 netSuiteRecordId = null;
             }
             return netSuiteRecordId;
@@ -1501,7 +1506,7 @@ var ConnectorCommon = (function () {
          * Close sales order
          * @param dataIn
          */
-        cancelSalesOrder: function(dataIn) {
+        cancelSalesOrder: function (dataIn) {
             var result = {status: false, error: ''};
             try {
                 var data = dataIn.data;
@@ -1523,7 +1528,7 @@ var ConnectorCommon = (function () {
                     result.status = true;
                 }
             }
-            catch (ex){
+            catch (ex) {
                 var err = '';
                 if (ex instanceof nlobjError) {
                     err = 'System error: ' + ex.getCode() + '\n' + ex.getDetails();
@@ -1542,12 +1547,12 @@ var ConnectorCommon = (function () {
          * NetSuite order closing logic
          * @param netsuiteSOInternalId
          */
-        closeNetSuiteSalesOrder: function(netsuiteSOInternalId) {
+        closeNetSuiteSalesOrder: function (netsuiteSOInternalId) {
             // load sales order
             var soRec = nlapiLoadRecord(ConnectorConstants.NSTransactionTypes.SalesOrder, netsuiteSOInternalId);
             var totalLines = soRec.getLineItemCount('item');
             // to close the sales order: in all line items, set checkbox named closed to true
-            for(var line = 1; line <= totalLines; line++){
+            for (var line = 1; line <= totalLines; line++) {
                 soRec.setLineItemValue('item', 'isclosed', line, 'T');
             }
 
@@ -1557,12 +1562,12 @@ var ConnectorCommon = (function () {
          * Cancel netsuite sales order
          * @param netsuiteSOInternalId
          */
-        cancelNetSuiteSalesOrder: function(netsuiteSOInternalId) {
+        cancelNetSuiteSalesOrder: function (netsuiteSOInternalId) {
             var context = nlapiGetContext();
             var environment = context.getEnvironment();
             nlapiLogExecution('DEBUG', 'environment', environment);
             var environmentBaseUrl = this.getEnvironmentBaseUrl(environment);
-            var cancelUrl = environmentBaseUrl+ '/app/accounting/transactions/salesordermanager.nl?type=cancel&id='+netsuiteSOInternalId+'&whence=';
+            var cancelUrl = environmentBaseUrl + '/app/accounting/transactions/salesordermanager.nl?type=cancel&id=' + netsuiteSOInternalId + '&whence=';
             nlapiLogExecution('DEBUG', 'cancelUrl', cancelUrl);
             var response = nlapiRequestURL(cancelUrl);
             nlapiLogExecution('DEBUG', 'response', response.getBody());
@@ -1570,7 +1575,7 @@ var ConnectorCommon = (function () {
         },
 
 
-        createGiftCertificateItem: function(giftCertificateObject) {
+        createGiftCertificateItem: function (giftCertificateObject) {
             try {
                 Utility.logDebug('createGiftCertificateItem entry', JSON.stringify(giftCertificateObject));
                 var actionType,
@@ -1581,7 +1586,7 @@ var ConnectorCommon = (function () {
                     giftCertificateObject = giftCertificateObject.data,
                     magentoFormattedId;
                 Utility.logDebug('execution context', giftCertificateObject.context);
-                if(giftCertificateObject.context == ConnectorConstants.MagentoExecutionContext.UserInterface) {
+                if (giftCertificateObject.context == ConnectorConstants.MagentoExecutionContext.UserInterface) {
                     magentoFormattedId = ConnectorCommon.getMagentoIdForSearhing(giftCertificateObject.storeId, giftCertificateObject.sku);
                     filters.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoId, null, 'contains', magentoFormattedId));
                     Utility.logDebug('searching for id', magentoFormattedId);
@@ -1597,7 +1602,7 @@ var ConnectorCommon = (function () {
                     // Update the record
                     Utility.logDebug('In Update Block', 'Id: ' + searchRec[0].getId());
                     actionType = 'update';
-                    id = GiftCertificateHelper.update(searchRec[0],giftCertificateObject);
+                    id = GiftCertificateHelper.update(searchRec[0], giftCertificateObject);
                 } else {
                     // Create record
                     Utility.logDebug('In Create Block', '');
@@ -1609,7 +1614,10 @@ var ConnectorCommon = (function () {
 
                 if (!!id && actionType === 'create') {
                     Utility.logDebug('Gift Record Created', id);
-                    var magentoId =  JSON.stringify([{"StoreId":giftCertificateObject.storeId,"MagentoId":giftCertificateObject.sku}]);
+                    var magentoId = JSON.stringify([{
+                        "StoreId": giftCertificateObject.storeId,
+                        "MagentoId": giftCertificateObject.sku
+                    }]);
 
                     // Add Magento fields to Magento tab.
                     GiftCertificateHelper.setMagentoData(GiftCertificateHelper.internalId, id, magentoId, 'T', null);

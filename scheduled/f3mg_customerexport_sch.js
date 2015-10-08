@@ -4,7 +4,7 @@ var ScheduledScriptConstant = {
     StartTime: (new Date()).getTime()
 };
 
-var errorMsg='';
+var errorMsg = '';
 
 function customerExport() {
 
@@ -37,8 +37,7 @@ function customerExport() {
         var magentoStoreAndCustomer;
 
 
-
-        externalSystemConfig.forEach(function(store) {
+        externalSystemConfig.forEach(function (store) {
             ConnectorConstants.CurrentStore = store;
             ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
             var sessionID = MagentoWrapper.getSessionIDFromServer(store.userName, store.password);
@@ -59,7 +58,7 @@ function customerExport() {
 
         try {
 
-            if(!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
+            if (!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
                 customerIds = CUSTOMER.getCustomersSubmittedFromUserEvent();
             } else {
                 //Get ids of all customer which has custentity_magentosync_dev (Magento Sync) field marked No
@@ -68,11 +67,11 @@ function customerExport() {
             //Is Customer(s) Exists for Sync
             if (customerIds != null && customerIds.length > 0) {
                 for (var c = 0; c < customerIds.length; c++) {
-                    nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Started');
+                    nlapiLogExecution('audit', 'Customer:' + customerIds[c].internalId + '  S.No:' + c + ' Started');
                     Utility.logDebug('Customer ' + customerIds[c].internalId);
-                    errorMsg='';
+                    errorMsg = '';
                     try {
-                        externalSystemArr.forEach(function(store) {
+                        externalSystemArr.forEach(function (store) {
                             try {
                                 magentoReferences = customerIds[c].magentoCustomerIds;
                                 magentoStoreAndCustomer = getStoreCustomerIdAssociativeArray(magentoReferences);
@@ -94,14 +93,14 @@ function customerExport() {
 
                         if (customerSynched) {
                             nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoSync(customerIds[c].internalId);
-                            if(!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
+                            if (!!scheduleScriptInvokedFormUserEvent && scheduleScriptInvokedFormUserEvent == 'T') {
                                 RecordsToSync.markProcessed(customerIds[c].customRecordInternalId, RecordsToSync.Status.Processed);
                             }
                         }
                         else {
 
-                            if(isBlankOrNull(errorMsg))
-                                errorMsg='Unknown Error';
+                            if (isBlankOrNull(errorMsg))
+                                errorMsg = 'Unknown Error';
 
                             CUSTOMER.setCustomerMagentoSync_Error(customerIds[c].internalId, errorMsg);
                         }
@@ -112,13 +111,13 @@ function customerExport() {
 
                     } catch (ex) {
 
-                        CUSTOMER.setCustomerMagentoSync_Error(customerIds[c].internalId,ex.toString());
+                        CUSTOMER.setCustomerMagentoSync_Error(customerIds[c].internalId, ex.toString());
 
                         Utility.logDebug('Internal Catch Block, Iternation failed for Customer : ' + customerIds[c].internalId, ex.toString());
 
                     }
 
-                    nlapiLogExecution('audit','Customer:' + customerIds[c].internalId +'  S.No:' + c + ' Ended');
+                    nlapiLogExecution('audit', 'Customer:' + customerIds[c].internalId + '  S.No:' + c + ' Ended');
 
                 }
             } else {
@@ -168,40 +167,33 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
     var createOrUpdateMagentoJSONRef = 'create';
 
 
-
     if (!!customerRecord) {
-
 
         requsetXML = CUSTOMER.getMagentoCreateCustomerRequestXML(customerRecord, store.sessionID);
         Utility.logDebug('customer_requsetXML ', requsetXML);
         Utility.logDebug('store_wahaj ', JSON.stringify(store));
         responseMagento = MagentoWrapper.validateCustomerExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'create');
         Utility.logDebug('responseMagento_wahaj ', JSON.stringify(responseMagento));
+
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
-
-            if (!!existingMagentoReferenceInfo)
+            if (!!existingMagentoReferenceInfo) {
                 createOrUpdateMagentoJSONRef = 'update';
+            }
 
-            magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, createOrUpdateMagentoJSONRef, existingMagentoReferenceInfo,customerRecord.password);
-
-
-            nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
+            var magentoIdObjArrStr = ConnectorCommon.getMagentoIdObjectArrayString(store.systemId, responseMagento.magentoCustomerId, createOrUpdateMagentoJSONRef, existingMagentoReferenceInfo, customerRecord.password);
+            var nsCustomerUpdateStatus = CUSTOMER.setCustomerMagentoId(magentoIdObjArrStr, nsCustomerObject.internalId);
 
             customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
 
-
             //Address Sync
             if (nsCustomerUpdateStatus) {
-
                 customerSynched = createAddressesInMagento(customerRecord, store, responseMagento.magentoCustomerId);
             }
-
             nlapiSubmitRecord(customerRecord.nsObj);
 
-
         } else {
-            errorMsg=responseMagento.faultCode + '    ' + responseMagento.faultString;
+            errorMsg = responseMagento.faultCode + '    ' + responseMagento.faultString;
             Utility.logDebug('errored responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
@@ -237,14 +229,14 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
 
 
             //if (nsCustomerUpdateStatus) {
-                //Address Sync
-                customerSynched = updateAddressesInMagento(customerRecord, store, magentoId);
+            //Address Sync
+            customerSynched = updateAddressesInMagento(customerRecord, store, magentoId);
             //}
 
             nlapiSubmitRecord(customerRecord.nsObj);
 
         } else {
-            errorMsg=responseMagento.faultCode + '    ' + responseMagento.faultString;
+            errorMsg = responseMagento.faultCode + '    ' + responseMagento.faultString;
             Utility.logDebug('responseMagento ', responseMagento.faultCode + '    ' + responseMagento.faultString);
         }
 
@@ -342,7 +334,8 @@ function createSingleAddressInMagento(customerRecordObject, customerAddressObj, 
 
     if (!responseMagento.status) {
 
-        errorMsg=errorMsg+'   ' + responseMagento.faultCode + '    ' + responseMagento.faultString; ;
+        errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
+        ;
         addressCreated = false;
 
     } else {
@@ -383,7 +376,8 @@ function UpdateSingleAddressInMagento(customerRecordObject, customerAddressObj, 
     responseMagento = MagentoWrapper.validateCustomerAddressExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), 'update');
 
     if (!responseMagento.status) {
-        errorMsg=errorMsg+'   ' + responseMagento.faultCode + '    ' + responseMagento.faultString; ;
+        errorMsg = errorMsg + '   ' + responseMagento.faultCode + '    ' + responseMagento.faultString;
+        ;
         addressCreated = false;
     }
 
