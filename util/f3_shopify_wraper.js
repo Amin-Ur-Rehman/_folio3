@@ -705,7 +705,13 @@ ShopifyWrapper = (function () {
 
         createSalesOrder: function (internalId, orderRecord, store, sessionId) {
         },
-        createCustomer: function () {
+
+        upsertCustomer: function () {
+        },
+        requiresAddressCall: function () {
+            return true;
+        },
+        upsertCustomerAddress: function () {
         }
     };
 

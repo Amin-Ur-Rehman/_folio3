@@ -85,7 +85,7 @@ var OrderExportHelper = (function () {
          * Get Bill/Ship Address either from customer or sales order for sales order export
          * @param orderRecord
          * @param customerRec
-         * @param {string} type {shippingaddress, billingaddress}
+         * @param {string} type {shippingaddress,  billingaddress}
          * @param addressId
          * @return {object}
          */
@@ -116,7 +116,6 @@ var OrderExportHelper = (function () {
                 // load  customer subrecord(address)
                 addressRec = customerRec.viewLineItemSubrecord('addressbook', 'addressbookaddress', line);
 
-
             } else {
 
                 // load  sales order subrecord(shippingaddress)
@@ -138,19 +137,6 @@ var OrderExportHelper = (function () {
             address.zipCode = addressRec.getFieldValue('zip') || ConnectorConstants.MagentoDefault.Zip;
             address.addressId = '';
 
-            //var state = address.stateId;
-            // get magento mapped value
-            /*if (!Utility.isBlankOrNull(state)) {
-             state = FC_ScrubHandler.getMappedValue('State', state);
-             }*/
-
-            //  address.state contains text and address.stateId contains state code
-            /*if (state === address.state) {
-             address.stateId = '';
-             address.state = addressRec.getFieldValue('dropdownstate');
-             } else {
-             address.stateId = state;
-             }*/
             return address;
 
         },
@@ -393,10 +379,9 @@ var OrderExportHelper = (function () {
                     orderDataObject.status = orderRecord.getFieldValue('orderstatus') || '';
                     orderDataObject.cancelledMagentoSOId = orderRecord.getFieldValue(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId) || '';
 
-                    // TODO undo customer process
-                    //var customerId = orderRecord.getFieldValue('entity');
-                    //var magentoCustomerIds = nlapiLookupField('customer', customerId, 'custentity_magento_custid');
-                    //ExportSalesOrders.processCustomer(customerId, magentoCustomerIds, store);
+                    var customerId = orderRecord.getFieldValue('entity');
+                    var magentoCustomerIds = nlapiLookupField('customer', customerId, 'custentity_magento_custid');
+                    ExportSalesOrders.processCustomer(customerId, magentoCustomerIds, store);
 
                     this.appendCustomerInDataObject(orderRecord, orderDataObject);
                     this.appendItemsInDataObject(orderRecord, orderDataObject);
@@ -418,7 +403,7 @@ var OrderExportHelper = (function () {
         },
 
         /**
-         Sets Magento Id in the Order record
+         * Sets Magento Id in the Order record
          * @param parameter
          */
         setOrderExternalSystemId: function (magentoId, orderId) {
@@ -620,29 +605,24 @@ var ExportSalesOrders = (function () {
          * @param customer
          * @param store
          */
-        processCustomer: function (customerId, magentoCustomerIds, store) {
-
+        processCustomer: function (customerId, externalSystemCustomerIds, store) {
+            var customerObj = {};
             try {
-                var customerAlreadySynched = this.customerAlreadySyncToStore(magentoCustomerIds, store.systemId);
-                Utility.logDebug('magentoCustomerIds  #  store.systemId', magentoCustomerIds + '  #  ' + store.systemId);
+                var customerAlreadySynched = this.customerAlreadySyncToStore(externalSystemCustomerIds, store.systemId);
+                Utility.logDebug('magentoCustomerIds  #  store.systemId', externalSystemCustomerIds + '  #  ' + store.systemId);
                 Utility.logDebug('customerAlreadySynched', customerAlreadySynched);
                 if (!customerAlreadySynched) {
-                    var customerObj = {};
                     customerObj.internalId = customerId;
-                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    customerObj.magentoCustomerIds = externalSystemCustomerIds;
                     Utility.logDebug('customerObj.internalId', customerObj.internalId);
                     Utility.logDebug('customerObj.magentoCustomerIds', customerObj.magentoCustomerIds);
-                    if (!!customerObj.magentoCustomerIds) {
-                        createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
-                    } else {
-                        createCustomerInMagento(customerObj, store);
-                    }
+                    createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
                 } else {
                     // check if the customer is modified. If so, update the customer first in Magento
-                    var customer = CustomerSync.getCustomer(customerId, store.systemId);
-                    var customerObj = {};
+                    var customer = CUSTOMER.getCustomer(customerId, store);
+                    customerObj = {};
                     customerObj.internalId = customerId;
-                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    customerObj.magentoCustomerIds = externalSystemCustomerIds;
                     Utility.logDebug('inside If customer is already synced', 'Starting');
                     if (customer.nsObj.getFieldValue(CustomerSync.FieldName.CustomerModified) === 'T') {
                         // mark customer as unmodified
@@ -652,7 +632,8 @@ var ExportSalesOrders = (function () {
                             //update customer in Magento Store
                             Utility.logDebug('Customer Syncing Starting', '');
                             Utility.logDebug('Customer Syncing Starting - Store', JSON.stringify(store));
-                            CustomerSync.updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
+                            updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
+
                             Utility.logDebug('Customer Syncing Finished', '');
                         } catch (ex) {
                             Utility.logException('Error in updating Customer to Magento', ex);

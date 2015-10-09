@@ -280,7 +280,7 @@ WooWrapper = (function () {
      * Parses Customer Response
      * @param serverResponse
      */
-    function parseCustomerResponse(serverResponse){
+    function parseCustomerResponse(serverResponse) {
 
     }
 
@@ -796,13 +796,61 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
-        // TODO: under development
         createSalesOrder: function (internalId, orderRecord, store, sessionId) {
 
-            var httpRequestData = {
-                url: 'orders',
-                method: 'POST',
-                data: {
+            function getSalesOrderData(orderRecord) {
+                var data = {};
+                data.order = {};
+
+                data.order.customer_id = "";
+                data.order.line_items = [];
+                data.order.billing_address = {};
+                data.order.shipping_address = {};
+                data.order.shipping_lines = [];
+                data.order.payment_details = {};
+
+                // set customer
+                data.order.customer_id = orderRecord.customer.customerId;
+
+                // set products in main object
+                var items = orderRecord.items;
+                for (var i in items) {
+                    var item = items[i];
+
+                    var itemObj = {};
+                    //itemObj.product_id = 546 // TODO: change sku with id if not work
+                    itemObj.sku = item.sku;
+                    itemObj.quantity = item.quantity;
+
+                    data.order.line_items.push(itemObj);
+                }
+
+                var addresses = orderRecord.customer.addresses;
+                // set billing address
+                data.order.billing_address.first_name = "John";
+                data.order.billing_address.last_name = "Doe";
+                data.order.billing_address.address_1 = "969 Market";
+                data.order.billing_address.address_2 = "";
+                data.order.billing_address.city = "San Francisco";
+                data.order.billing_address.state = "CA";
+                data.order.billing_address.postcode = "94103";
+                data.order.billing_address.country = "US";
+                data.order.billing_address.email = "john.doe@example.com";
+                data.order.billing_address.phone = "(555) 555-555";
+
+                // set set shipping address
+
+                // set shipping lines
+
+                data.order.shipping_lines.push({
+                    method_id: "flat_rate",
+                    method_title: "Flat Rate",
+                    total: orderRecord.shipmentInfo.shipmentCost
+                });
+
+                // set payment details
+
+                data = {
                     "order": {
                         "payment_details": {
                             "method_id": "bacs",
@@ -850,7 +898,15 @@ WooWrapper = (function () {
                             }
                         ]
                     }
-                }
+                };
+
+                return data;
+            }
+
+            var httpRequestData = {
+                url: 'orders',
+                method: 'POST',
+                data: getSalesOrderData(orderRecord)
             };
             var serverResponse = null;
 
@@ -892,47 +948,90 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
-        hasDifferentLineItemIds: function() {
+        hasDifferentLineItemIds: function () {
             return false;
         },
 
-        // TODO: under development
-        createCustomer: function () {
-            var httpRequestData = {
-                url: 'customers',
-                method: 'POST',
-                data: {
-                    "customer": {
-                        "email": "john.doe@example.com",
-                        "first_name": "John",
-                        "last_name": "Doe",
-                        "username": "john.doe",
-                        "billing_address": {
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "company": "",
-                            "address_1": "969 Market",
-                            "address_2": "",
-                            "city": "San Francisco",
-                            "state": "CA",
-                            "postcode": "94103",
-                            "country": "US",
-                            "email": "john.doe@example.com",
-                            "phone": "(555) 555-5555"
-                        },
-                        "shipping_address": {
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "company": "",
-                            "address_1": "969 Market",
-                            "address_2": "",
-                            "city": "San Francisco",
-                            "state": "CA",
-                            "postcode": "94103",
-                            "country": "US"
+        upsertCustomer: function (customerRecord, store, type) {
+
+            function getCustomerData(customerRecord, type) {
+                var data = {};
+
+                data.customer = {};
+                data.email = customerRecord.email;
+                data.first_name = customerRecord.firstname;
+                data.last_name = customerRecord.lastname;
+
+                if (type.toString() === "create") {
+                    data.username = "";
+                    data.password = customerRecord.password || "";
+                }
+
+                function getDefaultAddresses(customerRecord) {
+                    var addresses = customerRecord.addresses;
+
+                    var billingAddress = null;
+                    var shippingAddress = null;
+
+                    function getAddress(address, type) {
+                        var data = {};
+
+                        data.first_name = address.firstname || "";
+                        data.last_name = address.lastname || "";
+                        data.company = address.company || "";
+                        data.address_1 = address.street1 || "";
+                        data.address_2 = address.street2 || "";
+                        data.city = address.city || "";
+                        data.state = address.region || "";
+                        data.postcode = address.postcode || "";
+                        data.country = address.country || "";
+
+                        if (type.toString() === "billing") {
+                            data.email = "";
+                            data.phone = address.telephone || "";
+                        }
+
+                        return data;
+                    }
+
+                    for (var i in addresses) {
+                        var address = addresses[i];
+
+                        var defaultshipping = address.defaultshipping;
+                        var defaultbilling = address.defaultbilling;
+
+                        if (shippingAddress === null && defaultshipping.toString() === "T") {
+                            shippingAddress = getAddress(address, "shipping");
+                        }
+
+                        if (billingAddress === null && defaultbilling.toString() === "T") {
+                            billingAddress = getAddress(address, "billing");
+                        }
+
+                        if (!!billingAddress && !!shippingAddress) {
+                            break;
                         }
                     }
+
+                    return {
+                        shippingAddress: shippingAddress || {},
+                        billingAddress: billingAddress || {}
+                    };
                 }
+
+                var defaultAddresses = getDefaultAddresses(customerRecord);
+
+                data.customer.billing_address = defaultAddresses.shippingAddress;
+                data.customer.shipping_address = defaultAddresses.billingAddress;
+
+                return data;
+            }
+
+            // handling of endpoints for update or create customer
+            var httpRequestData = {
+                url: 'customers' + (type.toString() === "update" ? "/" + customerRecord.magentoId : ""),
+                method: 'POST',
+                data: getCustomerData(customerRecord, type)
             };
             var serverResponse = null;
 
@@ -955,7 +1054,7 @@ WooWrapper = (function () {
                 var customer = parseCustomerResponse(serverResponse.order);
 
                 if (!!customer) {
-                    // todo return customer object
+                    serverFinalResponse.result = customer;
                 }
             }
 
@@ -965,9 +1064,299 @@ WooWrapper = (function () {
             }
 
             return serverFinalResponse;
+        },
+        requiresAddressCall: function () {
+            return false;
+        },
+        upsertCustomerAddress: function () {
+            // no need to implement this function for WOO
+            // address will be with in the customer create/update call
         }
     };
 
     //endregion
 
 })();
+
+
+/*
+ {
+ "storeId": "1",
+ "nsObj": {
+ "total": 480,
+ "taxtotal": 0,
+ "paypalprocess": false,
+ "location": {
+ "name": "San Francisco",
+ "internalid": "2"
+ },
+ "billingschedule": [
+ {
+ "billamount": 480,
+ "billdate": "10/9/2015"
+ }
+ ],
+ "terms": {
+ "name": "Net 30",
+ "internalid": "2"
+ },
+ "entity": {
+ "name": "Zeeshan Ahmed Siddiqui",
+ "internalid": "2377"
+ },
+ "billingaddress": {
+ "zip": "35005",
+ "dropdownstate": {
+ "name": "Alabama",
+ "internalid": "AL"
+ },
+ "addr1": "48 Loyang Way #03-00",
+ "override": false,
+ "addrtext": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "state": "AL",
+ "addressee": "Zeeshan Ahmed",
+ "custrecord_magento_id": "[{\"StoreId\":\"2\",\"MagentoId\":\"-1\"}]",
+ "country": {
+ "name": "United States",
+ "internalid": "US"
+ },
+ "city": "California"
+ },
+ "billzip": "35005",
+ "exchangerate": 1,
+ "handlingcost": 0,
+ "estgrossprofitpercent": "100.0%",
+ "shipaddresslist": {
+ "name": "48 Loyang Way #03-00",
+ "internalid": "246185"
+ },
+ "tobefaxed": false,
+ "shipaddressee": "Zeeshan Ahmed",
+ "iladdrbook": [],
+ "recordtype": "salesorder",
+ "totalcostestimate": 0,
+ "shipzip": "35005",
+ "billaddressee": "Zeeshan Ahmed",
+ "shipcity": "California",
+ "shipstate": "AL",
+ "custbody_fmt_req_financial_app": false,
+ "createddate": "10/9/2015 12:34 am",
+ "subtotal": 480,
+ "currencyname": "USA",
+ "billcountry": {
+ "name": "United States",
+ "internalid": "US"
+ },
+ "shipaddr1": "48 Loyang Way #03-00",
+ "paypaloverride": false,
+ "ismultishipto": false,
+ "custbody_fmt_finance_app": false,
+ "email": "zahmed@folio3.com",
+ "billcity": "California",
+ "custbody_magentosyncdev": false,
+ "shipaddress": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "tranid": "110121936400",
+ "shipcomplete": false,
+ "billaddress": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "custbody_fmt_finance_declined": false,
+ "custbody_f3mg_magento_store": {
+ "name": "Folio3 WOO",
+ "internalid": "2"
+ },
+ "ccapproved": false,
+ "currency": {
+ "name": "USA",
+ "internalid": "1"
+ },
+ "lastmodifieddate": "10/9/2015 6:42 am",
+ "shipmethod": {
+ "name": "USPS Parcel Post",
+ "internalid": "732"
+ },
+ "id": "15368",
+ "custbody_f3mg_dont_sync_to_magento": false,
+ "shippingaddress_text": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "getauth": false,
+ "tobeprinted": false,
+ "billingaddress_text": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "shipcountry": {
+ "name": "United States",
+ "internalid": "US"
+ },
+ "isrecurringpayment": false,
+ "trandate": "10/9/2015",
+ "billaddresslist": {
+ "name": "48 Loyang Way #03-00",
+ "internalid": "246185"
+ },
+ "billstate": "AL",
+ "shippingaddress": {
+ "zip": "35005",
+ "dropdownstate": {
+ "name": "Alabama",
+ "internalid": "AL"
+ },
+ "addr1": "48 Loyang Way #03-00",
+ "override": false,
+ "addrtext": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
+ "state": "AL",
+ "addressee": "Zeeshan Ahmed",
+ "custrecord_magento_id": "[{\"StoreId\":\"2\",\"MagentoId\":\"-1\"}]",
+ "country": {
+ "name": "United States",
+ "internalid": "US"
+ },
+ "city": "California"
+ },
+ "giftcertapplied": 0,
+ "customform": {
+ "name": "Z - Ramsey Sales Order Form - Line GP",
+ "internalid": "251"
+ },
+ "shipdate": "10/11/2015",
+ "item": [
+ {
+ "amount": 480,
+ "commitinventory": {
+ "name": "Available Qty",
+ "internalid": "1"
+ },
+ "commitmentfirm": false,
+ "costestimate": 0,
+ "costestimaterate": 0,
+ "costestimatetype": {
+ "name": "Average Cost",
+ "internalid": "AVGCOST"
+ },
+ "createwo": false,
+ "isclosed": false,
+ "item": {
+ "name": "lumia-430",
+ "internalid": "1263"
+ },
+ "itemisfulfilled": "F",
+ "porate": 0,
+ "price": {
+ "name": "Base Price",
+ "internalid": "1"
+ },
+ "quantity": 2,
+ "quantityavailable": 86,
+ "quantitycommitted": 2,
+ "rate": 240,
+ "shipgroup": 1,
+ "taxcode": {
+ "name": "-Not Taxable-",
+ "internalid": "-8"
+ }
+ }
+ ],
+ "estgrossprofit": 480,
+ "shipgroup": [
+ {
+ "destinationaddress": "48 Loyang Way #03-00 California AL 35005 United States",
+ "destinationaddressref": "246185",
+ "handlingrate": 0,
+ "handlingtaxamt": 0,
+ "handlingtaxcode": {
+ "name": "-Not Taxable-",
+ "internalid": "-7"
+ },
+ "id": 1,
+ "isfulfilled": "F",
+ "shippingmethod": "USPS Parcel Post",
+ "shippingmethodref": "732",
+ "shippingrate": 0,
+ "shippingtaxamt": 0,
+ "shippingtaxcode": {
+ "name": "-Not Taxable-",
+ "internalid": "-7"
+ },
+ "sourceaddressref": "DEFAULT",
+ "weight": 2
+ }
+ ],
+ "billaddr1": "48 Loyang Way #03-00",
+ "tobeemailed": false
+ },
+ "history": "NetSuite Ship Carrier: NONUPS NetSuite Ship Method: USPS%20Parcel%20Post ",
+ "status": "B",
+ "cancelledMagentoSOId": "",
+ "customer": {
+ "mode": "customer",
+ "customerId": 2,
+ "email": "zahmed@folio3.com",
+ "firstName": "Zeeshan Ahmed",
+ "lastName": "Siddiqui",
+ "company": "",
+ "street": "",
+ "city": "",
+ "state": "",
+ "stateId": "",
+ "country": "",
+ "telephone": "",
+ "fax": "",
+ "isDefaultBilling": "",
+ "isDefaultShipping": "",
+ "zipCode": "",
+ "internalId": 2377,
+ "magentoCustid": "[{\"StoreId\":\"2\",\"MagentoId\":2},{\"StoreId\":\"1\",\"MagentoId\":141}]",
+ "addresses": [
+ {
+ "mode": "shipping",
+ "isDefaultBilling": "0",
+ "isDefaultShipping": "1",
+ "firstName": "Zeeshan Ahmed",
+ "lastName": "Siddiqui",
+ "company": "",
+ "fax": "",
+ "street": "48 Loyang Way #03-00",
+ "telephone": "123-123-1234",
+ "attention": "",
+ "addressee": "Zeeshan Ahmed",
+ "city": "California",
+ "state": "Alabama",
+ "stateId": "AL",
+ "country": "US",
+ "zipCode": "35005",
+ "addressId": ""
+ },
+ {
+ "mode": "billing",
+ "isDefaultBilling": "1",
+ "isDefaultShipping": "0",
+ "firstName": "Zeeshan Ahmed",
+ "lastName": "Siddiqui",
+ "company": "",
+ "fax": "",
+ "street": "48 Loyang Way #03-00",
+ "telephone": "123-123-1234",
+ "attention": "",
+ "addressee": "Zeeshan Ahmed",
+ "city": "California",
+ "state": "Alabama",
+ "stateId": "AL",
+ "country": "US",
+ "zipCode": "35005",
+ "addressId": ""
+ }
+ ]
+ },
+ "items": [
+ {
+ "itemId": "1263",
+ "sku": "lumia-430",
+ "quantity": "2",
+ "price": "240.00",
+ "giftInfo": {}
+ }
+ ],
+ "shipmentInfo": {
+ "shipmentMethod": "flatrate_flatrate",
+ "shipmentCost": 0
+ },
+ "paymentInfo": {
+ "paymentMethod": "checkmo"
+ },
+ "giftCertificates": []
+ }*/
