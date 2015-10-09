@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en" ng-app="RDash">
+<html lang="en" ng-app="f3UC">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>RDash AngularJS</title>
+    <title>Folio3 Unified Connector</title>
 
     <script> var f3_base_url = '<BASE_URL>'; </script>
     <!-- STYLES -->
@@ -16,18 +16,23 @@
     <script type="text/javascript" src="<BASE_URL>f3-dash/lib/js/Chart.min.js"></script>
     <script type="text/javascript" src="<BASE_URL>f3-dash/lib/js/angular-chart.min.js"></script>
 
-
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-app.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-utility-factory.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-store-id-factory.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-actions-provider.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-config.js"></script>
+    <script type="text/javascript" src="<BASE_URL>f3-dash/js/f3-actions-controller.js"></script>
     <script type="text/javascript" src="<BASE_URL>f3-dash/js/dashboard.min.js"></script>
 </head>
-<body ng-controller="MasterCtrl">
+<body ng-controller="MasterController">
 <div id="page-wrapper" ng-class="{'open': toggle}" ng-cloak>
 
     <!-- Sidebar -->
     <div id="sidebar-wrapper">
-        <ul class="sidebar">
+        <ul class="sidebar" ng-controller="ActionsController as actionsController">
             <li class="sidebar-main">
                 <a ng-click="toggleSidebar()">
-                    Dashboard
+                     Dashboard
                     <span class="menu-icon glyphicon glyphicon-transfer"></span>
                 </a>
             </li>

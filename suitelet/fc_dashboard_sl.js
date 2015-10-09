@@ -120,13 +120,23 @@ var ConnectorDashboard = (function () {
     return {
 
         SIDEBAR_TEMPLATE : '<li class="sidebar-title">' +
-                            '<a href="[BASE_URL]#/">[PRODUCT_NAME]</a>' +
+                            '  <a href="[BASE_URL]#/">[PRODUCT_NAME]</a>' +
                             '</li>' +
                             '<li class="sidebar-list">' +
-                            '<a href="[BASE_URL]#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a>' +
+                            '  <a href="[BASE_URL]#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a>' +
                             '</li>' +
-                            '<li class="sidebar-list">' +
-                            '<a href="[BASE_URL]#/actions">Actions <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '<li class="sidebar-list" ng-repeat="action in actionsController.actions">' +
+                            '  <a href="[BASE_URL]#/" ng-if="!action.action" ui-sref="{{ action.key }}"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '  <a href="[BASE_URL]#/" ng-if="!!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '</li>' +
+                            '<li class="sidebar-list" ng-repeat="(group, actions) in actionsController.groupedActions track by $index">' +
+                            '  <a class="submenu-link"><span ng-bind="group"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '  <ul>' +
+                            '    <li class="sidebar-list" ng-repeat="action in actions">' +
+                            '      <a href="[BASE_URL]#/" ng-if="!action.action" ui-sref="{{ action.key }}" > <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '      <a href="[BASE_URL]#/" ng-if="!!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            '    </li>' +
+                            '  </ul>' +
                             '</li>',
 
         /**
@@ -248,6 +258,7 @@ var ConnectorDashboard = (function () {
 
                     template = template.replace(/\[PRODUCT_NAME\]/g, obj.systemDisplayName);
                     template = template.replace(/\[BASE_URL\]/g, url);
+                    template = template.replace(/\[STORE_ID\]/g, obj.internalId);
 
                     finalResult = finalResult + template;
                 }

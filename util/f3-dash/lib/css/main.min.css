@@ -4,3 +4,26 @@ html{font-family:sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:1
 #page-wrapper {
     font-size: 13px;
 }
+
+ul.sidebar .sidebar-list {
+    list-style: none;
+    height: auto;
+}
+
+ul.sidebar .sidebar-list a {
+    display: block;
+    float: none;
+}
+
+
+
+ul.sidebar ul .sidebar-list a {
+    padding-left: 25px;
+}
+ul.sidebar ul {
+    margin-left: 0;
+}
+
+.page-content .view-heading {
+    margin-top: 0;
+}
