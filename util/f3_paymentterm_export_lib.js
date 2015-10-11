@@ -40,7 +40,7 @@ var PaymentTermExportHelper = (function () {
          * Send request to megento store
          * @param orderRecord
          */
-        sendRequestToMagento: function(internalId, paymentTermRecord) {
+        sendRequestToExternalSystem: function(internalId, paymentTermRecord) {
 
             var response = {status: true, magentoId: '', message: ''};
             var updateRecord = false;
@@ -97,7 +97,7 @@ var PaymentTermExportHelper = (function () {
                 }
                 response.status = false;
                 response.message = error;
-                nlapiLogExecution('ERROR', 'error in PaymentTermExportHelper.sendRequestToMagento', error);
+                nlapiLogExecution('ERROR', 'error in PaymentTermExportHelper.sendRequestToExternalSystem', error);
                 PaymentTermExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
             }
 

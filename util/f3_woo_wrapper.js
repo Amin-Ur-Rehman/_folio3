@@ -190,20 +190,6 @@ WooWrapper = (function () {
     }
 
     function parseFulfillmentResponse(serverResponse) {
-        /*var finalResult = [];
-         try {
-         if (!!serverResponse && serverResponse.length > 0) {
-         for (var i = 0; i < serverResponse.length; i++) {
-         var serverFulfillment = serverResponse[i];
-
-         var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
-
-         finalResult.push(localFulfillment);
-         }
-         }
-         } catch (e) {
-         Utility.logException('Error during parseFulfillmentResponse', e);
-         }*/
         var finalResult = {
             isOrderStatusCompleted: false
         };
@@ -256,15 +242,10 @@ WooWrapper = (function () {
 
         try {
             if (!!serverResponse && serverResponse.length > 0) {
-
                 Utility.logDebug('server Customer = ', JSON.stringify(serverResponse));
-
                 var localAddress = parseSingleCustomerAddressResponse(serverResponse.billing_address);
-
                 finalResult.push(localAddress);
-
                 localAddress = parseSingleCustomerAddressResponse(serverResponse.shipping_address);
-
                 finalResult.push(localAddress);
 
             }
@@ -281,7 +262,270 @@ WooWrapper = (function () {
      * @param serverResponse
      */
     function parseCustomerResponse(serverResponse) {
+        var data = {};
 
+        data.id = serverResponse.id;
+        data.email = serverResponse.email;
+        data.first_name = serverResponse.firstname;
+        data.last_name = serverResponse.lastname;
+        data.username = serverResponse.username;
+        data.billing_address = serverResponse.billing_address;
+        data.shipping_address = serverResponse.shipping_address;
+
+        return data;
+    }
+
+    /**
+     * Make a billing address object
+     * @param address
+     * @returns {object}
+     */
+    function getBillingAddress(address) {
+        var data = WOOModels.billingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+        data.email = "";
+        data.phone = address.telephone || "";
+
+        return data;
+    }
+
+    /**
+     * Make a shipping address object
+     * @param address
+     * @returns {object}
+     */
+    function getShippingAddress(address) {
+        var data = WOOModels.shippingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+
+        return data;
+    }
+
+    /**
+     * Make the default address objects for billing and shipping if found else return blank objects
+     * @param customerRecord
+     * @returns {{shippingAddress: (*|{}), billingAddress: (*|{})}}
+     */
+    function getDefaultAddresses(customerRecord) {
+        var addresses = customerRecord.addresses;
+
+        var billingAddress = null;
+        var shippingAddress = null;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+
+            var defaultshipping = address.defaultshipping;
+            var defaultbilling = address.defaultbilling;
+
+            if (shippingAddress === null && defaultshipping.toString() === "T") {
+                shippingAddress = getShippingAddress(address);
+            }
+
+            if (billingAddress === null && defaultbilling.toString() === "T") {
+                billingAddress = getBillingAddress(address);
+            }
+
+            if (!!billingAddress && !!shippingAddress) {
+                break;
+            }
+        }
+
+        return {
+            shippingAddress: shippingAddress || {},
+            billingAddress: billingAddress || {}
+        };
+    }
+
+    /**
+     * This method returns customer object data required to upsert the customer to WOO
+     * @param customerRecord
+     * @param type
+     * @returns {object}
+     */
+    function getCustomerData(customerRecord, type) {
+        var data = {};
+        data.customer = WOOModels.customer();
+
+        data.customer.email = customerRecord.email;
+        data.customer.first_name = customerRecord.firstname;
+        data.customer.last_name = customerRecord.lastname;
+
+        if (type.toString() === "create") {
+            data.customer.password = customerRecord.password || "";
+        } else {
+            delete data.customer.username;
+        }
+
+        var defaultAddresses = getDefaultAddresses(customerRecord);
+
+        data.customer.billing_address = defaultAddresses.shippingAddress;
+        data.customer.shipping_address = defaultAddresses.billingAddress;
+
+        return data;
+    }
+
+    /**
+     * This method returns an array of line item for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderLineItems(orderRecord) {
+        var lineItems = [];
+
+        var items = orderRecord.items;
+        for (var i in items) {
+            var item = items[i];
+
+            var itemObj = {};
+            // TODO: change sku with product_id if not work
+            //itemObj.product_id = 8
+            itemObj.sku = item.sku;
+            itemObj.quantity = item.quantity;
+
+            lineItems.push(itemObj);
+        }
+
+        return lineItems;
+    }
+
+    /**
+     * This method returns an object of billing address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone}}
+     */
+    function getSalesOrderBillingAddress(orderRecord) {
+        var billingAddress = WOOModels.billingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultBilling.toString() === "1") {
+                billingAddress.first_name = address.firstName || "";
+                billingAddress.last_name = address.lastName || "";
+                billingAddress.company = address.company || "";
+                billingAddress.address_1 = address.street || "";
+                billingAddress.address_2 = "";
+                billingAddress.city = address.city || "";
+                billingAddress.state = address.stateId || "";
+                billingAddress.postcode = address.zipCode || "";
+                billingAddress.country = address.country || "";
+                billingAddress.email = "";
+                billingAddress.phone = address.telephone || "";
+            }
+        }
+
+        return billingAddress;
+    }
+
+    /**
+     * * This method returns an object of shipping address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country}}
+     */
+    function getSalesOrderShippingAddress(orderRecord) {
+        var shippingAddress = WOOModels.shippingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultShipping.toString() === "1") {
+                shippingAddress.first_name = address.firstName || "";
+                shippingAddress.last_name = address.lastName || "";
+                shippingAddress.company = address.company || "";
+                shippingAddress.address_1 = address.street || "";
+                shippingAddress.address_2 = "";
+                shippingAddress.city = address.city || "";
+                shippingAddress.state = address.stateId || "";
+                shippingAddress.postcode = address.zipCode || "";
+                shippingAddress.country = address.country || "";
+            }
+        }
+
+        return shippingAddress;
+    }
+
+    /**
+     * This method returns an array of shipping lines for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderShippingLines(orderRecord) {
+        var shippingLines = [];
+        var shippingInfo = orderRecord.shipmentInfo;
+
+        shippingLines.push({
+            method_id: "flat_rate",
+            method_title: "Flat Rate",
+            total: shippingInfo.shipmentCost
+        });
+
+        return shippingLines;
+    }
+
+    /**
+     * This method returns an object of payment details for sales order
+     * @param orderRecord
+     * @returns {{}}
+     */
+    function getSalesOrderPaymentDetails(orderRecord) {
+        var paymentDetail = {};
+        var paymentInfo = paymentDetail.paymentInfo;
+
+        // TODO: need to be dynamic
+        paymentDetail.method_id = "bacs";
+        paymentDetail.method_title = "Direct Bank Transfer";
+        paymentDetail.paid = true;
+
+        return paymentDetail;
+    }
+
+    /**
+     * This method returns an object of sales order data required to create sales order to WOO
+     * @param orderRecord
+     * @returns {object}
+     */
+    function getSalesOrderData(orderRecord) {
+        var data = {};
+        data.order = WOOModels.salesOrder();
+
+        // set customer
+        data.order.customer_id = orderRecord.customer.customerId;
+
+        // set products in main object
+        data.order.line_items = getSalesOrderLineItems(orderRecord);
+
+        // set billing address
+        data.order.billing_address = getSalesOrderBillingAddress(orderRecord);
+
+        // set set shipping address
+        data.order.shipping_address = getSalesOrderShippingAddress(orderRecord);
+
+        // set shipping lines
+        data.order.shipping_lines = getSalesOrderShippingLines(orderRecord);
+
+        // set payment details
+        data.order.payment_details = getSalesOrderPaymentDetails(orderRecord);
+
+        return data;
     }
 
     /**
@@ -796,117 +1040,19 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
+        /**
+         * This method create a sales order to WOO
+         * @param internalId
+         * @param orderRecord
+         * @param store
+         * @param sessionId
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
         createSalesOrder: function (internalId, orderRecord, store, sessionId) {
-
-            function getSalesOrderData(orderRecord) {
-                var data = {};
-                data.order = {};
-
-                data.order.customer_id = "";
-                data.order.line_items = [];
-                data.order.billing_address = {};
-                data.order.shipping_address = {};
-                data.order.shipping_lines = [];
-                data.order.payment_details = {};
-
-                // set customer
-                data.order.customer_id = orderRecord.customer.customerId;
-
-                // set products in main object
-                var items = orderRecord.items;
-                for (var i in items) {
-                    var item = items[i];
-
-                    var itemObj = {};
-                    //itemObj.product_id = 546 // TODO: change sku with id if not work
-                    itemObj.sku = item.sku;
-                    itemObj.quantity = item.quantity;
-
-                    data.order.line_items.push(itemObj);
-                }
-
-                var addresses = orderRecord.customer.addresses;
-                // set billing address
-                data.order.billing_address.first_name = "John";
-                data.order.billing_address.last_name = "Doe";
-                data.order.billing_address.address_1 = "969 Market";
-                data.order.billing_address.address_2 = "";
-                data.order.billing_address.city = "San Francisco";
-                data.order.billing_address.state = "CA";
-                data.order.billing_address.postcode = "94103";
-                data.order.billing_address.country = "US";
-                data.order.billing_address.email = "john.doe@example.com";
-                data.order.billing_address.phone = "(555) 555-555";
-
-                // set set shipping address
-
-                // set shipping lines
-
-                data.order.shipping_lines.push({
-                    method_id: "flat_rate",
-                    method_title: "Flat Rate",
-                    total: orderRecord.shipmentInfo.shipmentCost
-                });
-
-                // set payment details
-
-                data = {
-                    "order": {
-                        "payment_details": {
-                            "method_id": "bacs",
-                            "method_title": "Direct Bank Transfer",
-                            "paid": true
-                        },
-                        "billing_address": {
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "address_1": "969 Market",
-                            "address_2": "",
-                            "city": "San Francisco",
-                            "state": "CA",
-                            "postcode": "94103",
-                            "country": "US",
-                            "email": "john.doe@example.com",
-                            "phone": "(555) 555-5555"
-                        },
-                        "shipping_address": {
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "address_1": "969 Market",
-                            "address_2": "",
-                            "city": "San Francisco",
-                            "state": "CA",
-                            "postcode": "94103",
-                            "country": "US"
-                        },
-                        "customer_id": 2,
-                        "line_items": [
-                            {
-                                "product_id": 546,
-                                "quantity": 2
-                            },
-                            {
-                                "product_id": 613,
-                                "quantity": 1
-                            }
-                        ],
-                        "shipping_lines": [
-                            {
-                                "method_id": "flat_rate",
-                                "method_title": "Flat Rate",
-                                "total": 10
-                            }
-                        ]
-                    }
-                };
-
-                return data;
-            }
-
             var httpRequestData = {
                 url: 'orders',
                 method: 'POST',
-                data: getSalesOrderData(orderRecord)
+                postData: getSalesOrderData(orderRecord)
             };
             var serverResponse = null;
 
@@ -926,18 +1072,13 @@ WooWrapper = (function () {
             }
 
             if (!!serverResponse && serverResponse.order) {
-                var order = parseSingleSalesOrderResponse(serverResponse.order);
+                var order = serverResponse.order;
 
                 if (!!order) {
-                    serverFinalResponse.customer_id = order.customer_id;
-                    serverFinalResponse.shippingAddress = order.shippingAddress;
-                    serverFinalResponse.billingAddress = order.billingAddress;
-                    serverFinalResponse.payment = order.payment;
-                    serverFinalResponse.products = order.products;
+                    serverFinalResponse.incrementalIdData = {};
+                    serverFinalResponse.incrementalIdData.orderIncrementId = order.order_number.toString();
                 }
-
-                // TODO: also need to set Line Items here - currenlty it is now needed
-
+                // No need to set Line Items Ids here
             }
 
             // If some problem
@@ -948,90 +1089,27 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
+        /**
+         * This method returns a flag which means that item ids in order's items is needed to be set
+         * @returns {boolean}
+         */
         hasDifferentLineItemIds: function () {
             return false;
         },
 
+        /**
+         * This method create or update a customer to WOO
+         * @param customerRecord
+         * @param store
+         * @param type
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
         upsertCustomer: function (customerRecord, store, type) {
-
-            function getCustomerData(customerRecord, type) {
-                var data = {};
-
-                data.customer = {};
-                data.email = customerRecord.email;
-                data.first_name = customerRecord.firstname;
-                data.last_name = customerRecord.lastname;
-
-                if (type.toString() === "create") {
-                    data.username = "";
-                    data.password = customerRecord.password || "";
-                }
-
-                function getDefaultAddresses(customerRecord) {
-                    var addresses = customerRecord.addresses;
-
-                    var billingAddress = null;
-                    var shippingAddress = null;
-
-                    function getAddress(address, type) {
-                        var data = {};
-
-                        data.first_name = address.firstname || "";
-                        data.last_name = address.lastname || "";
-                        data.company = address.company || "";
-                        data.address_1 = address.street1 || "";
-                        data.address_2 = address.street2 || "";
-                        data.city = address.city || "";
-                        data.state = address.region || "";
-                        data.postcode = address.postcode || "";
-                        data.country = address.country || "";
-
-                        if (type.toString() === "billing") {
-                            data.email = "";
-                            data.phone = address.telephone || "";
-                        }
-
-                        return data;
-                    }
-
-                    for (var i in addresses) {
-                        var address = addresses[i];
-
-                        var defaultshipping = address.defaultshipping;
-                        var defaultbilling = address.defaultbilling;
-
-                        if (shippingAddress === null && defaultshipping.toString() === "T") {
-                            shippingAddress = getAddress(address, "shipping");
-                        }
-
-                        if (billingAddress === null && defaultbilling.toString() === "T") {
-                            billingAddress = getAddress(address, "billing");
-                        }
-
-                        if (!!billingAddress && !!shippingAddress) {
-                            break;
-                        }
-                    }
-
-                    return {
-                        shippingAddress: shippingAddress || {},
-                        billingAddress: billingAddress || {}
-                    };
-                }
-
-                var defaultAddresses = getDefaultAddresses(customerRecord);
-
-                data.customer.billing_address = defaultAddresses.shippingAddress;
-                data.customer.shipping_address = defaultAddresses.billingAddress;
-
-                return data;
-            }
-
             // handling of endpoints for update or create customer
             var httpRequestData = {
                 url: 'customers' + (type.toString() === "update" ? "/" + customerRecord.magentoId : ""),
                 method: 'POST',
-                data: getCustomerData(customerRecord, type)
+                postData: getCustomerData(customerRecord, type)
             };
             var serverResponse = null;
 
@@ -1047,14 +1125,17 @@ WooWrapper = (function () {
                 serverFinalResponse.status = true;
 
             } catch (e) {
-                Utility.logException('Error during getSalesOrders', e);
+                Utility.logException('Error during upsertCustomer - ' + type, e);
             }
 
-            if (!!serverResponse && serverResponse.order) {
-                var customer = parseCustomerResponse(serverResponse.order);
+            if (!!serverResponse && serverResponse.customer) {
+                var customer = parseCustomerResponse(serverResponse.customer);
+
+                Utility.logDebug("upsertCustomer.customer - parseCustomerResponse", JSON.stringify(customer));
 
                 if (!!customer) {
                     serverFinalResponse.result = customer;
+                    serverFinalResponse.magentoCustomerId = customer.id;
                 }
             }
 
@@ -1065,9 +1146,16 @@ WooWrapper = (function () {
 
             return serverFinalResponse;
         },
+        /**
+         * This method returns a flag which means that separate address call is neeeded to sync customer addresses
+         * @returns {boolean}
+         */
         requiresAddressCall: function () {
             return false;
         },
+        /**
+         * This method has no implementation because no separate address call is neeeded to sync customer addresses
+         */
         upsertCustomerAddress: function () {
             // no need to implement this function for WOO
             // address will be with in the customer create/update call
@@ -1077,286 +1165,3 @@ WooWrapper = (function () {
     //endregion
 
 })();
-
-
-/*
- {
- "storeId": "1",
- "nsObj": {
- "total": 480,
- "taxtotal": 0,
- "paypalprocess": false,
- "location": {
- "name": "San Francisco",
- "internalid": "2"
- },
- "billingschedule": [
- {
- "billamount": 480,
- "billdate": "10/9/2015"
- }
- ],
- "terms": {
- "name": "Net 30",
- "internalid": "2"
- },
- "entity": {
- "name": "Zeeshan Ahmed Siddiqui",
- "internalid": "2377"
- },
- "billingaddress": {
- "zip": "35005",
- "dropdownstate": {
- "name": "Alabama",
- "internalid": "AL"
- },
- "addr1": "48 Loyang Way #03-00",
- "override": false,
- "addrtext": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "state": "AL",
- "addressee": "Zeeshan Ahmed",
- "custrecord_magento_id": "[{\"StoreId\":\"2\",\"MagentoId\":\"-1\"}]",
- "country": {
- "name": "United States",
- "internalid": "US"
- },
- "city": "California"
- },
- "billzip": "35005",
- "exchangerate": 1,
- "handlingcost": 0,
- "estgrossprofitpercent": "100.0%",
- "shipaddresslist": {
- "name": "48 Loyang Way #03-00",
- "internalid": "246185"
- },
- "tobefaxed": false,
- "shipaddressee": "Zeeshan Ahmed",
- "iladdrbook": [],
- "recordtype": "salesorder",
- "totalcostestimate": 0,
- "shipzip": "35005",
- "billaddressee": "Zeeshan Ahmed",
- "shipcity": "California",
- "shipstate": "AL",
- "custbody_fmt_req_financial_app": false,
- "createddate": "10/9/2015 12:34 am",
- "subtotal": 480,
- "currencyname": "USA",
- "billcountry": {
- "name": "United States",
- "internalid": "US"
- },
- "shipaddr1": "48 Loyang Way #03-00",
- "paypaloverride": false,
- "ismultishipto": false,
- "custbody_fmt_finance_app": false,
- "email": "zahmed@folio3.com",
- "billcity": "California",
- "custbody_magentosyncdev": false,
- "shipaddress": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "tranid": "110121936400",
- "shipcomplete": false,
- "billaddress": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "custbody_fmt_finance_declined": false,
- "custbody_f3mg_magento_store": {
- "name": "Folio3 WOO",
- "internalid": "2"
- },
- "ccapproved": false,
- "currency": {
- "name": "USA",
- "internalid": "1"
- },
- "lastmodifieddate": "10/9/2015 6:42 am",
- "shipmethod": {
- "name": "USPS Parcel Post",
- "internalid": "732"
- },
- "id": "15368",
- "custbody_f3mg_dont_sync_to_magento": false,
- "shippingaddress_text": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "getauth": false,
- "tobeprinted": false,
- "billingaddress_text": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "shipcountry": {
- "name": "United States",
- "internalid": "US"
- },
- "isrecurringpayment": false,
- "trandate": "10/9/2015",
- "billaddresslist": {
- "name": "48 Loyang Way #03-00",
- "internalid": "246185"
- },
- "billstate": "AL",
- "shippingaddress": {
- "zip": "35005",
- "dropdownstate": {
- "name": "Alabama",
- "internalid": "AL"
- },
- "addr1": "48 Loyang Way #03-00",
- "override": false,
- "addrtext": "Zeeshan Ahmed\n48 Loyang Way #03-00 \nCalifornia AL 35005\nUnited States",
- "state": "AL",
- "addressee": "Zeeshan Ahmed",
- "custrecord_magento_id": "[{\"StoreId\":\"2\",\"MagentoId\":\"-1\"}]",
- "country": {
- "name": "United States",
- "internalid": "US"
- },
- "city": "California"
- },
- "giftcertapplied": 0,
- "customform": {
- "name": "Z - Ramsey Sales Order Form - Line GP",
- "internalid": "251"
- },
- "shipdate": "10/11/2015",
- "item": [
- {
- "amount": 480,
- "commitinventory": {
- "name": "Available Qty",
- "internalid": "1"
- },
- "commitmentfirm": false,
- "costestimate": 0,
- "costestimaterate": 0,
- "costestimatetype": {
- "name": "Average Cost",
- "internalid": "AVGCOST"
- },
- "createwo": false,
- "isclosed": false,
- "item": {
- "name": "lumia-430",
- "internalid": "1263"
- },
- "itemisfulfilled": "F",
- "porate": 0,
- "price": {
- "name": "Base Price",
- "internalid": "1"
- },
- "quantity": 2,
- "quantityavailable": 86,
- "quantitycommitted": 2,
- "rate": 240,
- "shipgroup": 1,
- "taxcode": {
- "name": "-Not Taxable-",
- "internalid": "-8"
- }
- }
- ],
- "estgrossprofit": 480,
- "shipgroup": [
- {
- "destinationaddress": "48 Loyang Way #03-00 California AL 35005 United States",
- "destinationaddressref": "246185",
- "handlingrate": 0,
- "handlingtaxamt": 0,
- "handlingtaxcode": {
- "name": "-Not Taxable-",
- "internalid": "-7"
- },
- "id": 1,
- "isfulfilled": "F",
- "shippingmethod": "USPS Parcel Post",
- "shippingmethodref": "732",
- "shippingrate": 0,
- "shippingtaxamt": 0,
- "shippingtaxcode": {
- "name": "-Not Taxable-",
- "internalid": "-7"
- },
- "sourceaddressref": "DEFAULT",
- "weight": 2
- }
- ],
- "billaddr1": "48 Loyang Way #03-00",
- "tobeemailed": false
- },
- "history": "NetSuite Ship Carrier: NONUPS NetSuite Ship Method: USPS%20Parcel%20Post ",
- "status": "B",
- "cancelledMagentoSOId": "",
- "customer": {
- "mode": "customer",
- "customerId": 2,
- "email": "zahmed@folio3.com",
- "firstName": "Zeeshan Ahmed",
- "lastName": "Siddiqui",
- "company": "",
- "street": "",
- "city": "",
- "state": "",
- "stateId": "",
- "country": "",
- "telephone": "",
- "fax": "",
- "isDefaultBilling": "",
- "isDefaultShipping": "",
- "zipCode": "",
- "internalId": 2377,
- "magentoCustid": "[{\"StoreId\":\"2\",\"MagentoId\":2},{\"StoreId\":\"1\",\"MagentoId\":141}]",
- "addresses": [
- {
- "mode": "shipping",
- "isDefaultBilling": "0",
- "isDefaultShipping": "1",
- "firstName": "Zeeshan Ahmed",
- "lastName": "Siddiqui",
- "company": "",
- "fax": "",
- "street": "48 Loyang Way #03-00",
- "telephone": "123-123-1234",
- "attention": "",
- "addressee": "Zeeshan Ahmed",
- "city": "California",
- "state": "Alabama",
- "stateId": "AL",
- "country": "US",
- "zipCode": "35005",
- "addressId": ""
- },
- {
- "mode": "billing",
- "isDefaultBilling": "1",
- "isDefaultShipping": "0",
- "firstName": "Zeeshan Ahmed",
- "lastName": "Siddiqui",
- "company": "",
- "fax": "",
- "street": "48 Loyang Way #03-00",
- "telephone": "123-123-1234",
- "attention": "",
- "addressee": "Zeeshan Ahmed",
- "city": "California",
- "state": "Alabama",
- "stateId": "AL",
- "country": "US",
- "zipCode": "35005",
- "addressId": ""
- }
- ]
- },
- "items": [
- {
- "itemId": "1263",
- "sku": "lumia-430",
- "quantity": "2",
- "price": "240.00",
- "giftInfo": {}
- }
- ],
- "shipmentInfo": {
- "shipmentMethod": "flatrate_flatrate",
- "shipmentCost": 0
- },
- "paymentInfo": {
- "paymentMethod": "checkmo"
- },
- "giftCertificates": []
- }*/

@@ -219,7 +219,62 @@ ConnectorModels = (function () {
                 quote_id: '',
                 customer_middlename: ''
 
-        };
+            };
+        }
+    };
+})();
+
+
+WOOModels = (function () {
+    return {
+        billingAddress: function () {
+            return {
+                "first_name": "",
+                "last_name": "",
+                "company": "",
+                "address_1": "",
+                "address_2": "",
+                "city": "",
+                "state": "",
+                "postcode": "",
+                "country": "",
+                "email": "",
+                "phone": ""
+            };
+        },
+        shippingAddress: function () {
+            return {
+                "first_name": "",
+                "last_name": "",
+                "company": "",
+                "address_1": "",
+                "address_2": "",
+                "city": "",
+                "state": "",
+                "postcode": "",
+                "country": ""
+            };
+        },
+        salesOrder: function () {
+            return {
+                "payment_details": {},//{"method_id": "bacs", "method_title": "Direct Bank Transfer", "paid": true}
+                "billing_address": this.billingAddress(),
+                "shipping_address": this.shippingAddress(),
+                "customer_id": 0,
+                "line_items": [],//{"product_id": 546, "quantity": 2},{"product_id": 613, "quantity": 1, "variations": {"pa_color": "Black"}},
+                "shipping_lines": [] //{"method_id": "flat_rate", "method_title": "Flat Rate", "total": 10}
+
+            };
+        },
+        customer: function () {
+            return {
+                "email": "",
+                "first_name": "",
+                "last_name": "",
+                "username": "",
+                "billing_address": this.billingAddress(),
+                "shipping_address": this.shippingAddress()
+            };
         }
     };
 })();

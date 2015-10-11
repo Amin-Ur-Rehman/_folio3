@@ -165,6 +165,7 @@ function createCustomerInMagento(nsCustomerObject, store, existingMagentoReferen
 
     if (!!customerRecord) {
         responseMagento = ConnectorConstants.CurrentWrapper.upsertCustomer(customerRecord, store, "create");
+        Utility.logDebug('createCustomerInMagento', JSON.stringify(responseMagento));
         if (!!responseMagento && !!responseMagento.status && responseMagento.status) {
 
             if (!!existingMagentoReferenceInfo) {
@@ -200,15 +201,18 @@ function updateCustomerInMagento(nsCustomerObject, store, magentoId, existingMag
     if (!!customerRecord) {
         customerRecord.magentoId = magentoId;
         responseMagento = ConnectorConstants.CurrentWrapper.upsertCustomer(customerRecord, store, "update");
+        Utility.logDebug('updateCustomerInMagento', JSON.stringify(responseMagento));
+        if (ConnectorConstants.CurrentWrapper.requiresAddressCall()) {
+            if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {
+                //Address Sync
+                customerSynched = updateAddressesInMagento(customerRecord, store, magentoId);
 
-        if (!!responseMagento && !!responseMagento.status && responseMagento.status && responseMagento.updated == "true") {
-            customerRecord = CUSTOMER.getCustomer(nsCustomerObject.internalId, store);
-            //Address Sync
-            customerSynched = updateAddressesInMagento(customerRecord, store, magentoId);
-
+            } else {
+                var errorMsg = responseMagento.faultCode + '    ' + responseMagento.faultString;
+                Utility.logDebug('responseMagento ', errorMsg);
+            }
         } else {
-            var errorMsg = responseMagento.faultCode + '    ' + responseMagento.faultString;
-            Utility.logDebug('responseMagento ', errorMsg);
+            customerSynched = true;
         }
     }
 
@@ -234,7 +238,7 @@ function createAddressesInMagento(customerRecordObject, store, magentoCustomerId
 
 
 function updateAddressesInMagento(customerRecordObject, store, magentoCustomerId) {
-    var customerAddresses = CUSTOMER.getNSCustomerAddresses(customerRecordObject);
+    var customerAddresses = customerRecordObject.addresses;
     var scannedAddressForMagento;
     var allAddressedSynched = true;
     var currentAddressStoresInfo;

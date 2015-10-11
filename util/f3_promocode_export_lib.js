@@ -187,7 +187,7 @@ var PromoCodesExportHelper = (function () {
          * Send request to megento store
          * @param orderRecord
          */
-        sendRequestToMagento: function(internalId, promoCodeRecord) {
+        sendRequestToExternalSystem: function(internalId, promoCodeRecord) {
 
             var response = {status: true, magentoId: '', message: ''};
             try {
@@ -252,7 +252,7 @@ var PromoCodesExportHelper = (function () {
                 }
                 response.status = false;
                 response.message = error;
-                nlapiLogExecution('ERROR', 'error in PromoCodesExportHelper.sendRequestToMagento', error);
+                nlapiLogExecution('ERROR', 'error in PromoCodesExportHelper.sendRequestToExternalSystem', error);
                 PromoCodesExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
             }
 

@@ -45,7 +45,7 @@ var PriceLevelExportHelper = (function () {
          * Send request to megento store
          * @param orderRecord
          */
-        sendRequestToMagento: function(internalId, priceLevelRecord) {
+        sendRequestToExternalSystem: function(internalId, priceLevelRecord) {
 
             var response = {status: true, magentoId: '', message: ''};
             var updateRecord = false;
@@ -102,7 +102,7 @@ var PriceLevelExportHelper = (function () {
                 }
                 response.status = false;
                 response.message = error;
-                nlapiLogExecution('ERROR', 'error in PriceLevelExportHelper.sendRequestToMagento', error);
+                nlapiLogExecution('ERROR', 'error in PriceLevelExportHelper.sendRequestToExternalSystem', error);
             }
 
             Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'end');

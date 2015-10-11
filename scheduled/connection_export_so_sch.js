@@ -534,7 +534,7 @@ var ExportSalesOrders = (function () {
 
             var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
 
-            this.sendRequestToMagento(orderObject.internalId, orderRecord, store, true);
+            this.sendRequestToExternalSystem(orderObject.internalId, orderRecord, store, true);
         },
 
         /**
@@ -545,7 +545,7 @@ var ExportSalesOrders = (function () {
          * @param attemptRetryIfNeeded
          * @return {null}
          */
-        sendRequestToMagento: function (internalId, orderRecord, store, attemptRetryIfNeeded) {
+        sendRequestToExternalSystem: function (internalId, orderRecord, store, attemptRetryIfNeeded) {
             var serverResponse;
 
             Utility.logDebug('debug', 'Step-4');
@@ -557,6 +557,7 @@ var ExportSalesOrders = (function () {
             Utility.logDebug('debug', 'Step-5');
 
             serverResponse = ConnectorConstants.CurrentWrapper.createSalesOrder(internalId, orderRecord, store, ConnectorConstants.CurrentStore.sessionID);
+            Utility.logDebug('sendRequestToExternalSystem.serverResponse', JSON.stringify(serverResponse));
 
             var incrementalIdData = serverResponse.incrementalIdData;
             var externalSystemOrderLineIdData = serverResponse.magentoOrderLineIdData;
@@ -585,7 +586,7 @@ var ExportSalesOrders = (function () {
                         var modifiedRecordObj = retryStatus.recordObj;
                         //Utility.logDebug('modifiedRecordObj.shipmentInfo.shipmentMethod', modifiedRecordObj.shipmentInfo.shipmentMethod);
                         //Utility.logDebug('retrying', 'sending to magento again with modified object');
-                        this.sendRequestToMagento(internalId, modifiedRecordObj, store, false);
+                        this.sendRequestToExternalSystem(internalId, modifiedRecordObj, store, false);
                     } else {
                         //Log error with fault code that this customer is not synched with magento
                         Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + serverResponse.faultString);
