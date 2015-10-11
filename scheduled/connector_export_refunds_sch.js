@@ -227,7 +227,7 @@ var RefundExportHelper = (function () {
          Sets Magento Id in the Order record
          * @param parameter
          */
-        setOrderMagentoId: function (magentoId, orderId) {
+        setOrderExternalSystemId: function (magentoId, orderId) {
             try {
                 nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {

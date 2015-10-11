@@ -234,7 +234,7 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2
             // todo generalize store id
             $product = $product->setStore(1)->setStoreId(1)->load($productId);
 
-            if ($product->getTypeId() != "aw_giftcard") {
+            if (!empty($product) && $product->getTypeId() != "aw_giftcard") {
                 $this->isOnlyGiftCard = false;
             }
 
