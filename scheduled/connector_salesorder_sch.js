@@ -295,7 +295,7 @@ function startup(type) {
             // getting last store id if script has been rescheduled
             lastStoreId = context.getSetting('SCRIPT', ConnectorConstants.ScriptParameters.LastStoreIdSalesOrder);
             // TODO: remove hard coding
-            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 2 : parseInt(lastStoreId);
+            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 1 : parseInt(lastStoreId);
 
             for (var system = lastStoreId; system < externalSystemConfig.length; system++) {
                 // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first

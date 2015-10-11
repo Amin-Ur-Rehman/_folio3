@@ -190,20 +190,6 @@ WooWrapper = (function () {
     }
 
     function parseFulfillmentResponse(serverResponse) {
-        /*var finalResult = [];
-         try {
-         if (!!serverResponse && serverResponse.length > 0) {
-         for (var i = 0; i < serverResponse.length; i++) {
-         var serverFulfillment = serverResponse[i];
-
-         var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
-
-         finalResult.push(localFulfillment);
-         }
-         }
-         } catch (e) {
-         Utility.logException('Error during parseFulfillmentResponse', e);
-         }*/
         var finalResult = {
             isOrderStatusCompleted: false
         };
@@ -256,15 +242,10 @@ WooWrapper = (function () {
 
         try {
             if (!!serverResponse && serverResponse.length > 0) {
-
                 Utility.logDebug('server Customer = ', JSON.stringify(serverResponse));
-
                 var localAddress = parseSingleCustomerAddressResponse(serverResponse.billing_address);
-
                 finalResult.push(localAddress);
-
                 localAddress = parseSingleCustomerAddressResponse(serverResponse.shipping_address);
-
                 finalResult.push(localAddress);
 
             }
@@ -274,6 +255,277 @@ WooWrapper = (function () {
 
         Utility.logDebug('finalResult of parseCustomerAddressResponse = ', JSON.stringify(finalResult));
         return finalResult;
+    }
+
+    /**
+     * Parses Customer Response
+     * @param serverResponse
+     */
+    function parseCustomerResponse(serverResponse) {
+        var data = {};
+
+        data.id = serverResponse.id;
+        data.email = serverResponse.email;
+        data.first_name = serverResponse.firstname;
+        data.last_name = serverResponse.lastname;
+        data.username = serverResponse.username;
+        data.billing_address = serverResponse.billing_address;
+        data.shipping_address = serverResponse.shipping_address;
+
+        return data;
+    }
+
+    /**
+     * Make a billing address object
+     * @param address
+     * @returns {object}
+     */
+    function getBillingAddress(address) {
+        var data = WOOModels.billingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+        data.email = "";
+        data.phone = address.telephone || "";
+
+        return data;
+    }
+
+    /**
+     * Make a shipping address object
+     * @param address
+     * @returns {object}
+     */
+    function getShippingAddress(address) {
+        var data = WOOModels.shippingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+
+        return data;
+    }
+
+    /**
+     * Make the default address objects for billing and shipping if found else return blank objects
+     * @param customerRecord
+     * @returns {{shippingAddress: (*|{}), billingAddress: (*|{})}}
+     */
+    function getDefaultAddresses(customerRecord) {
+        var addresses = customerRecord.addresses;
+
+        var billingAddress = null;
+        var shippingAddress = null;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+
+            var defaultshipping = address.defaultshipping;
+            var defaultbilling = address.defaultbilling;
+
+            if (shippingAddress === null && defaultshipping.toString() === "T") {
+                shippingAddress = getShippingAddress(address);
+            }
+
+            if (billingAddress === null && defaultbilling.toString() === "T") {
+                billingAddress = getBillingAddress(address);
+            }
+
+            if (!!billingAddress && !!shippingAddress) {
+                break;
+            }
+        }
+
+        return {
+            shippingAddress: shippingAddress || {},
+            billingAddress: billingAddress || {}
+        };
+    }
+
+    /**
+     * This method returns customer object data required to upsert the customer to WOO
+     * @param customerRecord
+     * @param type
+     * @returns {object}
+     */
+    function getCustomerData(customerRecord, type) {
+        var data = {};
+        data.customer = WOOModels.customer();
+
+        data.customer.email = customerRecord.email;
+        data.customer.first_name = customerRecord.firstname;
+        data.customer.last_name = customerRecord.lastname;
+
+        if (type.toString() === "create") {
+            data.customer.password = customerRecord.password || "";
+        } else {
+            delete data.customer.username;
+        }
+
+        var defaultAddresses = getDefaultAddresses(customerRecord);
+
+        data.customer.billing_address = defaultAddresses.shippingAddress;
+        data.customer.shipping_address = defaultAddresses.billingAddress;
+
+        return data;
+    }
+
+    /**
+     * This method returns an array of line item for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderLineItems(orderRecord) {
+        var lineItems = [];
+
+        var items = orderRecord.items;
+        for (var i in items) {
+            var item = items[i];
+
+            var itemObj = {};
+            // TODO: change sku with product_id if not work
+            //itemObj.product_id = 8
+            itemObj.sku = item.sku;
+            itemObj.quantity = item.quantity;
+
+            lineItems.push(itemObj);
+        }
+
+        return lineItems;
+    }
+
+    /**
+     * This method returns an object of billing address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone}}
+     */
+    function getSalesOrderBillingAddress(orderRecord) {
+        var billingAddress = WOOModels.billingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultBilling.toString() === "1") {
+                billingAddress.first_name = address.firstName || "";
+                billingAddress.last_name = address.lastName || "";
+                billingAddress.company = address.company || "";
+                billingAddress.address_1 = address.street || "";
+                billingAddress.address_2 = "";
+                billingAddress.city = address.city || "";
+                billingAddress.state = address.stateId || "";
+                billingAddress.postcode = address.zipCode || "";
+                billingAddress.country = address.country || "";
+                billingAddress.email = "";
+                billingAddress.phone = address.telephone || "";
+            }
+        }
+
+        return billingAddress;
+    }
+
+    /**
+     * * This method returns an object of shipping address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country}}
+     */
+    function getSalesOrderShippingAddress(orderRecord) {
+        var shippingAddress = WOOModels.shippingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultShipping.toString() === "1") {
+                shippingAddress.first_name = address.firstName || "";
+                shippingAddress.last_name = address.lastName || "";
+                shippingAddress.company = address.company || "";
+                shippingAddress.address_1 = address.street || "";
+                shippingAddress.address_2 = "";
+                shippingAddress.city = address.city || "";
+                shippingAddress.state = address.stateId || "";
+                shippingAddress.postcode = address.zipCode || "";
+                shippingAddress.country = address.country || "";
+            }
+        }
+
+        return shippingAddress;
+    }
+
+    /**
+     * This method returns an array of shipping lines for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderShippingLines(orderRecord) {
+        var shippingLines = [];
+        var shippingInfo = orderRecord.shipmentInfo;
+
+        shippingLines.push({
+            method_id: "flat_rate",
+            method_title: "Flat Rate",
+            total: shippingInfo.shipmentCost
+        });
+
+        return shippingLines;
+    }
+
+    /**
+     * This method returns an object of payment details for sales order
+     * @param orderRecord
+     * @returns {{}}
+     */
+    function getSalesOrderPaymentDetails(orderRecord) {
+        var paymentDetail = {};
+        var paymentInfo = paymentDetail.paymentInfo;
+
+        // TODO: need to be dynamic
+        paymentDetail.method_id = "bacs";
+        paymentDetail.method_title = "Direct Bank Transfer";
+        paymentDetail.paid = true;
+
+        return paymentDetail;
+    }
+
+    /**
+     * This method returns an object of sales order data required to create sales order to WOO
+     * @param orderRecord
+     * @returns {object}
+     */
+    function getSalesOrderData(orderRecord) {
+        var data = {};
+        data.order = WOOModels.salesOrder();
+
+        // set customer
+        data.order.customer_id = orderRecord.customer.customerId;
+
+        // set products in main object
+        data.order.line_items = getSalesOrderLineItems(orderRecord);
+
+        // set billing address
+        data.order.billing_address = getSalesOrderBillingAddress(orderRecord);
+
+        // set set shipping address
+        data.order.shipping_address = getSalesOrderShippingAddress(orderRecord);
+
+        // set shipping lines
+        data.order.shipping_lines = getSalesOrderShippingLines(orderRecord);
+
+        // set payment details
+        data.order.payment_details = getSalesOrderPaymentDetails(orderRecord);
+
+        return data;
     }
 
     /**
@@ -786,6 +1038,127 @@ WooWrapper = (function () {
             }
 
             return serverFinalResponse;
+        },
+
+        /**
+         * This method create a sales order to WOO
+         * @param internalId
+         * @param orderRecord
+         * @param store
+         * @param sessionId
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
+        createSalesOrder: function (internalId, orderRecord, store, sessionId) {
+            var httpRequestData = {
+                url: 'orders',
+                method: 'POST',
+                postData: getSalesOrderData(orderRecord)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during createSalesOrder', e);
+            }
+
+            if (!!serverResponse && serverResponse.order) {
+                var order = serverResponse.order;
+
+                if (!!order) {
+                    serverFinalResponse.incrementalIdData = {};
+                    serverFinalResponse.incrementalIdData.orderIncrementId = order.order_number.toString();
+                }
+                // No need to set Line Items Ids here
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+
+        /**
+         * This method returns a flag which means that item ids in order's items is needed to be set
+         * @returns {boolean}
+         */
+        hasDifferentLineItemIds: function () {
+            return false;
+        },
+
+        /**
+         * This method create or update a customer to WOO
+         * @param customerRecord
+         * @param store
+         * @param type
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
+        upsertCustomer: function (customerRecord, store, type) {
+            // handling of endpoints for update or create customer
+            var httpRequestData = {
+                url: 'customers' + (type.toString() === "update" ? "/" + customerRecord.magentoId : ""),
+                method: 'POST',
+                postData: getCustomerData(customerRecord, type)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during upsertCustomer - ' + type, e);
+            }
+
+            if (!!serverResponse && serverResponse.customer) {
+                var customer = parseCustomerResponse(serverResponse.customer);
+
+                Utility.logDebug("upsertCustomer.customer - parseCustomerResponse", JSON.stringify(customer));
+
+                if (!!customer) {
+                    serverFinalResponse.result = customer;
+                    serverFinalResponse.magentoCustomerId = customer.id;
+                }
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+        /**
+         * This method returns a flag which means that separate address call is neeeded to sync customer addresses
+         * @returns {boolean}
+         */
+        requiresAddressCall: function () {
+            return false;
+        },
+        /**
+         * This method has no implementation because no separate address call is neeeded to sync customer addresses
+         */
+        upsertCustomerAddress: function () {
+            // no need to implement this function for WOO
+            // address will be with in the customer create/update call
         }
     };
 

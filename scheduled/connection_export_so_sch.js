@@ -52,7 +52,7 @@ var OrderExportHelper = (function () {
                 filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'noneof', '@NONE@', null));
             }
             // testing - order # 123
-            filters.push(new nlobjSearchFilter('internalid', null, 'is', '147724', null));
+            //filters.push(new nlobjSearchFilter('internalid', null, 'is', '147724', null));
             filters.push(new nlobjSearchFilter('memorized', null, 'is', 'F', null));
             filters.push(new nlobjSearchFilter('type', null, 'anyof', 'SalesOrd', null));
             filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, null, 'isempty', null, null));
@@ -85,7 +85,7 @@ var OrderExportHelper = (function () {
          * Get Bill/Ship Address either from customer or sales order for sales order export
          * @param orderRecord
          * @param customerRec
-         * @param {string} type {shippingaddress, billingaddress}
+         * @param {string} type {shippingaddress,  billingaddress}
          * @param addressId
          * @return {object}
          */
@@ -116,7 +116,6 @@ var OrderExportHelper = (function () {
                 // load  customer subrecord(address)
                 addressRec = customerRec.viewLineItemSubrecord('addressbook', 'addressbookaddress', line);
 
-
             } else {
 
                 // load  sales order subrecord(shippingaddress)
@@ -138,19 +137,6 @@ var OrderExportHelper = (function () {
             address.zipCode = addressRec.getFieldValue('zip') || ConnectorConstants.MagentoDefault.Zip;
             address.addressId = '';
 
-            //var state = address.stateId;
-            // get magento mapped value
-            /*if (!Utility.isBlankOrNull(state)) {
-             state = FC_ScrubHandler.getMappedValue('State', state);
-             }*/
-
-            //  address.state contains text and address.stateId contains state code
-            /*if (state === address.state) {
-             address.stateId = '';
-             address.state = addressRec.getFieldValue('dropdownstate');
-             } else {
-             address.stateId = state;
-             }*/
             return address;
 
         },
@@ -417,14 +403,14 @@ var OrderExportHelper = (function () {
         },
 
         /**
-         Sets Magento Id in the Order record
+         * Sets Magento Id in the Order record
          * @param parameter
          */
-        setOrderMagentoId: function (magentoId, orderId) {
+        setOrderExternalSystemId: function (magentoId, orderId) {
             try {
                 nlapiSubmitField('salesorder', orderId, [ConnectorConstants.Transaction.Fields.MagentoSync, ConnectorConstants.Transaction.Fields.MagentoId], ['T', magentoId]);
             } catch (e) {
-                Utility.logException('OrderExportHelper.setOrderMagentoId', e);
+                Utility.logException('OrderExportHelper.setOrderExternalSystemId', e);
                 ExportSalesOrders.markRecords(orderId, e.toString());
             }
         },
@@ -433,7 +419,7 @@ var OrderExportHelper = (function () {
          * Set Magento Orders Line Ids in Line Items
          * @param orderData
          */
-        setLineItemsMagentoOrderLineIds: function (orderInternalId, orderObject, magentoOrderLineIdData) {
+        setExternalSystemOrderLineIds: function (orderInternalId, orderObject, magentoOrderLineIdData) {
             try {
                 //Utility.logDebug('orderData.items', JSON.stringify(orderObject.items));
                 var itemIdsArray = OrderExportHelper.getItemIdsArray(orderObject.items);
@@ -453,7 +439,7 @@ var OrderExportHelper = (function () {
                 nlapiSubmitRecord(soRecord);
 
             } catch (e) {
-                Utility.logException('OrderExportHelper.setLineItemsMagentoOrderLineIds', e);
+                Utility.logException('OrderExportHelper.setExternalSystemOrderLineIds', e);
                 ExportSalesOrders.markRecords(orderInternalId, e.toString());
             }
         },
@@ -523,6 +509,7 @@ var ExportSalesOrders = (function () {
             externalSystemConfig.forEach(function (store) {
                 ConnectorConstants.CurrentStore = store;
                 ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                ConnectorConstants.CurrentWrapper.initialize(store);
                 var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
                 if (!sessionID) {
                     Utility.logDebug('sessionID', 'sessionID is empty');
@@ -547,19 +534,19 @@ var ExportSalesOrders = (function () {
 
             var orderRecord = OrderExportHelper.getOrder(orderObject.internalId, store);
 
-            this.sendRequestToMagento(orderObject.internalId, orderRecord, store, true);
+            this.sendRequestToExternalSystem(orderObject.internalId, orderRecord, store, true);
         },
 
         /**
          * Send request to megento store
+         * @param internalId
          * @param orderRecord
+         * @param store
+         * @param attemptRetryIfNeeded
+         * @return {null}
          */
-        sendRequestToMagento: function (internalId, orderRecord, store, attemptRetryIfNeeded) {
-            var magentoIdObjArrStr,
-                nsOrderUpdateStatus,
-                requestXml,
-                responseMagento;
-            //this.processCustomer(orderRecord.customer, store);
+        sendRequestToExternalSystem: function (internalId, orderRecord, store, attemptRetryIfNeeded) {
+            var serverResponse;
 
             Utility.logDebug('debug', 'Step-4');
 
@@ -569,52 +556,47 @@ var ExportSalesOrders = (function () {
 
             Utility.logDebug('debug', 'Step-5');
 
-            requestXml = OrderExportHelper.getMagentoRequestXml(orderRecord, store.sessionID);
+            serverResponse = ConnectorConstants.CurrentWrapper.createSalesOrder(internalId, orderRecord, store, ConnectorConstants.CurrentStore.sessionID);
+            Utility.logDebug('sendRequestToExternalSystem.serverResponse', JSON.stringify(serverResponse));
 
-            ConnectorCommon.createLogRec(internalId, requestXml);
-
-            Utility.logDebug('store.endpoint', store.endpoint);
-            Utility.logDebug('requestXml', requestXml);
-
-            var xml = ConnectorConstants.CurrentWrapper.soapRequestToMagento(requestXml);
-
-            responseMagento = ConnectorConstants.CurrentWrapper.validateAndTransformSalesorderCreationResponse(xml, 0);
+            var incrementalIdData = serverResponse.incrementalIdData;
+            var externalSystemOrderLineIdData = serverResponse.magentoOrderLineIdData;
 
             Utility.logDebug('debug', 'Step-5c');
 
-            if (responseMagento.status) {
+            if (serverResponse.status) {
                 Utility.logDebug('debug', 'Step-6');
 
-                var incrementalIdData = ConnectorConstants.CurrentWrapper.transformCreateSalesOrderResponse(xml);
                 Utility.logDebug('incrementalIdData', incrementalIdData.orderIncrementId);
 
-                var magentoOrderLineIdData = ConnectorConstants.CurrentWrapper.transformCreateSalesOrderResponseForOrderLineId(xml);
+                OrderExportHelper.setOrderExternalSystemId(incrementalIdData.orderIncrementId, internalId);
 
-                OrderExportHelper.setOrderMagentoId(incrementalIdData.orderIncrementId, internalId);
-                OrderExportHelper.setLineItemsMagentoOrderLineIds(internalId, orderRecord, magentoOrderLineIdData);
-
+                if (ConnectorConstants.CurrentWrapper.hasDifferentLineItemIds()) {
+                    OrderExportHelper.setExternalSystemOrderLineIds(internalId, orderRecord, externalSystemOrderLineIdData);
+                }
             } else {
                 if (attemptRetryIfNeeded) {
                     Utility.logDebug('retrying', 'retrying record synching');
                     //Utility.logDebug('orderRecord.shipmentInfo.shipmentMethod', orderRecord.shipmentInfo.shipmentMethod);
 
-                    var retryStatus = retrySync(responseMagento.faultString, ConnectorConstants.RetryAction.RecordTypes.SalesOrder, orderRecord);
+                    var retryStatus = retrySync(serverResponse.faultString, ConnectorConstants.RetryAction.RecordTypes.SalesOrder, orderRecord);
+
                     //Utility.logDebug('retryStatus.status', retryStatus.status);
                     if (retryStatus.status) {
                         var modifiedRecordObj = retryStatus.recordObj;
                         //Utility.logDebug('modifiedRecordObj.shipmentInfo.shipmentMethod', modifiedRecordObj.shipmentInfo.shipmentMethod);
                         //Utility.logDebug('retrying', 'sending to magento again with modified object');
-                        this.sendRequestToMagento(internalId, modifiedRecordObj, store, false);
+                        this.sendRequestToExternalSystem(internalId, modifiedRecordObj, store, false);
                     } else {
                         //Log error with fault code that this customer is not synched with magento
-                        Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
-                        ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                        Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + serverResponse.faultString);
+                        ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + serverResponse.faultString);
                     }
                 }
                 else {
                     //Log error with fault code that this customer is not synched with magento
-                    Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + responseMagento.faultString);
-                    ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + responseMagento.faultString);
+                    Utility.logDebug('final stuff', 'orderId  ' + internalId + ' Not Synched Due to Error  :  ' + serverResponse.faultString);
+                    ExportSalesOrders.markRecords(internalId, ' Not Synched Due to Error  :  ' + serverResponse.faultString);
                 }
             }
         },
@@ -624,29 +606,24 @@ var ExportSalesOrders = (function () {
          * @param customer
          * @param store
          */
-        processCustomer: function (customerId, magentoCustomerIds, store) {
-
+        processCustomer: function (customerId, externalSystemCustomerIds, store) {
+            var customerObj = {};
             try {
-                var customerAlreadySynched = this.customerAlreadySyncToStore(magentoCustomerIds, store.systemId);
-                Utility.logDebug('magentoCustomerIds  #  store.systemId', magentoCustomerIds + '  #  ' + store.systemId);
+                var customerAlreadySynched = this.customerAlreadySyncToStore(externalSystemCustomerIds, store.systemId);
+                Utility.logDebug('magentoCustomerIds  #  store.systemId', externalSystemCustomerIds + '  #  ' + store.systemId);
                 Utility.logDebug('customerAlreadySynched', customerAlreadySynched);
                 if (!customerAlreadySynched) {
-                    var customerObj = {};
                     customerObj.internalId = customerId;
-                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    customerObj.magentoCustomerIds = externalSystemCustomerIds;
                     Utility.logDebug('customerObj.internalId', customerObj.internalId);
                     Utility.logDebug('customerObj.magentoCustomerIds', customerObj.magentoCustomerIds);
-                    if (!!customerObj.magentoCustomerIds) {
-                        createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
-                    } else {
-                        createCustomerInMagento(customerObj, store);
-                    }
+                    createCustomerInMagento(customerObj, store, customerObj.magentoCustomerIds);
                 } else {
                     // check if the customer is modified. If so, update the customer first in Magento
-                    var customer = CustomerSync.getCustomer(customerId, store.systemId);
-                    var customerObj = {};
+                    var customer = CUSTOMER.getCustomer(customerId, store);
+                    customerObj = {};
                     customerObj.internalId = customerId;
-                    customerObj.magentoCustomerIds = magentoCustomerIds;
+                    customerObj.magentoCustomerIds = externalSystemCustomerIds;
                     Utility.logDebug('inside If customer is already synced', 'Starting');
                     if (customer.nsObj.getFieldValue(CustomerSync.FieldName.CustomerModified) === 'T') {
                         // mark customer as unmodified
@@ -656,7 +633,8 @@ var ExportSalesOrders = (function () {
                             //update customer in Magento Store
                             Utility.logDebug('Customer Syncing Starting', '');
                             Utility.logDebug('Customer Syncing Starting - Store', JSON.stringify(store));
-                            CustomerSync.updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
+                            updateCustomerInMagento(customerObj, store, CustomerSync.getMagentoIdMyStore(customerObj.magentoCustomerIds, store.internalId), '');
+
                             Utility.logDebug('Customer Syncing Finished', '');
                         } catch (ex) {
                             Utility.logException('Error in updating Customer to Magento', ex);
@@ -734,6 +712,7 @@ var ExportSalesOrders = (function () {
 
                         ConnectorConstants.CurrentStore = store;
                         ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                        ConnectorConstants.CurrentWrapper.initialize(store);
                         Utility.logDebug('debug', 'Step-2');
 
                         orderIds = OrderExportHelper.getOrders(false, store.systemId);
