@@ -39,6 +39,20 @@ var ConnectorDashboardApi = (function () {
                 case 'getFailedSalesOrders':
                     return this.getFailedSalesOrders(request,response);
                     break;
+                case 'getExecutionLogs':
+                    return this.getExecutionLogs(request,response);
+                    break;
+                case 'executeSOSyncScript':
+                    return this.executeSOSyncScript(request,response);
+                    break;
+                case 'executeItemSyncScript':
+                    return this.executeItemSyncScript(request,response);
+                    break;
+                case 'executeCashRefundSyncScript':
+                    return this.executeCashRefundSyncScript(request,response);
+                    break;
+
+
             }
 
             return [];
@@ -106,6 +120,57 @@ var ConnectorDashboardApi = (function () {
                 }
             }
 
+            return finalResponse;
+        },
+
+
+
+        executeCashRefundSyncScript: function(request, response) {
+            return this.executeScheduledScript('customscript_cashrefund_export_sch', 'customdeploy_cashrefund_export_dep');
+        },
+        executeItemSyncScript: function(request, response) {
+            return this.executeScheduledScript('customscript_magento_item_sync_sch', 'customdeploy_magento_item_sync_sch');
+        },
+        executeSOSyncScript: function(request, response) {
+            return this.executeScheduledScript('customscript_connectororderimport', 'customdeploy_connectororderimport');
+        },
+        executeScheduledScript: function(scriptId, deploymentId) {
+            var result = {
+                success: true,
+                error: false
+            };
+
+            var status = nlapiScheduleScript(scriptId, deploymentId);
+
+            if (status === 'QUEUED' || status === 'INQUEUE' || status === 'INPROGRESS' || status === 'SCHEDULED') {
+                result.success = true;
+                result.error = false;
+            }
+            else {
+                result.success = false;
+                result.error = true;
+            }
+
+            return result;
+        },
+
+
+        getExecutionLogs: function(request, response) {
+            var storeId = request.getParameter('store_id');
+            //var finalResponse = this.getResultFromSavedSearch(storeId,  'customsearch_f3_failed_so_by_store',
+            //    'custbody_f3mg_magento_store');
+
+            var cols = [];
+            var filters = [];
+
+            cols.push(new nlobjSearchColumn('title'));
+
+            var finalResponse = null;
+            var results = nlapiSearchRecord('scriptexecutionlog', null, filters, cols);
+            if (results != null && results.length > 0) {
+                //Utility.logDebug('results', JSON.stringify(results));
+                finalResponse = ConnectorCommon.getObjects(results);
+            }
             return finalResponse;
         }
 

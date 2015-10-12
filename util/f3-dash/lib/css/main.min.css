@@ -27,3 +27,9 @@ ul.sidebar ul {
 .page-content .view-heading {
     margin-top: 0;
 }
+
+
+.ui-common-table .ui-th-column {
+    font-weight: bold;
+    background-color: #f5f5f5;
+}
