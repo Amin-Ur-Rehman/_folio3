@@ -1,11 +1,17 @@
 
 <h2 class="view-heading">Execute Cash Refund Script</h2>
 
-<div class=row>
-    <div class=col-lg-6>
-        Execute Cash Refund Script
-    </div>
-    <div class=col-lg-6>
-        World
-    </div>
+
+<br /><br />
+<div>
+    <a ng-click="viewModel.execute();" class="btn btn-success btn-lg"> Execute Scheduled Script </a>
+</div>
+
+<div class="alert alert-success" ng-if="!!viewModel.successMessage">
+    success
+</div>
+
+
+<div class="alert alert-danger" ng-if="!!viewModel.errorMessage">
+    error
 </div>
