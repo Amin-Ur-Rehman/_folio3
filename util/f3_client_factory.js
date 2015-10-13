@@ -901,35 +901,10 @@ function F3BaseV1Client() {
             rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
 
             //rec.setFieldValue('subsidiary', '3');// TODO generalize
-
-
-            //Utility.logDebug('w_DiscountItem', rec.getFieldValue('discountitem'));
-
-
             Utility.logDebug('Going to submit SO', 'Submitting');
             //var id = nlapiSubmitRecord(rec, {disabletriggers: true, ignoremandatoryfields: true}, false);
             var id = nlapiSubmitRecord(rec, true, true);
             Utility.logDebug('Netsuite SO-ID for magento order ' + order.increment_id, id);
-            /*if (isDummyItemSetInOrder) {
-             // if order has dummy item then don't create invoice and customer payment
-             return;
-             }
-             else {
-             // try creating Invoice
-             var invoiceResult = createInvoice(id, invoiceNum);
-             if (invoiceResult.errorMsg != '') {
-             nlapiLogExecution('ERROR', 'Could not create Invoice ', invoiceResult.errorMsg);
-             return;
-             }
-
-             // Now create Payment
-             var paymentResult = createCustomerPayment(invoiceResult.invoiceId);
-             if (paymentResult.errorMsg != '') {
-             nlapiLogExecution('ERROR', 'Could not create payment ', paymentResult.errorMsg);
-             return;
-             }
-
-             }*/
         }
         catch (ex) {
             //emailMsg = 'Order having Magento Id: ' + order.increment_id + ' did not created because of an error.\n' + ex.toString() + '.';

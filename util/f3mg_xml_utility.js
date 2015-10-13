@@ -1613,7 +1613,10 @@ MagentoWrapper = (function () {
             return responseMagento;
         },
 
-        getSessionIDFromServer: function (userName, apiKey) {
+        getSessionIDFromServer: function (userName, apiKey, required) {
+            if (typeof required === "boolean" && !required) {
+                return "DUMMY_SESSION_ID";
+            }
             var sessionID = null;
             var loginXML = this.getLoginXml(userName, apiKey);
             try {
@@ -1967,6 +1970,31 @@ MagentoWrapper = (function () {
             var responseMagento = JSON.parse(responseBody);
 
             return responseMagento;
+        },
+
+        cancelSalesOrder: function (data) {
+            var store = ConnectorConstants.CurrentStore;
+            var magentoSOClosingUrl;
+            if (!!store) {
+                var entitySyncInfo = store.entitySyncInfo;
+                if (!!entitySyncInfo && !!entitySyncInfo.salesorder.magentoSOClosingUrl) {
+                    magentoSOClosingUrl = entitySyncInfo.salesorder.magentoSOClosingUrl;
+                }
+            }
+
+            var requestParam = {"data": JSON.stringify(data)};
+
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+
+            var resp = nlapiRequestURL(magentoSOClosingUrl, requestParam, null, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('responseBody', responseBody);
+            responseBody = JSON.parse(responseBody);
+            return responseBody;
+        },
+
+        requiresOrderUpdateAfterCancelling:function(){
+            return true;
         }
     };
 })();

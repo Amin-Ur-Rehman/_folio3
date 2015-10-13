@@ -205,6 +205,16 @@ WooWrapper = (function () {
         return finalResult;
     }
 
+    function parseCancelSalesOrderResponse(serverResponse) {
+        var finalResult = {
+            status: false
+        };
+        if (serverResponse.hasOwnProperty("status") && serverResponse.status.toString() === "cancelled") {
+            finalResult.status = true;
+        }
+        return finalResult;
+    }
+
     function parseSingleCustomerAddressResponse(serverAddress) {
 
         var localAddress = ConnectorModels.addressModel();
@@ -601,6 +611,23 @@ WooWrapper = (function () {
         couponObj.description = coupon.description;
 
         return couponObj;
+    }
+
+
+    /**
+     * {"errors":[{"code":"","message":""}]}
+     * @param serverResponse
+     */
+    function getErrorIfExist(serverResponse) {
+        var errorObject = null;
+        if (serverResponse.hasOwnProperty("errors")) {
+            var error = serverResponse.errors[0];
+            errorObject = {
+                code: error.code,
+                message: error.message
+            };
+        }
+        return errorObject;
     }
 
     /**
@@ -1261,7 +1288,7 @@ WooWrapper = (function () {
                 Utility.logException('Error during upsertCustomer', e);
             }
 
-            if(!!serverResponse.coupons[0].error) {
+            if (!!serverResponse.coupons[0].error) {
                 serverFinalResponse.status = false;
             }
 
@@ -1280,6 +1307,68 @@ WooWrapper = (function () {
             }
 
             return serverFinalResponse;
+        },
+
+        /**
+         * This method cancel the order to WOO
+         * @param data
+         * @return {string}
+         */
+        cancelSalesOrder: function (data) {
+            var httpRequestData = {
+                url: 'orders/' + data.orderIncrementId,
+                method: 'PUT',
+                postData: {
+                    "order": {
+                        "status": "cancelled"
+                    }
+                }
+            };
+
+            var serverResponse = null;
+            var error = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: '',
+                result: []
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                error = getErrorIfExist(serverResponse);
+                serverFinalResponse.status = true;
+            } catch (e) {
+                Utility.logException('Error during cancelSalesOrder', e);
+            }
+
+            if(error !== null){
+                serverFinalResponse.status = false;
+                serverFinalResponse.error = error.code + " -- "+ error.message;
+                return serverFinalResponse;
+            }
+
+            if (!!serverResponse && !!serverResponse.order) {
+                var cancelSalesOrderResponse = parseCancelSalesOrderResponse(serverResponse.order);
+
+                // check if order status is changed to cancelled
+                if (!!cancelSalesOrderResponse && !!cancelSalesOrderResponse.status) {
+                    serverFinalResponse.status = cancelSalesOrderResponse.status;
+                }
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.error = "Error in cancelling sales order to WOO";
+            }
+
+            return serverFinalResponse;
+        },
+
+        requiresOrderUpdateAfterCancelling:function(){
+            return false;
         }
     };
 

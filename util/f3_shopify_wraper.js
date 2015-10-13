@@ -713,7 +713,14 @@ ShopifyWrapper = (function () {
         },
         upsertCustomerAddress: function () {
         },
-        upsertCoupons: function () {}
+        upsertCoupons: function () {},
+
+        cancelSalesOrder: function (data) {
+        },
+
+        requiresOrderUpdateAfterCancelling: function () {
+            return false;
+        }
     };
 
     //endregion
