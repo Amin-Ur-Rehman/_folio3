@@ -712,7 +712,8 @@ ShopifyWrapper = (function () {
             return true;
         },
         upsertCustomerAddress: function () {
-        }
+        },
+        upsertCoupons: function () {}
     };
 
     //endregion

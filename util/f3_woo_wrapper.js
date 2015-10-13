@@ -528,6 +528,81 @@ WooWrapper = (function () {
         return data;
     }
 
+    function getDiscountType(discountType) {
+        var type = null;
+        if (discountType.toString() === "percent") {
+            type = "percent";
+        } else {
+            type = "fixed_cart";
+        }
+    }
+
+    function getSingleCouponData(promoCodeRecord) {
+        var couponData = WOOModels.coupon();
+
+        if (promoCodeRecord.hasOwnProperty("record_id") && !!promoCodeRecord.record_id) {
+            couponData.id = promoCodeRecord.record_id;
+        }
+        couponData.code = promoCodeRecord.couponCode.toLowerCase();
+        couponData.type = getDiscountType(promoCodeRecord.discountType);
+        couponData.amount = promoCodeRecord.rate.replace("%", ""); //remove % from value if exist
+        couponData.individual_use = promoCodeRecord.numberOfUses.toString() === "MULTIPLEUSES" ? true : false;
+        couponData.expiry_date = !!promoCodeRecord.endDate ? nlapiStringToDate(promoCodeRecord.endDate).toISOString() : "";
+        couponData.description = promoCodeRecord.description;
+
+        return couponData;
+    }
+
+    function getCouponsData(promoCodeRecord) {
+        var couponsData = {};
+
+        couponsData.coupons = [];
+        couponsData.coupons.push(getSingleCouponData(promoCodeRecord));
+
+        return couponsData;
+    }
+
+
+    function parseCouponsResponse(coupons) {
+        var couponsList = [];
+
+        for (var i in coupons) {
+            var coupon = coupons[i];
+            couponsList.push(parseSingleCouponResponse(coupon));
+        }
+
+        return couponsList;
+    }
+
+    function parseSingleCouponResponse(coupon) {
+        var couponObj = WOOModels.coupon();
+
+        couponObj.id = coupon.id.toString();
+        couponObj.code = coupon.code;
+        couponObj.type = coupon.type;
+        couponObj.created_at = coupon.created_at;
+        couponObj.updated_at = coupon.updated_at;
+        couponObj.amount = coupon.amount;
+        couponObj.individual_use = coupon.individual_use;
+        couponObj.product_ids = coupon.product_ids;
+        couponObj.exclude_product_ids = coupon.exclude_product_ids;
+        couponObj.usage_limit = coupon.usage_limit;
+        couponObj.usage_limit_per_user = coupon.usage_limit_per_user;
+        couponObj.limit_usage_to_x_items = coupon.limit_usage_to_x_items;
+        couponObj.usage_count = coupon.usage_count;
+        couponObj.expiry_date = coupon.expiry_date;
+        couponObj.enable_free_shipping = coupon.enable_free_shipping;
+        couponObj.product_category_ids = coupon.product_category_ids;
+        couponObj.exclude_product_category_ids = coupon.exclude_product_category_ids;
+        couponObj.exclude_sale_items = coupon.exclude_sale_items;
+        couponObj.minimum_amount = coupon.minimum_amount;
+        couponObj.maximum_amount = coupon.maximum_amount;
+        couponObj.customer_emails = coupon.customer_emails;
+        couponObj.description = coupon.description;
+
+        return couponObj;
+    }
+
     /**
      * Sends request to server
      * @param httpRequestData
@@ -602,7 +677,6 @@ WooWrapper = (function () {
                 Utility.logDebug("code", res.getCode());
                 body = res.getBody();
                 serverResponse = eval('(' + body + ')');
-
             } else {
                 jQuery.ajax({
                     url: finalUrl,
@@ -1159,6 +1233,53 @@ WooWrapper = (function () {
         upsertCustomerAddress: function () {
             // no need to implement this function for WOO
             // address will be with in the customer create/update call
+        },
+        /**
+         * This method create or update a multiple coupons to WOO
+         * @return {{status: boolean, faultCode: string, faultString: string}}
+         */
+        upsertCoupons: function (promoCodeRecord) {
+            ConnectorConstants.CurrentWrapper.getSessionIDFromServer(ConnectorConstants.CurrentStore.userName, ConnectorConstants.CurrentStore.password);
+            var httpRequestData = {
+                url: 'coupons/bulk',
+                method: 'POST',
+                postData: getCouponsData(promoCodeRecord)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+            } catch (e) {
+                Utility.logException('Error during upsertCustomer', e);
+            }
+
+            if(!!serverResponse.coupons[0].error) {
+                serverFinalResponse.status = false;
+            }
+
+            if (!!serverResponse && serverFinalResponse.status && !!serverResponse.coupons) {
+                var coupons = parseCouponsResponse(serverResponse.coupons);
+                Utility.logDebug("upsertCustomer.upsertCoupons - upsertCoupons", JSON.stringify(coupons));
+                serverFinalResponse.result = coupons;
+                serverFinalResponse.data = coupons;
+                serverFinalResponse.data.couponCodeList = [];
+                serverFinalResponse.data.record_id = coupons[0].id;
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.message = serverResponse.coupons[0].error.code + '--' + serverResponse.coupons[0].error.message;
+            }
+
+            return serverFinalResponse;
         }
     };
 

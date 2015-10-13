@@ -24,7 +24,7 @@ var GenericDataExportManager = (function () {
                 var recordId = request.getParameter("recordId");
                 var recordType = request.getParameter("recordType");
                 var result = this.exportData(recordId, recordType);
-                if(!!result && !!result.status) {
+                if (!!result && !!result.status) {
                     response.write('Record has been exported to magento. Please close this popup.');
                 } else {
                     response.write('Some error occurred during record export:<br /><br />' + result.error);
@@ -37,15 +37,15 @@ var GenericDataExportManager = (function () {
          * @param recordType
          * @returns {*}
          */
-        exportData: function(recordId, recordType){
+        exportData: function (recordId, recordType) {
             var result = null;
-            if(recordType == ConnectorConstants.NSRecordTypes.PromotionCode) {
+            if (recordType == ConnectorConstants.NSRecordTypes.PromotionCode) {
                 result = this.exportPromotionCode(recordId, recordType);
             }
-            else if(recordType == ConnectorConstants.NSRecordTypes.PriceLevel) {
+            else if (recordType == ConnectorConstants.NSRecordTypes.PriceLevel) {
                 result = this.exportPriceLevel(recordId, recordType);
             }
-            else if(recordType == ConnectorConstants.NSRecordTypes.PaymentTerm) {
+            else if (recordType == ConnectorConstants.NSRecordTypes.PaymentTerm) {
                 result = this.exportPaymentTerm(recordId, recordType);
             }
 
@@ -57,17 +57,17 @@ var GenericDataExportManager = (function () {
          * @param recordType
          * @returns {{status: boolean, error: string}}
          */
-        exportPromotionCode: function(recordId, recordType) {
+        exportPromotionCode: function (recordId, recordType) {
             var status = true;
             var error = '';
             var magentoUrl = '';
             try {
                 var internalId = recordId;
                 var promoCodeRecord = PromoCodesExportHelper.getPromoCode(internalId, null);
-                //Utility.logDebug('promoCodeRecord', JSON.stringify(promoCodeRecord));
-                var response = PromoCodesExportHelper.sendRequestToMagento(internalId, promoCodeRecord);
+                Utility.logDebug('promoCodeRecord', JSON.stringify(promoCodeRecord));
+                var response = PromoCodesExportHelper.sendRequestToExternalSystem(internalId, promoCodeRecord);
                 status = response.status;
-                if(!response.status) {
+                if (!response.status) {
                     error = response.message;
                 }
             }
@@ -88,7 +88,7 @@ var GenericDataExportManager = (function () {
             return result;
         },
 
-        exportPriceLevel: function(recordId, recordType) {
+        exportPriceLevel: function (recordId, recordType) {
             var status = true;
             var error = '';
             var magentoUrl = '';
@@ -96,9 +96,9 @@ var GenericDataExportManager = (function () {
                 var internalId = recordId;
                 var priceLevelRecord = PriceLevelExportHelper.getPriceLevel(internalId, null);
                 Utility.logDebug('priceLevelRecord', JSON.stringify(priceLevelRecord));
-                var response = PriceLevelExportHelper.sendRequestToMagento(internalId, priceLevelRecord);
+                var response = PriceLevelExportHelper.sendRequestToExternalSystem(internalId, priceLevelRecord);
                 status = response.status;
-                if(!response.status) {
+                if (!response.status) {
                     error = response.message;
                 }
             }
@@ -119,7 +119,7 @@ var GenericDataExportManager = (function () {
             return result;
         },
 
-        exportPaymentTerm: function(recordId, recordType) {
+        exportPaymentTerm: function (recordId, recordType) {
             var status = true;
             var error = '';
             var magentoUrl = '';
@@ -127,9 +127,9 @@ var GenericDataExportManager = (function () {
                 var internalId = recordId;
                 var paymentTermRecord = PaymentTermExportHelper.getPaymentTerm(internalId, null);
                 Utility.logDebug('paymentTermRecord', JSON.stringify(paymentTermRecord));
-                var response = PaymentTermExportHelper.sendRequestToMagento(internalId, paymentTermRecord);
+                var response = PaymentTermExportHelper.sendRequestToExternalSystem(internalId, paymentTermRecord);
                 status = response.status;
-                if(!response.status) {
+                if (!response.status) {
                     error = response.message;
                 }
             }

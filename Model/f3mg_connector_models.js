@@ -275,6 +275,28 @@ WOOModels = (function () {
                 "billing_address": this.billingAddress(),
                 "shipping_address": this.shippingAddress()
             };
+        },
+        coupon: function () {
+            return {
+                "code": "",
+                "type": "", //{fixed_cart, percent, fixed_product and percent_product. Default is fixed_cart}
+                "amount": 0,
+                "individual_use": false,
+                "product_ids_array": [],
+                "exclude_product_ids_array": [],
+                "usage_limit": null,
+                "usage_limit_per_user": null,
+                "limit_usage_to_x_items": null,
+                "expiry_date": "",//{UTC DateTime}
+                "enable_free_shipping": false,
+                "product_category_ids": [],
+                "exclude_product_category_ids": [],
+                "exclude_sale_items": true,
+                "minimum_amount": 0,
+                "maximum_amount": 0,
+                "customer_emails": [],
+                "description": ""
+            };
         }
     };
 })();

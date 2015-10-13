@@ -50,7 +50,7 @@ var PriceLevelExportHelper = (function () {
             var response = {status: true, magentoId: '', message: ''};
             var updateRecord = false;
             try {
-                Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'Start');
+                Utility.logDebug('PriceLevelExportHelper.sendRequestToExternalSystem', 'Start');
                 if (!priceLevelRecord) {
                     return null;
                 }
@@ -105,7 +105,7 @@ var PriceLevelExportHelper = (function () {
                 nlapiLogExecution('ERROR', 'error in PriceLevelExportHelper.sendRequestToExternalSystem', error);
             }
 
-            Utility.logDebug('PriceLevelExportHelper.sendRequestToMagento', 'end');
+            Utility.logDebug('PriceLevelExportHelper.sendRequestToExternalSystem', 'end');
 
             return response;
         },
