@@ -31,6 +31,7 @@
         //var headerHeight = jQuery('#div__header').outerHeight();
         var $sidebar = jQuery('.sidebar');
         $sidebar.on('click', 'a.submenu-link', function() {
+
             console.log('bindLinks(); // click');
             var $this = jQuery(this);
             var $subMenu = $this.next();
