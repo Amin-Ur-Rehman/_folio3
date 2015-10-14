@@ -279,7 +279,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 }
 
 function startup(type) {
-    if (type.toString() === 'scheduled' || type.toString() === 'userinterface') {
+    if (type.toString() === 'scheduled' || type.toString() === 'userinterface' || type.toString() === 'ondemand') {
         if (MC_SYNC_CONSTANTS.isValidLicense()) {
             // inititlize constants
             ConnectorConstants.initialize();
