@@ -45,7 +45,7 @@ var PaymentTermExportHelper = (function () {
             var response = {status: true, magentoId: '', message: ''};
             var updateRecord = false;
             try {
-                Utility.logDebug('PaymentTermExportHelper.sendRequestToMagento', 'Start');
+                Utility.logDebug('PaymentTermExportHelper.sendRequestToExternalSystem', 'Start');
                 if (!paymentTermRecord) {
                     return null;
                 }
@@ -101,7 +101,7 @@ var PaymentTermExportHelper = (function () {
                 PaymentTermExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
             }
 
-            Utility.logDebug('PaymentTermExportHelper.sendRequestToMagento', 'end');
+            Utility.logDebug('PaymentTermExportHelper.sendRequestToExternalSystem', 'end');
 
             return response;
         },

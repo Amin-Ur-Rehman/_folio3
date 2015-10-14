@@ -315,7 +315,7 @@ MagentoWrapper = (function () {
             nlapiLogExecution('AUDIT', 'XML', nlapiEscapeXML(tShipmentXML));
             return tShipmentXML;
         },
-        getCustomerAddress: function (customerID, sessionID) {
+        getCustomerAddressXML: function (customerID, sessionID) {
             var custAddrListXML;
 
             custAddrListXML = this.XmlHeader;
@@ -1613,7 +1613,10 @@ MagentoWrapper = (function () {
             return responseMagento;
         },
 
-        getSessionIDFromServer: function (userName, apiKey) {
+        getSessionIDFromServer: function (userName, apiKey, required) {
+            if (typeof required === "boolean" && !required) {
+                return "DUMMY_SESSION_ID";
+            }
             var sessionID = null;
             var loginXML = this.getLoginXml(userName, apiKey);
             try {
@@ -1694,8 +1697,8 @@ MagentoWrapper = (function () {
             return responseTracking;
         },
 
-        getCustomerAddress: function (customerID, sessionID) {
-            var custAddrXML = MagentoWrapper.getCustomerAddress(magentoCustomerObj.customer_id, sessionID);
+        getCustomerAddressa: function (customerID, sessionID) {
+            var custAddrXML = MagentoWrapper.getCustomerAddressXML(customerID, sessionID);
 
             var addressResponse =
                 MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrXML));
@@ -1944,6 +1947,76 @@ MagentoWrapper = (function () {
             ConnectorCommon.createLogRec('Customer', requsetXML, "Address");
             var responseMagento = MagentoWrapper.validateCustomerAddressExportOperationResponse(MagentoWrapper.soapRequestToServerSpecificStore(requsetXML, store), type);
             return responseMagento;
+        },
+        upsertCoupons: function (promoCodeRecord) {
+            var magentoUrl = this.getMagentoUrl(promoCodeRecord.magentoStore);
+            //Utility.logDebug('magentoUrl', magentoUrl);
+
+            var authHeaderName = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Name;
+            var authHeaderValue = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Value;
+            var requestHeaders = {};
+            requestHeaders[authHeaderName] = authHeaderValue;
+
+            var requestParam = {
+                "apiMethod": "upsertShoppingCart",
+                "data": JSON.stringify(promoCodeRecord)
+            };
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+            //Utility.logDebug('requestHeaders', JSON.stringify(requestHeaders));
+
+            var resp = nlapiRequestURL(magentoUrl, requestParam, requestHeaders, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('export promo code responseBody', responseBody);
+            var responseMagento = JSON.parse(responseBody);
+
+            return responseMagento;
+        },
+
+        getMagentoUrl: function (store) {
+            var magentoUrl = '';
+            if (!!store) {
+                var entitySyncInfo = store.entitySyncInfo;
+                if (!!entitySyncInfo && !!entitySyncInfo.magentoCustomizedApiUrl) {
+                    magentoUrl = entitySyncInfo.magentoCustomizedApiUrl;
+                }
+            }
+            return magentoUrl;
+        },
+
+        cancelSalesOrder: function (data) {
+            var store = ConnectorConstants.CurrentStore;
+            var magentoUrl = this.getMagentoUrl(store);
+            //Utility.logDebug('magentoUrl', magentoUrl);
+
+            var authHeaderName = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Name;
+            var authHeaderValue = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Value;
+            var requestHeaders = {};
+            requestHeaders[authHeaderName] = authHeaderValue;
+
+            var requestParam = {
+                "apiMethod": "cancelSalesOrder",
+                "data": JSON.stringify(data)
+            };
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+
+            var resp = nlapiRequestURL(magentoUrl, requestParam, requestHeaders, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('cancelSalesOrder responseBody', responseBody);
+            var resposeObj = JSON.parse(responseBody);
+            var responseMagento = {
+                status: true
+            };
+
+            if (resposeObj.status === 0) {
+                responseMagento.status = false;
+                responseMagento.error = resposeObj.message;
+            }
+
+            return responseMagento;
+        },
+
+        requiresOrderUpdateAfterCancelling: function () {
+            return true;
         }
     };
 })();

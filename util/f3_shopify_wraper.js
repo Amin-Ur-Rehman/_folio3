@@ -712,6 +712,14 @@ ShopifyWrapper = (function () {
             return true;
         },
         upsertCustomerAddress: function () {
+        },
+        upsertCoupons: function () {},
+
+        cancelSalesOrder: function (data) {
+        },
+
+        requiresOrderUpdateAfterCancelling: function () {
+            return false;
         }
     };
 

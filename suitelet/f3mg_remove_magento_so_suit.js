@@ -64,65 +64,68 @@ var RemoveMagentoSO = (function () {
         processGetRequest: function (request, response) {
 
             try {
-                var ctx = nlapiGetContext();
                 var nsSoInternalId = request.getParameter('nssoid');
                 var mgSoInternalId = request.getParameter('mgsoid');
                 var storeId = request.getParameter('storeid');
                 var status = request.getParameter('status');
                 var magentoSOClosingUrl = '';
 
-                var magentoSync = nlapiLookupField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, ConnectorConstants.Transaction.Fields.MagentoSync);
-                var magentoId = nlapiLookupField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, ConnectorConstants.Transaction.Fields.MagentoId);
-                var cancelledMagentoId = nlapiLookupField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, ConnectorConstants.Transaction.Fields.CancelledMagentoSOId);
+                var salesOrderfields = [];
+                salesOrderfields.push(ConnectorConstants.Transaction.Fields.MagentoSync);
+                salesOrderfields.push(ConnectorConstants.Transaction.Fields.MagentoId);
+                salesOrderfields.push(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId);
 
-                if(magentoSync === 'F' && !magentoId && !!cancelledMagentoId) {
+                var salesOrderData = nlapiLookupField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, salesOrderfields);
+
+                var magentoSync = salesOrderData[ConnectorConstants.Transaction.Fields.MagentoSync];
+                var magentoId = salesOrderData[ConnectorConstants.Transaction.Fields.MagentoId];
+                var cancelledMagentoId = salesOrderData[ConnectorConstants.Transaction.Fields.CancelledMagentoSOId];
+
+                if (magentoSync === 'F' && !magentoId && !!cancelledMagentoId) {
                     response.write('This Sales Order has already been Cancelled in Magento.');
                 }
                 else {
-                    var sysConfigs = ExternalSystemConfig.getConfig();
-                    if(!!sysConfigs) {
-                        var sysConfig = sysConfigs[storeId];
-                        if(!!sysConfig) {
-                            var entitySyncInfo = sysConfig.entitySyncInfo;
-                            if(!!entitySyncInfo && !!entitySyncInfo.salesorder.magentoSOClosingUrl) {
-                                magentoSOClosingUrl = entitySyncInfo.salesorder.magentoSOClosingUrl;
-                            }
-                        }
-                    }
+                    ConnectorConstants.initialize();
+                    // getting configuration
+                    var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
+                    var sessionID;
+
+                    var store = externalSystemConfig[storeId];
+                    ConnectorConstants.CurrentStore = store;
+                    ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                    ConnectorConstants.CurrentWrapper.initialize(store);
+                    sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password, false);
 
                     var dataObj = {};
                     dataObj.orderIncrementId = mgSoInternalId;
                     dataObj.status = status;
                     dataObj.nsTransactionId = nsSoInternalId;
-                    var requestParam = {"data": JSON.stringify(dataObj)};
 
-                    var resp = nlapiRequestURL(magentoSOClosingUrl, requestParam, null, 'POST');
-                    var responseBody = resp.getBody();
-                    responseBody = JSON.parse(responseBody);
+                    var responseBody = ConnectorConstants.CurrentWrapper.cancelSalesOrder(dataObj);
 
-                    if(!!responseBody.status) {
-
-                        var fields = [];
-                        fields.push(ConnectorConstants.Transaction.Fields.MagentoId);
-                        fields.push(ConnectorConstants.Transaction.Fields.MagentoSync);
-                        fields.push(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId);
-                        fields.push(ConnectorConstants.Transaction.Fields.DontSyncToMagento);
-                        var values = [];
-                        values.push('');
-                        values.push('F');
-                        values.push(mgSoInternalId);
-                        values.push('T');
-                        Utility.logDebug('ConnectorConstants.NSTransactionTypes.SalesOrder', ConnectorConstants.NSTransactionTypes.SalesOrder);
-                        Utility.logDebug('nsSoInternalId', nsSoInternalId);
-                        Utility.logDebug('fields', JSON.stringify(fields));
-                        Utility.logDebug('values', JSON.stringify(values));
-                        nlapiSubmitField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, fields, values);
-
+                    if (!!responseBody.status) {
+                        if (ConnectorConstants.CurrentWrapper.requiresOrderUpdateAfterCancelling()) {
+                            var fields = [];
+                            fields.push(ConnectorConstants.Transaction.Fields.MagentoId);
+                            fields.push(ConnectorConstants.Transaction.Fields.MagentoSync);
+                            fields.push(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId);
+                            fields.push(ConnectorConstants.Transaction.Fields.DontSyncToMagento);
+                            var values = [];
+                            values.push('');
+                            values.push('F');
+                            values.push(mgSoInternalId);
+                            values.push('T');
+                            Utility.logDebug('ConnectorConstants.NSTransactionTypes.SalesOrder', ConnectorConstants.NSTransactionTypes.SalesOrder);
+                            Utility.logDebug('nsSoInternalId', nsSoInternalId);
+                            Utility.logDebug('fields', JSON.stringify(fields));
+                            Utility.logDebug('values', JSON.stringify(values));
+                            nlapiSubmitField(ConnectorConstants.NSTransactionTypes.SalesOrder, nsSoInternalId, fields, values);
+                        }
 
                         var script = '';
-                        script+='<script>window.opener.location.reload(); setTimeout(function(){window.close();}, 3000);</script>';
+                        script += '<script>window.opener.location.reload(); setTimeout(function(){window.close();}, 3000);</script>';
                         var msg = 'This Sales Order has been Cancelled in Magento. <br /><br />This popup will close in 3 seconds.';
-                        response.write(msg+script);
+                        response.write(msg + script);
 
                     } else {
                         response.write('Some error occured while closing Magento Sales Order. <br />Error: ' + responseBody.error);
