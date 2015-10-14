@@ -1972,28 +1972,50 @@ MagentoWrapper = (function () {
             return responseMagento;
         },
 
-        cancelSalesOrder: function (data) {
-            var store = ConnectorConstants.CurrentStore;
-            var magentoSOClosingUrl;
+        getMagentoUrl: function (store) {
+            var magentoUrl = '';
             if (!!store) {
                 var entitySyncInfo = store.entitySyncInfo;
-                if (!!entitySyncInfo && !!entitySyncInfo.salesorder.magentoSOClosingUrl) {
-                    magentoSOClosingUrl = entitySyncInfo.salesorder.magentoSOClosingUrl;
+                if (!!entitySyncInfo && !!entitySyncInfo.magentoCustomizedApiUrl) {
+                    magentoUrl = entitySyncInfo.magentoCustomizedApiUrl;
                 }
             }
-
-            var requestParam = {"data": JSON.stringify(data)};
-
-            Utility.logDebug('requestParam', JSON.stringify(requestParam));
-
-            var resp = nlapiRequestURL(magentoSOClosingUrl, requestParam, null, 'POST');
-            var responseBody = resp.getBody();
-            Utility.logDebug('responseBody', responseBody);
-            responseBody = JSON.parse(responseBody);
-            return responseBody;
+            return magentoUrl;
         },
 
-        requiresOrderUpdateAfterCancelling:function(){
+        cancelSalesOrder: function (data) {
+            var store = ConnectorConstants.CurrentStore;
+            var magentoUrl = this.getMagentoUrl(store);
+            //Utility.logDebug('magentoUrl', magentoUrl);
+
+            var authHeaderName = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Name;
+            var authHeaderValue = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Value;
+            var requestHeaders = {};
+            requestHeaders[authHeaderName] = authHeaderValue;
+
+            var requestParam = {
+                "apiMethod": "cancelSalesOrder",
+                "data": JSON.stringify(data)
+            };
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+
+            var resp = nlapiRequestURL(magentoUrl, requestParam, requestHeaders, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('cancelSalesOrder responseBody', responseBody);
+            var resposeObj = JSON.parse(responseBody);
+            var responseMagento = {
+                status: true
+            };
+
+            if (resposeObj.status === 0) {
+                responseMagento.status = false;
+                responseMagento.error = resposeObj.message;
+            }
+
+            return responseMagento;
+        },
+
+        requiresOrderUpdateAfterCancelling: function () {
             return true;
         }
     };

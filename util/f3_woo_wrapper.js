@@ -613,20 +613,62 @@ WooWrapper = (function () {
         return couponObj;
     }
 
+    //function parseResponse(_serverResponse, _function, _type) {
+    //    var serverResponse;
+    //    var error = getErrorIfExist(_serverResponse, _type);
+    //    if (error === null) {
+    //        serverResponse = _function(_serverResponse);
+    //    } else {
+    //        serverResponse = {
+    //
+    //        };
+    //    }
+    //    return serverResponse;
+    //}
 
     /**
+     * {"coupons":[{"id":0,"error":{"code":"woocommerce_api_coupon_code_already_exists","message":"The coupon code already exists"}
      * {"errors":[{"code":"","message":""}]}
      * @param serverResponse
+     * @param type
      */
-    function getErrorIfExist(serverResponse) {
+    function getErrorIfExist(serverResponse, type) {
         var errorObject = null;
+        var error;
         if (serverResponse.hasOwnProperty("errors")) {
-            var error = serverResponse.errors[0];
+            error = serverResponse.errors[0];
             errorObject = {
                 code: error.code,
                 message: error.message
             };
-        }
+        } //else {
+        //    var data = serverResponse.hasOwnProperty(type) ? serverResponse[type] : null;
+        //    if (data === null) {
+        //        errorObject = {
+        //            code: "DEV",
+        //            message: "Blank Response"
+        //        };
+        //    }
+        //
+        //    if (data instanceof Array) {
+        //        for (var i in data) {
+        //            var responseObj = data[i];
+        //            if (responseObj.hasOwnProperty("error")) {
+        //                error = responseObj.error;
+        //                if (!errorObject.hasOwnProperty("code")) {
+        //                    errorObject.code = "";
+        //                } else {
+        //                    errorObject.code += " | ";
+        //                }
+        //                if (!errorObject.hasOwnProperty("message")) {
+        //                    errorObject.message = "";
+        //                } else {
+        //                    errorObject.message += " | ";
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
         return errorObject;
     }
 
@@ -1312,7 +1354,7 @@ WooWrapper = (function () {
         /**
          * This method cancel the order to WOO
          * @param data
-         * @return {string}
+         * @return {{status: boolean, faultCode: string, faultString: string, result: Array}}
          */
         cancelSalesOrder: function (data) {
             var httpRequestData = {
@@ -1338,8 +1380,8 @@ WooWrapper = (function () {
 
             try {
                 serverResponse = sendRequest(httpRequestData);
-                error = getErrorIfExist(serverResponse);
                 serverFinalResponse.status = true;
+                error = getErrorIfExist(serverResponse);
             } catch (e) {
                 Utility.logException('Error during cancelSalesOrder', e);
             }
@@ -1352,11 +1394,9 @@ WooWrapper = (function () {
 
             if (!!serverResponse && !!serverResponse.order) {
                 var cancelSalesOrderResponse = parseCancelSalesOrderResponse(serverResponse.order);
+                // order status is changed to cancelled
+                serverFinalResponse.status = cancelSalesOrderResponse.status;
 
-                // check if order status is changed to cancelled
-                if (!!cancelSalesOrderResponse && !!cancelSalesOrderResponse.status) {
-                    serverFinalResponse.status = cancelSalesOrderResponse.status;
-                }
             }
 
             // If some problem
