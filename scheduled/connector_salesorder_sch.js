@@ -33,32 +33,12 @@
 
 var SO_IMPORT_MIN_USAGELIMIT = 1000;        // For the safe side its 1000, we calculate , in actual it is 480
 
-/*var cyberSouceConfig = getCyberSourceConfiguration();
-
- // load the configuration from custom record and return as an object
- function getCyberSourceConfiguration() {
- var config = {};
- var rec;
- try {
- rec = nlapiLoadRecord('customrecord_cybersource_configuration', 1);
- config.merchantId = rec.getFieldValue('custrecord_csc_merchant_id');
- config.secretId = rec.getFieldValue('custrecord_csc_secret_key');
- config.reportingUser = rec.getFieldValue('custrecord_csc_reporting_user');
- config.reportingUserPass = rec.getFieldValue('custrecord_csc_reporting_user_pass');
- } catch (ex) {
- nlapiLogExecution('DEBUG', 'getCyberSourceConfiguration', ex.toString());
- }
- return config;
- }*/
-
 function syncSalesOrderMagento(sessionID, updateDate) {
     var order = {};
 
     var serverOrdersResponse;
     var salesOrderDetails;
     var orders;
-    var orderXML;
-    var productXML;
     var products;
     var netsuiteMagentoProductMap;
     var netsuiteMagentoProductMapData;
@@ -104,8 +84,6 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                     salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
                     //Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
-
-
                     //Utility.logDebug('stages_w', 'Step-c');
 
                     // Could not fetch sales order information from Magento
@@ -118,23 +96,6 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     var shippingAddress = salesOrderDetails.shippingAddress;
                     var billingAddress = salesOrderDetails.billingAddress;
                     var payment = salesOrderDetails.payment;
-
-                    /*if (isBlankOrNull(payment.csTranId)) {
-                     var ccdate;
-                     // TODO: test this part
-                     try {
-                     ccdate = getDate(orders[i].created_at + '');
-                     var ccRefCode = orders[i].increment_id;
-
-                     CyberSourceSingleTransactionReport.setup(cyberSouceConfig.reportingUser, cyberSouceConfig.reportingUserPass, cyberSouceConfig.merchantId);
-                     payment.csTranId = CyberSourceSingleTransactionReport.retieveRequestId(ccRefCode, ccdate);
-                     payment.csReposne = CyberSourceSingleTransactionReport.csResponse;
-                     nlapiLogExecution('DEBUG', 'Request Id from CyberSource', payment.csTranId);
-                     } catch (ex) {
-                     nlapiLogExecution('DEBUG', 'Error in getting request id', ex.toString());
-                     }
-                     }*/
-
                     products = salesOrderDetails.products;
 
                     Utility.logDebug('products', JSON.stringify(products));
@@ -164,6 +125,11 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                     // if order comes with guest customer whose record is not existed in Magento
                     if (Utility.isBlankOrNull(orders[i].customer_id)) {
+                        // Check for feature availability
+                        if (!FeatureVerification.isPermitted(Features.IMPORT_SO_GUEST_CUSTOMER, ConnectorConstants.CurrentStore.permissions)) {
+                            Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_GUEST_CUSTOMER + ' NOT ALLOWED');
+                            continue;
+                        }
                         Utility.logDebug('Guest Customer Exists', '');
 
                         // adding shipping and billing address in customer object getting from sales order
@@ -279,7 +245,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 }
 
 function startup(type) {
-    if (type.toString() === 'scheduled' || type.toString() === 'userinterface') {
+    if (type.toString() === 'scheduled' || type.toString() === 'userinterface' || type.toString() === 'ondemand') {
         if (MC_SYNC_CONSTANTS.isValidLicense()) {
             // inititlize constants
             ConnectorConstants.initialize();
@@ -310,10 +276,20 @@ function startup(type) {
                     context.setPercentComplete(0.00);
                     // set store for ustilizing in other functions
                     ConnectorConstants.CurrentStore = store;
-
+                    // Check for feature availability
+                    if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        return;
+                    }
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                     ConnectorConstants.CurrentWrapper.initialize(store);
-                    ConnectorConstants.initializeDummyItem();
+
+                    // Check for feature availability
+                    if (FeatureVerification.isPermitted(Features.IMPORT_SO_DUMMMY_ITEM, ConnectorConstants.CurrentStore.permissions)) {
+                        ConnectorConstants.initializeDummyItem();
+                    }else{
+                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_DUMMMY_ITEM + ' NOT ALLOWED');
+                    }
 
                     var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
                     //var sofrequency = 120;

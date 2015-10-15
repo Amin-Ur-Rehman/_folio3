@@ -11,3 +11,6 @@ WOO/shopify:
 Conditional getOrderInfo call
 
 Promotion export to WOO as coupon codes. In NS, more than one codes can be generated under on promotion rule, current connector supports for exporting one standard promotion with one code only .
+
+
+Tier Pricing in Item Sync script is not merged.
