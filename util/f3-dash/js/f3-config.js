@@ -32,19 +32,26 @@
 
 
 
-
                 .state('search-orders', {
                     group: 'Search',
                     title: 'Orders',
-                    action: function () {
-                        var url = nlapiResolveURL('SUITELET', 'customscript_f3mg_search_record_suit', 'customdeploy_f3mg_search_record_suit_dep');
-                        var anchor = document.createElement('a');
-                        anchor.setAttribute('href', url);
-                        anchor.setAttribute('target', '_blank');
-                        document.body.appendChild(anchor);
-                        anchor.click();
-                    }
+                    url: "/orders",
+                    templateUrl: f3_base_url + "/f3-dash/templates/actions-search-orders.html",
+                    controller: 'SearchOrdersController',
+                    controllerAs: 'viewModel'
                 })
+                //.state('search-orders', {
+                //    group: 'Search',
+                //    title: 'Orders',
+                //    action: function () {
+                //        var url = nlapiResolveURL('SUITELET', 'customscript_f3mg_search_record_suit', 'customdeploy_f3mg_search_record_suit_dep');
+                //        var anchor = document.createElement('a');
+                //        anchor.setAttribute('href', url);
+                //        anchor.setAttribute('target', '_blank');
+                //        document.body.appendChild(anchor);
+                //        anchor.click();
+                //    }
+                //})
 
                 .state('search-customers', {
                     group: 'Search',

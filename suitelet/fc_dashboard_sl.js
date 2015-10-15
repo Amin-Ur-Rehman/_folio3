@@ -51,6 +51,8 @@ var ConnectorDashboardApi = (function () {
                 case 'executeCashRefundSyncScript':
                     return this.executeCashRefundSyncScript(request,response);
                     break;
+
+
             }
 
             return [];
@@ -117,8 +119,12 @@ var ConnectorDashboardApi = (function () {
                     finalResponse[i].url = nlapiResolveURL('RECORD', 'salesorder', finalResponse[i].internalid);
                 }
             }
+
             return finalResponse;
         },
+
+
+
         executeCashRefundSyncScript: function(request, response) {
             return this.executeScheduledScript('customscript_cashrefund_export_sch', 'customdeploy_cashrefund_export_dep');
         },
@@ -133,9 +139,12 @@ var ConnectorDashboardApi = (function () {
                 success: true,
                 error: false
             };
+
             var status = nlapiScheduleScript(scriptId, deploymentId);
+
             var msg = 'scriptId: ' + scriptId + ' --- deploymentId: ' +deploymentId + ' --- status: ' + status;
             Utility.logDebug('executeScheduledScript(); ', msg);
+
             if (status === 'QUEUED' || status === 'INQUEUE' || status === 'INPROGRESS' || status === 'SCHEDULED') {
                 result.success = true;
                 result.error = false;
@@ -144,21 +153,30 @@ var ConnectorDashboardApi = (function () {
                 result.success = false;
                 result.error = true;
             }
+
             return result;
         },
+
+
         getSOSyncLogs: function(request, response) {
             return this.getExecutionLogs(488);
         },
         getExecutionLogs: function(scriptId) {
+
             var finalResponse = [];
+
             var cols = [];
             var filters = [];
+
             cols.push(new nlobjSearchColumn('title'));
             cols.push(new nlobjSearchColumn('detail'));
             cols.push(new nlobjSearchColumn('type'));
             cols.push(new nlobjSearchColumn('date').setSort(true));
             cols.push(new nlobjSearchColumn('time').setSort(true));
+
+
             filters.push(new nlobjSearchFilter('scripttype', null, 'anyof', [scriptId]));
+
             var results = nlapiSearchRecord('scriptexecutionlog', null, filters, cols);
             if (results != null && results.length > 0) {
                 finalResponse = ConnectorCommon.getObjects(results);
