@@ -39,11 +39,11 @@
 
                             console.log('response: ', response);
 
-                            _self.hasRecords = response && response.length > 0;
+                            _self.hasRecords = (response || []).length > 0;
 
                             console.log('_self.hasRecords: ', _self.hasRecords);
 
-                            if(!!response && response.length) {
+                            if(_self.hasRecords === true) {
                                 $grid[0].addJSONData(response);
                             }
                             else {

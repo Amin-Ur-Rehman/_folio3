@@ -63,7 +63,13 @@ var ConnectorDashboardApi = (function () {
                     return this.executeCashRefundSyncScript(request,response);
                     break;
 
+                case 'searchSalesOrder':
+                    return this.searchSalesOrder(request,response);
+                    break;
 
+                case 'searchCashRefund':
+                    return this.searchCashRefund(request,response);
+                    break;
             }
 
             return [];
@@ -202,8 +208,77 @@ var ConnectorDashboardApi = (function () {
             }
 
             return finalResponse;
-        }
+        },
 
+
+
+
+
+        searchCashRefund: function (request, response) {
+            var storeId = request.getParameter('store_id');
+            var recordId = request.getParameter('record_id');
+            return this.searchExternalSystemRecord('cashrefund', recordId, storeId);
+        },
+
+        searchSalesOrder: function (request, response) {
+            var storeId = request.getParameter('store_id');
+            var recordId = request.getParameter('record_id');
+
+
+            return this.searchExternalSystemRecord('salesorder', recordId, storeId);
+        },
+
+        /**
+         * Search NetSuite respective record for provided magento Id
+         * @param recordType
+         * @param recordId
+         */
+        searchExternalSystemRecord: function(recordType, recordId, storeId) {
+            var netSuiteRecordId = {
+                status: false,
+                data: null
+            };
+
+            Utility.logDebug('searchExternalSystemRecord(); // recordType: ', recordType);
+            Utility.logDebug('searchExternalSystemRecord(); // recordId: ', recordId);
+
+            if (!recordId) {
+                return netSuiteRecordId;
+            }
+
+            recordId = recordId || '';
+
+            var filters = [];
+
+            //filters.push(new nlobjSearchFilter('custbody_f3mg_magento_store', null, 'anyof', storeId));
+
+            if (recordType == 'salesorder') {
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'is', recordId.trim()));
+            }
+            else if (recordType == 'cashrefund') {
+                filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, null, 'is', recordId.trim()));
+            }
+
+            try {
+
+                var result = nlapiSearchRecord(recordType, null, filters);
+                Utility.logDebug('searchExternalSystemRecord(); // nlapiSearchRecord(); result: ', JSON.stringify(result));
+
+                if (!!result && result.length > 0) {
+                    var id = result[0].getId();
+
+                    netSuiteRecordId.status = true;
+                    netSuiteRecordId.data = id;
+                }
+
+            } catch (ex) {
+                Utility.logException('Error in searchExternalSystemRecord();', ex.toString());
+            }
+
+            Utility.logDebug('searchExternalSystemRecord(); // return netSuiteRecordId: ', netSuiteRecordId);
+            Utility.logDebug('searchExternalSystemRecord(); // end', '');
+            return netSuiteRecordId;
+        }
     };
 })();
 
@@ -277,6 +352,8 @@ var ConnectorDashboard = (function () {
             response.setContentType('JSON');
 
             var result = ConnectorDashboardApi.handleRequest(method, request, response);
+
+            //result = result || '';
 
             response.write(JSON.stringify(result));
         },

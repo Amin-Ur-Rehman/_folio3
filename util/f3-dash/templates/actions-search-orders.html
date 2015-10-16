@@ -17,21 +17,29 @@
                         <div class="col-sm-9">
                             <input type="text" class="form-control salesorder-id-text"
                                    id="salesorder_id"
-                                   name="salesorder_id" />
+                                   name="salesorder_id" ng-model="viewModel.salesorderId" />
                         </div>
                     </div>
                 </div>
                 <div class="col-sm-6">
-                    <button type="button" class="btn btn-primary btn-submit">Go <i class="fa fa-arrow-right"></i></button>
+                    <button type="button" ng-enter="viewModel.search()" ng-click="viewModel.search()" class="btn btn-primary btn-submit">Go <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
+            <div ng-if="viewModel.searchCompleted">
+                <div class="alert alert-info" ng-if="!viewModel.response.status">
+                    No Record found for provided Mangento ID.
+                </div>
+                <div class="alert alert-success" ng-if="viewModel.response.status">
+                    Below is the link of searched record: <br />
 
+                    <a ng-href="{{viewModel.navigateUrl}}" target="_blank">
+                        <span ng-bind="viewModel.navigateUrl"></span>
+                    </a>
+
+                </div>
+            </div>
         </div>
     </div>
 
 </div>
-
-
-
-{{ viewModel.storeId }}
