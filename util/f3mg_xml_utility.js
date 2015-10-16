@@ -13,7 +13,7 @@
  *   -
  *   -
  */
-MagentoWrapper = (function () {
+MagentoXmlWrapper = (function () {
     return {
         /**
          * Init method
@@ -529,6 +529,28 @@ MagentoWrapper = (function () {
 
             return paymentObj;
         },
+        transformSalesOrderCustomerInfoXMLtoArray: function (xml) {
+            var customer = {};
+            var order = nlapiSelectNode(xml, "//result");
+            customer.increment_id = nlapiSelectValue(order, 'increment_id');
+            customer.order_id = nlapiSelectValue(order, 'order_id');
+            customer.created_at = nlapiSelectValue(order, 'created_at');
+            customer.customer_id = nlapiSelectValue(order, 'customer_id');
+            customer.firstname = nlapiSelectValue(order, 'customer_firstname');
+            customer.lastname = nlapiSelectValue(order, 'customer_lastname');
+            customer.email = nlapiSelectValue(order, 'customer_email');
+            customer.shipment_method = nlapiSelectValue(order, 'shipping_method');
+            customer.shipping_description = nlapiSelectValue(order, 'shipping_description');
+            customer.customer_firstname = nlapiSelectValue(order, 'customer_firstname');
+            customer.customer_lastname = nlapiSelectValue(order, 'customer_lastname');
+            customer.grandtotal = nlapiSelectValue(order, 'grand_total');
+            customer.store_id = nlapiSelectValue(order, 'store_id');
+            customer.shipping_amount = nlapiSelectValue(order, 'shipping_amount');
+            customer.discount_amount = nlapiSelectValue(order, 'discount_amount');
+            customer.customer_middlename = nlapiSelectValue(order, 'customer_middlename');
+            customer.customer_middlename = customer.customer_middlename ? customer.customer_middlename : '';
+            return customer;
+        },
         transformSalesOrderInfoXMLtoArray: function (products) {
             var result = [];
             var product;
@@ -624,6 +646,7 @@ MagentoWrapper = (function () {
                     responseMagento.faultString = faultString; //Fault String
                 } else if (!Utility.isBlankOrNull(products)) {
                     responseMagento.status = true;
+                    responseMagento.customer = this.transformSalesOrderCustomerInfoXMLtoArray(xml);
                     responseMagento.products = this.transformSalesOrderInfoXMLtoArray(products);
                     responseMagento.shippingAddress = this.transformSalesOrderInfoXMLtoshippingAddress(shipping);
                     responseMagento.billingAddress = this.transformSalesOrderInfoXMLtobillingAddress(billing);
@@ -1246,6 +1269,21 @@ MagentoWrapper = (function () {
 
             paymentXml += '<paymentmethod xsi:type="urn:shoppingCartPaymentMethodEntity" xs:type="type:shoppingCartPaymentMethodEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             paymentXml += '<method xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.paymentMethod + '</method>';
+            if(!!paymentInfo.ccType) {
+                paymentXml += '<cc_type xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccType + '</cc_type>';
+                if(!!paymentInfo.ccNumber) {
+                    paymentXml += '<cc_number xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccNumber + '</cc_number>';
+                }
+                if(!!paymentInfo.ccOwner) {
+                    paymentXml += '<cc_owner xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccOwner + '</cc_owner>';
+                }
+                if(!!paymentInfo.ccExpiryYear) {
+                    paymentXml += '<cc_exp_year xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryYear + '</cc_exp_year>';
+                }
+                if(!!paymentInfo.ccExpiryMonth) {
+                    paymentXml += '<cc_exp_month xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryMonth + '</cc_exp_month>';
+                }
+            }
             paymentXml += '</paymentmethod>';
 
             return paymentXml;
@@ -2021,6 +2059,17 @@ MagentoWrapper = (function () {
     };
 })();
 
+/**
+ * Copying MagentoXmlWrapper properties in MagentoWrapper
+ * @constructor
+ */
+MagentoWrapper = function () {
+};
+for (var i in MagentoXmlWrapper) {
+    if (MagentoXmlWrapper.hasOwnProperty(i)) {
+        MagentoWrapper[i] = MagentoXmlWrapper[i];
+    }
+}
 
 function replaceLineBreaks(data) {
     var replacedData = data.replace("\r \n", "<br>");
