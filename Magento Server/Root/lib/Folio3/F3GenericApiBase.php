@@ -132,6 +132,37 @@ class F3_Generic_Api_Base
         return $response;
     }
 
+	public function getSalesOrderList($data){
+        try {
+            $responseData = array();
+
+            $fromDate = $data->fromDate;
+            $statuses = $data->statuses;
+            $ordersFound = Mage::getModel('sales/order')->getCollection()
+                ->addAttributeToFilter('updated_at', array('gt'=>$fromDate))
+                ->addAttributeToFilter('status', array('in' => $statuses));
+
+            $orderIds = array();
+            if(isset($ordersFound)) {
+                //$responseData["orders_found"] = count($ordersFound);
+                foreach ($ordersFound as $order) {
+                    $orderIds[] = $order->getIncrementId();
+                }
+            }
+
+            $responseData["orders"] = $orderIds;
+            // making response object
+            $response["status"] = 1;
+            $response["message"] = "Sales Order List";
+            $response["data"] = $responseData;
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.getSalesOrderList - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+
+        return $response;
+    }
+    
     public function cancelSalesOrder($data)
         {
             try {

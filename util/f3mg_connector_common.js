@@ -148,35 +148,54 @@ var ConnectorCommon = (function () {
              address.region_id=nlapiSelectValue(addresses[i],'region_id');
              address.street=nlapiSelectValue(addresses[i],'street');*/
         },
-        setPayment: function (rec, payment) {
-            if (payment.method.toString() === 'ccsave') {
-                rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType));
+        setPayment: function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+            var paypalPaymentMethod = netsuitePaymentTypes.PayPal;
+            /*if (payment.method.toString() === 'ccsave') {
+                rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+                if(!!payment.authorizedId) {
+                    rec.setFieldValue('pnrefnum', payment.authorizedId);
+                }
                 rec.setFieldValue('ccapproved', 'T');
                 return;
             }
             //paypal_direct
-            if (payment.method.toString() === 'paypal_direct') {
-                rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType));
+            else if (payment.method.toString() === 'paypal_direct') {
+                rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
                 rec.setFieldValue('pnrefnum', payment.authorizedId);
                 rec.setFieldValue('ccapproved', 'T');
                 return;
-            }
-
-
+            }*/
             //paypal_express
-            if (payment.method.toString() === 'paypal_express') {
-                var paymentMethod_paypal = '7';
 
+            Utility.logDebug('payment.ccType  #  payment.method', payment.ccType + '  #  ' +payment.method.toString());
 
-                rec.setFieldValue('paymentmethod', '7');// paypal
+            if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(payment.method.toLowerCase()) > -1) {
+                rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+                if(!!payment.authorizedId) {
+                    rec.setFieldValue('pnrefnum', payment.authorizedId);
+                }
+                rec.setFieldValue('ccapproved', 'T');
+                return;
+            }
+            else if (payment.method.toString() === 'paypal_express') {
+                rec.setFieldValue('paymentmethod', paypalPaymentMethod);// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
             }
             //payflow_advanced
-            if (payment.method.toString() === 'payflow_advanced') {
-                rec.setFieldValue('paymentmethod', '7');// paypal
+            else if (payment.method.toString() === 'payflow_advanced') {
+                rec.setFieldValue('paymentmethod', paypalPaymentMethod);// paypal
                 rec.setFieldValue('paypalauthid', payment.authorizedId);// paypal
                 return;
+            }
+            else {
+                var otherPaymentMethod = payment.method.toString();
+                Utility.logDebug("paymentMethodLookup_Key", otherPaymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.getMappedValue('PaymentMethod', otherPaymentMethod);
+                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
+                if(!!paymentMethodLookupValue && paymentMethodLookupValue != otherPaymentMethod) {
+                    rec.setFieldValue('paymentmethod', paymentMethodLookupValue);
+                }
             }
         },
         getNetsuiteProductIdByMagentoIdViaMap: function (netsuiteMagentoProductMap, magentoID) {
@@ -269,23 +288,23 @@ var ConnectorCommon = (function () {
             }
             return stateName;
         },
-        getCCType: function (ccType) {
+        getCCType: function (ccType, netsuitePaymentTypes) {
             ccType += '';
             // Visa
             if (ccType === '001' || ccType === '0001' || ccType === 'VI') {
-                return '5';
+                return netsuitePaymentTypes.Visa;
             }
             // Master Card
             if (ccType === '002' || ccType === '0002' || ccType === 'MC') {
-                return '4';
+                return netsuitePaymentTypes.MasterCard;
             }
             // American Express
             if (ccType === '003' || ccType === '0003' || ccType === 'AE') {
-                return '6';
+                return netsuitePaymentTypes.AmericanExpress;
             }
             // Discover
             if (ccType === '004' || ccType === '0004' || ccType === 'DI') {// Diners in Magento
-                return '3';// Discover
+                return netsuitePaymentTypes.Discover;
             }
             return '';
         },
