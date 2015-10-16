@@ -7,12 +7,11 @@
     'use strict';
 
     angular.module("f3UC")
-        .controller("ViewSOSyncLogsController", ViewSOSyncLogsController);
+        .controller("ViewCashRefundLogsController", ViewCashRefundLogsController);
 
 
-    //ViewSOSyncLogsController.$inject = ['f3StoreId','$http'];
-    function ViewSOSyncLogsController(f3StoreId, $http) {
-        console.log('ViewSOSyncLogsController');
+    function ViewCashRefundLogsController(f3StoreId, $http) {
+        console.log('ViewCashRefundLogsController');
 
         var _self = this;
         this.hasRecords = true;
@@ -34,7 +33,7 @@
                 datatype: function (options) {
                     console.log('datatype();');
 
-                    var apiUrl = location.href.replace(location.hash, '') + '&method=getSOSyncLogs';
+                    var apiUrl = location.href.replace(location.hash, '') + '&method=getCashRefundSyncLogs';
                     $http.get(apiUrl)
                         .success(function(response) {
 

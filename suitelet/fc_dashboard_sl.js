@@ -37,11 +37,22 @@ var ConnectorDashboardApi = (function () {
                     return this.getItemsCount(request,response);
                     break;
                 case 'getFailedSalesOrders':
-                    return this.getFailedSalesOrders(request,response);
+                    return this.getFailedSalesOrders(request, response);
                     break;
+
                 case 'getSOSyncLogs':
-                    return this.getSOSyncLogs(request,response);
+                    return this.getSOSyncLogs(request, response);
                     break;
+                case 'getFulfilmentSyncLogs':
+                    return this.getFulfilmentSyncLogs(request, response);
+                    break;
+                case 'getItemSyncLogs':
+                    return this.getItemSyncLogs(request, response);
+                    break;
+                case 'getCashRefundSyncLogs':
+                    return this.getCashRefundSyncLogs(request, response);
+                    break;
+
                 case 'executeSOSyncScript':
                     return this.executeSOSyncScript(request,response);
                     break;
@@ -145,6 +156,8 @@ var ConnectorDashboardApi = (function () {
             var msg = 'scriptId: ' + scriptId + ' --- deploymentId: ' +deploymentId + ' --- status: ' + status;
             Utility.logDebug('executeScheduledScript(); ', msg);
 
+            result.status = status;
+
             if (status === 'QUEUED' || status === 'INQUEUE' || status === 'INPROGRESS' || status === 'SCHEDULED') {
                 result.success = true;
                 result.error = false;
@@ -157,14 +170,21 @@ var ConnectorDashboardApi = (function () {
             return result;
         },
 
-
+        getCashRefundSyncLogs: function(request, response) {
+            return this.getExecutionLogs('customscript_cashrefund_export_sch');
+        },
+        getItemSyncLogs: function(request, response) {
+            return this.getExecutionLogs('customscript_magento_item_sync_sch');
+        },
+        getFulfilmentSyncLogs: function(request, response) {
+            return this.getExecutionLogs('customscript_magento_fulfillment_ue');
+        },
         getSOSyncLogs: function(request, response) {
-            return this.getExecutionLogs(488);
+            return this.getExecutionLogs('customscript_connectororderimport');
         },
         getExecutionLogs: function(scriptId) {
 
             var finalResponse = [];
-
             var cols = [];
             var filters = [];
 
@@ -174,8 +194,7 @@ var ConnectorDashboardApi = (function () {
             cols.push(new nlobjSearchColumn('date').setSort(true));
             cols.push(new nlobjSearchColumn('time').setSort(true));
 
-
-            filters.push(new nlobjSearchFilter('scripttype', null, 'anyof', [scriptId]));
+            filters.push(new nlobjSearchFilter('scriptid', 'script', 'is', scriptId));
 
             var results = nlapiSearchRecord('scriptexecutionlog', null, filters, cols);
             if (results != null && results.length > 0) {
