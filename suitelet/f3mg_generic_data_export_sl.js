@@ -58,33 +58,45 @@ var GenericDataExportManager = (function () {
          * @returns {{status: boolean, error: string}}
          */
         exportPromotionCode: function (recordId, recordType) {
-            var status = true;
-            var error = '';
-            var magentoUrl = '';
+            var result = {
+                status: false,
+                error: ""
+            };
+
             try {
                 var internalId = recordId;
                 var promoCodeRecord = PromoCodesExportHelper.getPromoCode(internalId, null);
+
+                // initialize constants
+                ConnectorConstants.initialize();
+                // getting configuration
+                var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
+                ConnectorConstants.CurrentStore = externalSystemConfig[promoCodeRecord.magentoStore];
+                // Check for feature availability
+                if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                    Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_PROMOTION_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                    result.error = Features.EXPORT_PROMOTION_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED';
+                    result.status = false;
+                    return result;
+                }
+
                 Utility.logDebug('promoCodeRecord', JSON.stringify(promoCodeRecord));
                 var response = PromoCodesExportHelper.sendRequestToExternalSystem(internalId, promoCodeRecord);
-                status = response.status;
+                result.status = response.status;
                 if (!response.status) {
-                    error = response.message;
+                    result.error = response.message;
                 }
             }
             catch (ex) {
-                status = false;
+                result.status = false;
                 if (ex instanceof nlobjError) {
-                    error = 'Code: ' + ex.getCode() + ',  Detail: ' + ex.getDetails();
+                    result.error = 'Code: ' + ex.getCode() + ',  Detail: ' + ex.getDetails();
                 } else {
-                    error = ex.toString();
+                    result.error = ex.toString();
                 }
-                nlapiLogExecution('ERROR', 'error in GenericDataExportManager.exportPromotionCode', error);
+                nlapiLogExecution('ERROR', 'error in GenericDataExportManager.exportPromotionCode', result.error);
             }
 
-            var result = {
-                status: status,
-                error: error
-            };
             return result;
         },
 

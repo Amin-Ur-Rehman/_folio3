@@ -165,10 +165,10 @@ var ConnectorCommon = (function () {
                 rec.setFieldValue('ccapproved', 'T');
                 return;
             }*/
+
+
             //paypal_express
-
             Utility.logDebug('payment.ccType  #  payment.method', payment.ccType + '  #  ' +payment.method.toString());
-
             if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(payment.method.toLowerCase()) > -1) {
                 rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
                 if(!!payment.authorizedId) {
@@ -1505,11 +1505,11 @@ var ConnectorCommon = (function () {
                 var filters = [];
 
                 if (recordType == ConnectorConstants.NSTransactionTypes.SalesOrder) {
-                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, '', 'is', magentoIncrementId.trim()));
-                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, '', 'is', storeId.trim()));
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'is', magentoIncrementId.trim(), null));
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId.trim(), null));
                 }
                 else if (recordType == ConnectorConstants.NSTransactionTypes.CashRefund) {
-                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, '', 'is', magentoIncrementId.trim()));
+                    filters.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, null, 'is', magentoIncrementId.trim(), null));
                 }
                 var result = nlapiSearchRecord(recordType, null, filters);
                 if (!!result && result.length > 0) {
@@ -1527,20 +1527,29 @@ var ConnectorCommon = (function () {
          */
         cancelSalesOrder: function (dataIn) {
             var result = {status: false, error: ''};
+
             try {
                 var data = dataIn.data;
-                var magentoSOIncrementId = data.soIncrementId;
-                //TODO:
-                // Currently Store Id is cuming wrong: Its like below:
-                //{"apiMethod":"cancelSalesOrder","data":{"soIncrementId":"100000021","0":"storeId","1":"1"}}
-                // Thats for we hard cosing store id now for make things work,
-                //var storeId = data.storeId;
-                var storeId = '1';
-                //nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
-                //nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
-                //nlapiLogExecution('DEBUG', 'storeId', storeId);
-                var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder
-                    , magentoSOIncrementId, storeId);
+                var magentoSOIncrementId = data.soIncrementId.toString();
+                var storeId = data.storeId.toString();
+
+                // initialize constants
+                ConnectorConstants.initialize();
+                // getting configuration
+                var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
+                ConnectorConstants.CurrentStore = externalSystemConfig[storeId];
+                // Check for feature availability
+                if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                    Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                    result.error = Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED';
+                    return result;
+                }
+
+                nlapiLogExecution('DEBUG', 'dataIn_w', JSON.stringify(dataIn));
+                nlapiLogExecution('DEBUG', 'magentoSOIncrementId', magentoSOIncrementId);
+                nlapiLogExecution('DEBUG', 'storeId', storeId);
+                var netsuiteSOInternalId = this.getNetSuiteRecordInternalId(ConnectorConstants.NSTransactionTypes.SalesOrder, magentoSOIncrementId, storeId);
+                nlapiLogExecution('DEBUG', 'netsuiteSOInternalId', netsuiteSOInternalId);
                 if (!!netsuiteSOInternalId) {
                     //this.cancelNetSuiteSalesOrder(netsuiteSOInternalId);
                     this.closeNetSuiteSalesOrder(netsuiteSOInternalId);

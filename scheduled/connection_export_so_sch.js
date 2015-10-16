@@ -370,7 +370,6 @@ var OrderExportHelper = (function () {
             Utility.logDebug("paymentInfo", JSON.stringify(obj));
             orderDataObject.paymentInfo = obj;
         },
-
 /**
          * Get dummy credit card number according to credit card type, otherwise show netsuite entered credit card number
          * @param store
@@ -387,7 +386,6 @@ var OrderExportHelper = (function () {
             }
             return ccNumber;
         },
-	
         /**
          * This function appends the gift card certificates in order data object
          * @param orderRecord
@@ -738,7 +736,6 @@ var ExportSalesOrders = (function () {
          */
         scheduled: function (type) {
             try {
-
                 if (!MC_SYNC_CONSTANTS.isValidLicense()) {
                     Utility.logDebug('LICENSE', 'Your license has been expired.');
                     return null;
@@ -769,6 +766,11 @@ var ExportSalesOrders = (function () {
                         var store = externalSystemArr[i];
 
                         ConnectorConstants.CurrentStore = store;
+                        // Check for feature availability
+                        if (!FeatureVerification.isPermitted(Features.EXPORT_SO_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                            Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_SO_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                            continue;
+                        }
                         ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                         ConnectorConstants.CurrentWrapper.initialize(store);
                         Utility.logDebug('debug', 'Step-2');

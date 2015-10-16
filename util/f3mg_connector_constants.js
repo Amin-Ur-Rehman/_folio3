@@ -27,6 +27,7 @@ ConnectorConstants = (function () {
         ScheduleScriptInvokedFormUserEvent: 'custscript_sch_invoke_from_ue',
         ExternalSystemConfig: [],
         CurrentStore: {},
+        FeatureVerification: null,
         /**
          * Current Wrapper that is being referred to in Scheduled Scripts and User Events
          */

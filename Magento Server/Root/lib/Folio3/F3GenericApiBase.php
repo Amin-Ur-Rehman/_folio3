@@ -135,13 +135,11 @@ class F3_Generic_Api_Base
 	public function getSalesOrderList($data){
         try {
             $responseData = array();
-
             $fromDate = $data->fromDate;
             $statuses = $data->statuses;
             $ordersFound = Mage::getModel('sales/order')->getCollection()
                 ->addAttributeToFilter('updated_at', array('gt'=>$fromDate))
                 ->addAttributeToFilter('status', array('in' => $statuses));
-
             $orderIds = array();
             if(isset($ordersFound)) {
                 //$responseData["orders_found"] = count($ordersFound);
@@ -149,7 +147,6 @@ class F3_Generic_Api_Base
                     $orderIds[] = $order->getIncrementId();
                 }
             }
-
             $responseData["orders"] = $orderIds;
             // making response object
             $response["status"] = 1;
@@ -159,10 +156,8 @@ class F3_Generic_Api_Base
             Mage::log("F3_Generic_Api_Base.getSalesOrderList - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
             throw new Exception($e->getMessage());
         }
-
         return $response;
     }
-    
     public function cancelSalesOrder($data)
         {
             try {
