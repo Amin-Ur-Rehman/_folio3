@@ -162,6 +162,30 @@ var SalesOrderActionsManager = (function () {
             } catch (e) {
                 Utility.logException('SalesOrderActionsManager.setDontSyncToMagentoField', e);
             }
+        },
+
+        /**
+         * Clear magento related fields in case of copy sales order
+         * @param type
+         * @param form
+         * @param request
+         */
+        handleCopySalesOrderScenario: function(type, form, request) {
+            try {
+                if (type == 'copy') {
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.MagentoSync, 'F');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, '');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.MagentoId, '');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.MagentoSyncStatus, '');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.CancelledMagentoSOId, '');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, '');
+                    nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.DontSyncToMagento, 'F');
+                    Utility.logDebug('Magento Related Data Fields', 'Fields Cleared');
+                }
+            }
+            catch (ex) {
+                Utility.logException('SalesOrderActionsManager.handleCopySalesOrderScenario', e);
+            }
         }
 
     };
@@ -179,6 +203,7 @@ var SalesOrderActionsManager = (function () {
  */
 function AddMagentoSORemovalBtnBeforeLoad(type, form, request) {
     AddInstantSORemovalBtn.userEventBeforeLoad(type, form, request);
+    SalesOrderActionsManager.handleCopySalesOrderScenario(type, form, request);
 }
 
 

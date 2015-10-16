@@ -39,8 +39,13 @@ var FulfillmentExportHelper = (function () {
             nlapiSubmitRecord(rec);
         },
 
+        /**
+         * Export Fulfillment
+         * @param sessionID
+         * @param magentoSO
+         * @return {*|{status: boolean, faultCode: string, faultString: string, result: Array}}
+         */
         syncFulfillmentMagento: function (sessionID, magentoSO) {
-            var fulfillmentXML;
             var responseMagento;
             var magentoSOId = magentoSO.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
             var magentoItemIds = ConnectorCommon.getMagentoItemIds(ConnectorCommon.getFulfillmentItems());
@@ -51,12 +56,17 @@ var FulfillmentExportHelper = (function () {
 
             if (!responseMagento.status) {
                 Utility.logDebug('Error', 'Export fulfillment record -- ID: ' + '--' + responseMagento.faultCode + '--' + responseMagento.faultString);
-
                 return;
             }
             else {
                 Utility.logDebug('set magento shipment id', 'Im Setting ID ' + responseMagento.result);
                 //nlapiSetFieldValue(ConnectorConstants.Transaction.Fields.MagentoId, responseMagento.result);
+
+                // Check for feature availability
+                if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO, ConnectorConstants.CurrentStore.permissions)) {
+                    Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO + ' NOT ALLOWED');
+                    return responseMagento;
+                }
 
                 var upsPackage = '';
                 var totalPackages;
@@ -68,7 +78,7 @@ var FulfillmentExportHelper = (function () {
                     upsPackage = 'fedex';
                 }
                 // from SO
-                var carrier = magentoSO.getFieldValue('shipcarrier');
+                var carrier = magentoSO.getFieldValue('carrier');
                 totalPackages = nlapiGetLineItemCount('package' + upsPackage);
                 var carrierText = magentoSO.getFieldText('shipmethod');
 
@@ -175,20 +185,17 @@ var FulfillmentExport = (function () {
                     var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
                     var sessionID;
 
-                    var store = (function (externalSystemConfig, salesOrderStore) {
-                        var s;
-                        for (var i in externalSystemConfig) {
-                            var externalSystem = externalSystemConfig[i];
-                            if (externalSystem.systemId === salesOrderStore) {
-                                s = externalSystem;
-                                break;
-                            }
-                        }
-                        return s;
-                    })(externalSystemConfig, salesOrderStore);
+                    var store = externalSystemConfig[salesOrderStore];
+
+                    // Check for feature availability
+                    if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                        Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        return;
+                    }
 
                     ConnectorConstants.CurrentStore = store;
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                    ConnectorConstants.CurrentWrapper.initialize(store);
                     sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
 
                     // if session id is not captured then terminate

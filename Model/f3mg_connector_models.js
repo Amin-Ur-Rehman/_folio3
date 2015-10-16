@@ -219,7 +219,84 @@ ConnectorModels = (function () {
                 quote_id: '',
                 customer_middlename: ''
 
-        };
+            };
+        }
+    };
+})();
+
+
+WOOModels = (function () {
+    return {
+        billingAddress: function () {
+            return {
+                "first_name": "",
+                "last_name": "",
+                "company": "",
+                "address_1": "",
+                "address_2": "",
+                "city": "",
+                "state": "",
+                "postcode": "",
+                "country": "",
+                "email": "",
+                "phone": ""
+            };
+        },
+        shippingAddress: function () {
+            return {
+                "first_name": "",
+                "last_name": "",
+                "company": "",
+                "address_1": "",
+                "address_2": "",
+                "city": "",
+                "state": "",
+                "postcode": "",
+                "country": ""
+            };
+        },
+        salesOrder: function () {
+            return {
+                "payment_details": {},//{"method_id": "bacs", "method_title": "Direct Bank Transfer", "paid": true}
+                "billing_address": this.billingAddress(),
+                "shipping_address": this.shippingAddress(),
+                "customer_id": 0,
+                "line_items": [],//{"product_id": 546, "quantity": 2},{"product_id": 613, "quantity": 1, "variations": {"pa_color": "Black"}},
+                "shipping_lines": [] //{"method_id": "flat_rate", "method_title": "Flat Rate", "total": 10}
+
+            };
+        },
+        customer: function () {
+            return {
+                "email": "",
+                "first_name": "",
+                "last_name": "",
+                "username": "",
+                "billing_address": this.billingAddress(),
+                "shipping_address": this.shippingAddress()
+            };
+        },
+        coupon: function () {
+            return {
+                "code": "",
+                "type": "", //{fixed_cart, percent, fixed_product and percent_product. Default is fixed_cart}
+                "amount": 0,
+                "individual_use": false,
+                "product_ids_array": [],
+                "exclude_product_ids_array": [],
+                "usage_limit": null,
+                "usage_limit_per_user": null,
+                "limit_usage_to_x_items": null,
+                "expiry_date": "",//{UTC DateTime}
+                "enable_free_shipping": false,
+                "product_category_ids": [],
+                "exclude_product_category_ids": [],
+                "exclude_sale_items": true,
+                "minimum_amount": 0,
+                "maximum_amount": 0,
+                "customer_emails": [],
+                "description": ""
+            };
         }
     };
 })();

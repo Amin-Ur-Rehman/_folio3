@@ -40,12 +40,12 @@ var PaymentTermExportHelper = (function () {
          * Send request to megento store
          * @param orderRecord
          */
-        sendRequestToMagento: function(internalId, paymentTermRecord) {
+        sendRequestToExternalSystem: function(internalId, paymentTermRecord) {
 
             var response = {status: true, magentoId: '', message: ''};
             var updateRecord = false;
             try {
-                Utility.logDebug('PaymentTermExportHelper.sendRequestToMagento', 'Start');
+                Utility.logDebug('PaymentTermExportHelper.sendRequestToExternalSystem', 'Start');
                 if (!paymentTermRecord) {
                     return null;
                 }
@@ -97,11 +97,11 @@ var PaymentTermExportHelper = (function () {
                 }
                 response.status = false;
                 response.message = error;
-                nlapiLogExecution('ERROR', 'error in PaymentTermExportHelper.sendRequestToMagento', error);
+                nlapiLogExecution('ERROR', 'error in PaymentTermExportHelper.sendRequestToExternalSystem', error);
                 PaymentTermExportHelper.markRecords(internalId, ' Not Synched Due to Error  :  ' + error);
             }
 
-            Utility.logDebug('PaymentTermExportHelper.sendRequestToMagento', 'end');
+            Utility.logDebug('PaymentTermExportHelper.sendRequestToExternalSystem', 'end');
 
             return response;
         },

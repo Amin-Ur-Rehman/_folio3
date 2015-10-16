@@ -50,9 +50,9 @@ WooWrapper = (function () {
             localOrder.suffix = '';
             localOrder.dob = '';
 
-            localOrder.customer_firstname  = localOrder.firstname;
+            localOrder.customer_firstname = localOrder.firstname;
             localOrder.customer_middlename = localOrder.middlename;
-            localOrder.customer_lastname   = localOrder.lastname;
+            localOrder.customer_lastname = localOrder.lastname;
         }
 
         if (serverOrder.shipping_address) {
@@ -190,21 +190,28 @@ WooWrapper = (function () {
     }
 
     function parseFulfillmentResponse(serverResponse) {
-        var finalResult = [];
+        var finalResult = {
+            isOrderStatusCompleted: false
+        };
         try {
-            if (!!serverResponse && serverResponse.length > 0) {
-                for (var i = 0; i < serverResponse.length; i++) {
-                    var serverFulfillment = serverResponse[i];
-
-                    var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
-
-                    finalResult.push(localFulfillment);
-                }
+            if (serverResponse.hasOwnProperty("status") && serverResponse.status.toString() === "completed") {
+                finalResult.isOrderStatusCompleted = true;
+                finalResult.orderNumber = serverResponse.order_number;
             }
         } catch (e) {
             Utility.logException('Error during parseFulfillmentResponse', e);
         }
 
+        return finalResult;
+    }
+
+    function parseCancelSalesOrderResponse(serverResponse) {
+        var finalResult = {
+            status: false
+        };
+        if (serverResponse.hasOwnProperty("status") && serverResponse.status.toString() === "cancelled") {
+            finalResult.status = true;
+        }
         return finalResult;
     }
 
@@ -227,7 +234,7 @@ WooWrapper = (function () {
         localAddress.is_default_shipping = false;
 
         if (!!serverAddress.default && (serverAddress.default === true ||
-          serverAddress.default === 'true')) {
+            serverAddress.default === 'true')) {
             localAddress.is_default_billing = true;
             localAddress.is_default_shipping = true;
         }
@@ -245,15 +252,10 @@ WooWrapper = (function () {
 
         try {
             if (!!serverResponse && serverResponse.length > 0) {
-
                 Utility.logDebug('server Customer = ', JSON.stringify(serverResponse));
-
                 var localAddress = parseSingleCustomerAddressResponse(serverResponse.billing_address);
-
                 finalResult.push(localAddress);
-
                 localAddress = parseSingleCustomerAddressResponse(serverResponse.shipping_address);
-
                 finalResult.push(localAddress);
 
             }
@@ -263,6 +265,411 @@ WooWrapper = (function () {
 
         Utility.logDebug('finalResult of parseCustomerAddressResponse = ', JSON.stringify(finalResult));
         return finalResult;
+    }
+
+    /**
+     * Parses Customer Response
+     * @param serverResponse
+     */
+    function parseCustomerResponse(serverResponse) {
+        var data = {};
+
+        data.id = serverResponse.id;
+        data.email = serverResponse.email;
+        data.first_name = serverResponse.firstname;
+        data.last_name = serverResponse.lastname;
+        data.username = serverResponse.username;
+        data.billing_address = serverResponse.billing_address;
+        data.shipping_address = serverResponse.shipping_address;
+
+        return data;
+    }
+
+    /**
+     * Make a billing address object
+     * @param address
+     * @returns {object}
+     */
+    function getBillingAddress(address) {
+        var data = WOOModels.billingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+        data.email = "";
+        data.phone = address.telephone || "";
+
+        return data;
+    }
+
+    /**
+     * Make a shipping address object
+     * @param address
+     * @returns {object}
+     */
+    function getShippingAddress(address) {
+        var data = WOOModels.shippingAddress();
+
+        data.first_name = address.firstname || "";
+        data.last_name = address.lastname || "";
+        data.company = address.company || "";
+        data.address_1 = address.street1 || "";
+        data.address_2 = address.street2 || "";
+        data.city = address.city || "";
+        data.state = address.region || "";
+        data.postcode = address.postcode || "";
+        data.country = address.country || "";
+
+        return data;
+    }
+
+    /**
+     * Make the default address objects for billing and shipping if found else return blank objects
+     * @param customerRecord
+     * @returns {{shippingAddress: (*|{}), billingAddress: (*|{})}}
+     */
+    function getDefaultAddresses(customerRecord) {
+        var addresses = customerRecord.addresses;
+
+        var billingAddress = null;
+        var shippingAddress = null;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+
+            var defaultshipping = address.defaultshipping;
+            var defaultbilling = address.defaultbilling;
+
+            if (shippingAddress === null && defaultshipping.toString() === "T") {
+                shippingAddress = getShippingAddress(address);
+            }
+
+            if (billingAddress === null && defaultbilling.toString() === "T") {
+                billingAddress = getBillingAddress(address);
+            }
+
+            if (!!billingAddress && !!shippingAddress) {
+                break;
+            }
+        }
+
+        return {
+            shippingAddress: shippingAddress || {},
+            billingAddress: billingAddress || {}
+        };
+    }
+
+    /**
+     * This method returns customer object data required to upsert the customer to WOO
+     * @param customerRecord
+     * @param type
+     * @returns {object}
+     */
+    function getCustomerData(customerRecord, type) {
+        var data = {};
+        data.customer = WOOModels.customer();
+
+        data.customer.email = customerRecord.email;
+        data.customer.first_name = customerRecord.firstname;
+        data.customer.last_name = customerRecord.lastname;
+
+        if (type.toString() === "create") {
+            data.customer.password = customerRecord.password || "";
+        } else {
+            delete data.customer.username;
+        }
+
+        var defaultAddresses = getDefaultAddresses(customerRecord);
+
+        data.customer.billing_address = defaultAddresses.shippingAddress;
+        data.customer.shipping_address = defaultAddresses.billingAddress;
+
+        return data;
+    }
+
+    /**
+     * This method returns an array of line item for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderLineItems(orderRecord) {
+        var lineItems = [];
+
+        var items = orderRecord.items;
+        for (var i in items) {
+            var item = items[i];
+
+            var itemObj = {};
+            // TODO: change sku with product_id if not work
+            //itemObj.product_id = 8
+            itemObj.sku = item.sku;
+            itemObj.quantity = item.quantity;
+
+            lineItems.push(itemObj);
+        }
+
+        return lineItems;
+    }
+
+    /**
+     * This method returns an object of billing address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone}}
+     */
+    function getSalesOrderBillingAddress(orderRecord) {
+        var billingAddress = WOOModels.billingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultBilling.toString() === "1") {
+                billingAddress.first_name = address.firstName || "";
+                billingAddress.last_name = address.lastName || "";
+                billingAddress.company = address.company || "";
+                billingAddress.address_1 = address.street || "";
+                billingAddress.address_2 = "";
+                billingAddress.city = address.city || "";
+                billingAddress.state = address.stateId || "";
+                billingAddress.postcode = address.zipCode || "";
+                billingAddress.country = address.country || "";
+                billingAddress.email = "";
+                billingAddress.phone = address.telephone || "";
+            }
+        }
+
+        return billingAddress;
+    }
+
+    /**
+     * * This method returns an object of shipping address for sales order
+     * @param orderRecord
+     * @returns {*|{first_name, last_name, company, address_1, address_2, city, state, postcode, country}}
+     */
+    function getSalesOrderShippingAddress(orderRecord) {
+        var shippingAddress = WOOModels.shippingAddress();
+        var addresses = orderRecord.customer.addresses;
+
+        for (var i in addresses) {
+            var address = addresses[i];
+            if (address.isDefaultShipping.toString() === "1") {
+                shippingAddress.first_name = address.firstName || "";
+                shippingAddress.last_name = address.lastName || "";
+                shippingAddress.company = address.company || "";
+                shippingAddress.address_1 = address.street || "";
+                shippingAddress.address_2 = "";
+                shippingAddress.city = address.city || "";
+                shippingAddress.state = address.stateId || "";
+                shippingAddress.postcode = address.zipCode || "";
+                shippingAddress.country = address.country || "";
+            }
+        }
+
+        return shippingAddress;
+    }
+
+    /**
+     * This method returns an array of shipping lines for sales order
+     * @param orderRecord
+     * @returns {Array}
+     */
+    function getSalesOrderShippingLines(orderRecord) {
+        var shippingLines = [];
+        var shippingInfo = orderRecord.shipmentInfo;
+
+        shippingLines.push({
+            method_id: "flat_rate",
+            method_title: "Flat Rate",
+            total: shippingInfo.shipmentCost
+        });
+
+        return shippingLines;
+    }
+
+    /**
+     * This method returns an object of payment details for sales order
+     * @param orderRecord
+     * @returns {{}}
+     */
+    function getSalesOrderPaymentDetails(orderRecord) {
+        var paymentDetail = {};
+        var paymentInfo = paymentDetail.paymentInfo;
+
+        // TODO: need to be dynamic
+        paymentDetail.method_id = "bacs";
+        paymentDetail.method_title = "Direct Bank Transfer";
+        paymentDetail.paid = true;
+
+        return paymentDetail;
+    }
+
+    /**
+     * This method returns an object of sales order data required to create sales order to WOO
+     * @param orderRecord
+     * @returns {object}
+     */
+    function getSalesOrderData(orderRecord) {
+        var data = {};
+        data.order = WOOModels.salesOrder();
+
+        // set customer
+        data.order.customer_id = orderRecord.customer.customerId;
+
+        // set products in main object
+        data.order.line_items = getSalesOrderLineItems(orderRecord);
+
+        // set billing address
+        data.order.billing_address = getSalesOrderBillingAddress(orderRecord);
+
+        // set set shipping address
+        data.order.shipping_address = getSalesOrderShippingAddress(orderRecord);
+
+        // set shipping lines
+        data.order.shipping_lines = getSalesOrderShippingLines(orderRecord);
+
+        // set payment details
+        data.order.payment_details = getSalesOrderPaymentDetails(orderRecord);
+
+        return data;
+    }
+
+    function getDiscountType(discountType) {
+        var type = null;
+        if (discountType.toString() === "percent") {
+            type = "percent";
+        } else {
+            type = "fixed_cart";
+        }
+    }
+
+    function getSingleCouponData(promoCodeRecord) {
+        var couponData = WOOModels.coupon();
+
+        if (promoCodeRecord.hasOwnProperty("record_id") && !!promoCodeRecord.record_id) {
+            couponData.id = promoCodeRecord.record_id;
+        }
+        couponData.code = promoCodeRecord.couponCode.toLowerCase();
+        couponData.type = getDiscountType(promoCodeRecord.discountType);
+        couponData.amount = promoCodeRecord.rate.replace("%", ""); //remove % from value if exist
+        couponData.individual_use = promoCodeRecord.numberOfUses.toString() === "MULTIPLEUSES" ? true : false;
+        couponData.expiry_date = !!promoCodeRecord.endDate ? nlapiStringToDate(promoCodeRecord.endDate).toISOString() : "";
+        couponData.description = promoCodeRecord.description;
+
+        return couponData;
+    }
+
+    function getCouponsData(promoCodeRecord) {
+        var couponsData = {};
+
+        couponsData.coupons = [];
+        couponsData.coupons.push(getSingleCouponData(promoCodeRecord));
+
+        return couponsData;
+    }
+
+
+    function parseCouponsResponse(coupons) {
+        var couponsList = [];
+
+        for (var i in coupons) {
+            var coupon = coupons[i];
+            couponsList.push(parseSingleCouponResponse(coupon));
+        }
+
+        return couponsList;
+    }
+
+    function parseSingleCouponResponse(coupon) {
+        var couponObj = WOOModels.coupon();
+
+        couponObj.id = coupon.id.toString();
+        couponObj.code = coupon.code;
+        couponObj.type = coupon.type;
+        couponObj.created_at = coupon.created_at;
+        couponObj.updated_at = coupon.updated_at;
+        couponObj.amount = coupon.amount;
+        couponObj.individual_use = coupon.individual_use;
+        couponObj.product_ids = coupon.product_ids;
+        couponObj.exclude_product_ids = coupon.exclude_product_ids;
+        couponObj.usage_limit = coupon.usage_limit;
+        couponObj.usage_limit_per_user = coupon.usage_limit_per_user;
+        couponObj.limit_usage_to_x_items = coupon.limit_usage_to_x_items;
+        couponObj.usage_count = coupon.usage_count;
+        couponObj.expiry_date = coupon.expiry_date;
+        couponObj.enable_free_shipping = coupon.enable_free_shipping;
+        couponObj.product_category_ids = coupon.product_category_ids;
+        couponObj.exclude_product_category_ids = coupon.exclude_product_category_ids;
+        couponObj.exclude_sale_items = coupon.exclude_sale_items;
+        couponObj.minimum_amount = coupon.minimum_amount;
+        couponObj.maximum_amount = coupon.maximum_amount;
+        couponObj.customer_emails = coupon.customer_emails;
+        couponObj.description = coupon.description;
+
+        return couponObj;
+    }
+
+    //function parseResponse(_serverResponse, _function, _type) {
+    //    var serverResponse;
+    //    var error = getErrorIfExist(_serverResponse, _type);
+    //    if (error === null) {
+    //        serverResponse = _function(_serverResponse);
+    //    } else {
+    //        serverResponse = {
+    //
+    //        };
+    //    }
+    //    return serverResponse;
+    //}
+
+    /**
+     * {"coupons":[{"id":0,"error":{"code":"woocommerce_api_coupon_code_already_exists","message":"The coupon code already exists"}
+     * {"errors":[{"code":"","message":""}]}
+     * @param serverResponse
+     * @param type
+     */
+    function getErrorIfExist(serverResponse, type) {
+        var errorObject = null;
+        var error;
+        if (serverResponse.hasOwnProperty("errors")) {
+            error = serverResponse.errors[0];
+            errorObject = {
+                code: error.code,
+                message: error.message
+            };
+        } //else {
+        //    var data = serverResponse.hasOwnProperty(type) ? serverResponse[type] : null;
+        //    if (data === null) {
+        //        errorObject = {
+        //            code: "DEV",
+        //            message: "Blank Response"
+        //        };
+        //    }
+        //
+        //    if (data instanceof Array) {
+        //        for (var i in data) {
+        //            var responseObj = data[i];
+        //            if (responseObj.hasOwnProperty("error")) {
+        //                error = responseObj.error;
+        //                if (!errorObject.hasOwnProperty("code")) {
+        //                    errorObject.code = "";
+        //                } else {
+        //                    errorObject.code += " | ";
+        //                }
+        //                if (!errorObject.hasOwnProperty("message")) {
+        //                    errorObject.message = "";
+        //                } else {
+        //                    errorObject.message += " | ";
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
+        return errorObject;
     }
 
     /**
@@ -313,10 +720,10 @@ WooWrapper = (function () {
             if (typeof nlapiRequestURL !== "undefined") {
                 Utility.logDebug("httpRequestData.method === GET", "");
                 res = nlapiRequestURL(finalUrl, null, httpRequestData.headers);
-		body = res.getBody();
+                body = res.getBody();
                 Utility.logDebug("res", res.getBody());
                 Utility.logDebug("code", res.getCode());
-		serverResponse = eval('(' + body + ')');
+                serverResponse = eval('(' + body + ')');
             } else {
                 jQuery.ajax({
                     url: finalUrl,
@@ -339,7 +746,6 @@ WooWrapper = (function () {
                 Utility.logDebug("code", res.getCode());
                 body = res.getBody();
                 serverResponse = eval('(' + body + ')');
-
             } else {
                 jQuery.ajax({
                     url: finalUrl,
@@ -380,7 +786,7 @@ WooWrapper = (function () {
         Password: '',
         AuthHeader: '',
 
-        ServerUrl: 'http://nsmg.folio3.com:4545/woosite1/wc-api/v3/',
+        ServerUrl: 'http://nsmg.folio3.com:4545/woosite2/wc-api/v3/',
 
         /**
          * Gets supported Date Format
@@ -518,30 +924,32 @@ WooWrapper = (function () {
 
             // first get the product id here
             /*var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
-            var firstProduct = productInfo[0];
+             var firstProduct = productInfo[0];
+             var httpRequestData = {
+             additionalUrl: 'products/' + magID + '.json',
+             method: 'PUT',
+             postData: {
+             product: {
+             id: magID,
+             variants: [{
+             id: firstProduct.variants[0].id,
+             price: product.price,
+             inventory_quantity: product.quantity,
+             product_id: magID
+             }
+             ]
+             }
+             }
+             };*/
             var httpRequestData = {
-                additionalUrl: 'products/' + magID + '.json',
+                url: 'products/' + magID.toString(),
                 method: 'PUT',
                 postData: {
                     product: {
-                        id: magID,
-                        variants: [{
-                            id: firstProduct.variants[0].id,
-                            price: product.price,
-                            inventory_quantity: product.quantity,
-                            product_id: magID
-                        }
-                        ]
+                        regular_price: product.price,
+                        sale_price: 0,
+                        stock_quantity: product.quantity
                     }
-                }
-            };*/
-            var httpRequestData = {
-                url: 'product/' + magID.toString(),
-                method: 'PUT',
-                data: {
-                    id: magID.toString(),
-                    price: product.price,
-                    inventory_quantity: product.quatity
                 }
             };
 
@@ -588,7 +996,7 @@ WooWrapper = (function () {
                 url: 'products',
                 method: 'GET',
                 data: {
-                    sku: product.magentoSKU + (!!variantRequest && variantRequest.length > 0 ? variantRequest : '')
+                    "filter[sku]": product.magentoSKU
                 }
             };
 
@@ -622,23 +1030,34 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
+        /**
+         * This method should create a shippment on WOO Commerce but
+         * there is no shipment record on WOO Commerce. So,
+         * change order status to Complete as an alternate & will be
+         * assumed as shipped order in WOO
+         * @param sessionID
+         * @param serverItemIds
+         * @param serverSOId
+         * @return {{status: boolean, faultCode: string, faultString: string, result: Array}}
+         *
+         * Note: There is no shipment record in WOO, so no partial fulfillment is supported
+         */
         createFulfillment: function (sessionID, serverItemIds, serverSOId) {
 
             var httpRequestData = {
-                additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
+                url: 'orders/' + serverSOId,
                 method: 'PUT',
                 postData: {
-                    "fulfillment": {
-                        "tracking_number": null,
-                        "line_items": []
+                    "order": {
+                        "status": "completed"
                     }
                 }
             };
 
-            for (var i = 0; i < serverItemIds.length; i++) {
-                var serverItem = serverItemIds[i];
-                httpRequestData.postData.fulfillment.line_items.push(serverItem);
-            }
+            /*for (var i = 0; i < serverItemIds.length; i++) {
+             var serverItem = serverItemIds[i];
+             httpRequestData.postData.fulfillment.line_items.push(serverItem);
+             }*/
 
             var serverResponse = null;
 
@@ -658,11 +1077,13 @@ WooWrapper = (function () {
                 Utility.logException('Error during createFulfillment', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var fulfillmentArray = parseFulfillmentResponse(serverResponse);
+            if (!!serverResponse && serverResponse.order) {
+                var fulfillmentObj = parseFulfillmentResponse(serverResponse.order);
 
-                if (!!fulfillmentArray && fulfillmentArray.length > 0) {
-                    serverFinalResponse.result = fulfillmentArray;
+                // check if order status is changed to complete
+                if (!!fulfillmentObj && fulfillmentObj.isOrderStatusCompleted) {
+                    // for setting order id as shipment id in item fulfillment
+                    serverFinalResponse.result = fulfillmentObj.orderNumber;
                 }
             }
 
@@ -675,18 +1096,19 @@ WooWrapper = (function () {
         },
 
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
-            var trackingRequest = WooWrapper.createTrackingRequest(result, carrier, carrierText, tracking, sessionID);
+            var noteTemplate = "Carrier: <CARRIER> \nTitle: <TITLE> \nTracking Number: <TRACKING_NUMBER>";
 
-            var responseTracking = WooWrapper.validateTrackingCreateResponse(WooWrapper.soapRequestToServer(trackingRequest));
-
-            return responseTracking;
+            var note = noteTemplate.replace("<CARRIER>", carrier || "");
+            note = note.replace("<TITLE>", carrierText || "");
+            note = note.replace("<TRACKING_NUMBER>", tracking || "");
 
             var httpRequestData = {
-                additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
-                method: 'PUT',
+                url: 'orders/' + serverSOId + '/notes',
+                method: 'POST',
                 postData: {
-                    "fulfillment": {
-                        "tracking_number": tracking
+                    "order_note": {
+                        "note": note,
+                        "customer_note": false
                     }
                 }
             };
@@ -709,12 +1131,8 @@ WooWrapper = (function () {
                 Utility.logException('Error during createFulfillment', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var fulfillmentArray = parseFulfillmentResponse(serverResponse);
-
-                if (!!fulfillmentArray && fulfillmentArray.length > 0) {
-                    serverFinalResponse.result = fulfillmentArray;
-                }
+            if (!!serverResponse && serverResponse.order_note) {
+                serverFinalResponse.result.push(serverResponse.order_note);
             }
 
             // If some problem
@@ -763,6 +1181,234 @@ WooWrapper = (function () {
             }
 
             return serverFinalResponse;
+        },
+
+        /**
+         * This method create a sales order to WOO
+         * @param internalId
+         * @param orderRecord
+         * @param store
+         * @param sessionId
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
+        createSalesOrder: function (internalId, orderRecord, store, sessionId) {
+            var httpRequestData = {
+                url: 'orders',
+                method: 'POST',
+                postData: getSalesOrderData(orderRecord)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during createSalesOrder', e);
+            }
+
+            if (!!serverResponse && serverResponse.order) {
+                var order = serverResponse.order;
+
+                if (!!order) {
+                    serverFinalResponse.incrementalIdData = {};
+                    serverFinalResponse.incrementalIdData.orderIncrementId = order.order_number.toString();
+                }
+                // No need to set Line Items Ids here
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+
+        /**
+         * This method returns a flag which means that item ids in order's items is needed to be set
+         * @returns {boolean}
+         */
+        hasDifferentLineItemIds: function () {
+            return false;
+        },
+
+        /**
+         * This method create or update a customer to WOO
+         * @param customerRecord
+         * @param store
+         * @param type
+         * @returns {{status: boolean, faultCode: string, faultString: string}}
+         */
+        upsertCustomer: function (customerRecord, store, type) {
+            // handling of endpoints for update or create customer
+            var httpRequestData = {
+                url: 'customers' + (type.toString() === "update" ? "/" + customerRecord.magentoId : ""),
+                method: 'POST',
+                postData: getCustomerData(customerRecord, type)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+
+            } catch (e) {
+                Utility.logException('Error during upsertCustomer - ' + type, e);
+            }
+
+            if (!!serverResponse && serverResponse.customer) {
+                var customer = parseCustomerResponse(serverResponse.customer);
+
+                Utility.logDebug("upsertCustomer.customer - parseCustomerResponse", JSON.stringify(customer));
+
+                if (!!customer) {
+                    serverFinalResponse.result = customer;
+                    serverFinalResponse.magentoCustomerId = customer.id;
+                }
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.errorMsg = serverFinalResponse.faultCode + '--' + serverFinalResponse.faultString;
+            }
+
+            return serverFinalResponse;
+        },
+        /**
+         * This method returns a flag which means that separate address call is neeeded to sync customer addresses
+         * @returns {boolean}
+         */
+        requiresAddressCall: function () {
+            return false;
+        },
+        /**
+         * This method has no implementation because no separate address call is neeeded to sync customer addresses
+         */
+        upsertCustomerAddress: function () {
+            // no need to implement this function for WOO
+            // address will be with in the customer create/update call
+        },
+        /**
+         * This method create or update a multiple coupons to WOO
+         * @return {{status: boolean, faultCode: string, faultString: string}}
+         */
+        upsertCoupons: function (promoCodeRecord) {
+            ConnectorConstants.CurrentWrapper.getSessionIDFromServer(ConnectorConstants.CurrentStore.userName, ConnectorConstants.CurrentStore.password);
+            var httpRequestData = {
+                url: 'coupons/bulk',
+                method: 'POST',
+                postData: getCouponsData(promoCodeRecord)
+            };
+            var serverResponse = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: ''
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+            } catch (e) {
+                Utility.logException('Error during upsertCustomer', e);
+            }
+
+            if (!!serverResponse.coupons[0].error) {
+                serverFinalResponse.status = false;
+            }
+
+            if (!!serverResponse && serverFinalResponse.status && !!serverResponse.coupons) {
+                var coupons = parseCouponsResponse(serverResponse.coupons);
+                Utility.logDebug("upsertCustomer.upsertCoupons - upsertCoupons", JSON.stringify(coupons));
+                serverFinalResponse.result = coupons;
+                serverFinalResponse.data = coupons;
+                serverFinalResponse.data.couponCodeList = [];
+                serverFinalResponse.data.record_id = coupons[0].id;
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.message = serverResponse.coupons[0].error.code + '--' + serverResponse.coupons[0].error.message;
+            }
+
+            return serverFinalResponse;
+        },
+
+        /**
+         * This method cancel the order to WOO
+         * @param data
+         * @return {{status: boolean, faultCode: string, faultString: string, result: Array}}
+         */
+        cancelSalesOrder: function (data) {
+            var httpRequestData = {
+                url: 'orders/' + data.orderIncrementId,
+                method: 'PUT',
+                postData: {
+                    "order": {
+                        "status": "cancelled"
+                    }
+                }
+            };
+
+            var serverResponse = null;
+            var error = null;
+
+            // Make Call and Get Data
+            var serverFinalResponse = {
+                status: false,
+                faultCode: '',
+                faultString: '',
+                result: []
+            };
+
+            try {
+                serverResponse = sendRequest(httpRequestData);
+                serverFinalResponse.status = true;
+                error = getErrorIfExist(serverResponse);
+            } catch (e) {
+                Utility.logException('Error during cancelSalesOrder', e);
+            }
+
+            if(error !== null){
+                serverFinalResponse.status = false;
+                serverFinalResponse.error = error.code + " -- "+ error.message;
+                return serverFinalResponse;
+            }
+
+            if (!!serverResponse && !!serverResponse.order) {
+                var cancelSalesOrderResponse = parseCancelSalesOrderResponse(serverResponse.order);
+                // order status is changed to cancelled
+                serverFinalResponse.status = cancelSalesOrderResponse.status;
+
+            }
+
+            // If some problem
+            if (!serverFinalResponse.status) {
+                serverFinalResponse.error = "Error in cancelling sales order to WOO";
+            }
+
+            return serverFinalResponse;
+        },
+
+        requiresOrderUpdateAfterCancelling:function(){
+            return false;
         }
     };
 

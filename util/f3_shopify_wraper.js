@@ -48,9 +48,9 @@ ShopifyWrapper = (function () {
             localOrder.prefix = '';
             localOrder.suffix = '';
             localOrder.dob = '';
-            localOrder.customer_firstname  = localOrder.firstname;
+            localOrder.customer_firstname = localOrder.firstname;
             localOrder.customer_middlename = localOrder.middlename;
-            localOrder.customer_lastname   = localOrder.lastname;
+            localOrder.customer_lastname = localOrder.lastname;
         }
 
         if (serverOrder.shipping_address) {
@@ -147,7 +147,7 @@ ShopifyWrapper = (function () {
         localProduct.sku = serverProduct.sku;
         localProduct.taxable = serverProduct.taxable;
         localProduct.title = serverProduct.title;
-        localProduct.variant_id = serverProduct.variant_id ;
+        localProduct.variant_id = serverProduct.variant_id;
         localProduct.variant_title = serverProduct.variant_title;
         localProduct.vendor = serverProduct.vendor;
         localProduct.name = serverProduct.name;
@@ -156,7 +156,7 @@ ShopifyWrapper = (function () {
         localProduct.product_exists = serverProduct.product_exists;
         localProduct.fulfillable_quantity = serverProduct.fulfillable_quantity;
         localProduct.total_discount = serverProduct.total_discount;
-        localProduct.tax_lines = serverProduct.tax_lines ;
+        localProduct.tax_lines = serverProduct.tax_lines;
 
         return localProduct;
     }
@@ -275,12 +275,11 @@ ShopifyWrapper = (function () {
 
         if (!httpRequestData.headers) {
             httpRequestData.headers = {
-                "Accept" : "application/json",
-                "Content-Type" : "application/json",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
                 //"Authorization":
                 //    "Basic YjM4OGQ3ZjZlOWY4YjRhODNlOGMzNzI3YTgxZTBmMGI6MWExN2QzMGExZDYyNmVlY2U1M2QzNjZhYjBiMmIyNDA="
-                "Authorization":
-                  "Basic " + ShopifyWrapper.AuthHeader
+                "Authorization": "Basic " + ShopifyWrapper.AuthHeader
             };
         }
 
@@ -290,7 +289,7 @@ ShopifyWrapper = (function () {
             res = nlapiRequestURL(finalUrl, null, httpRequestData.headers);
         } else {
             var postDataString = typeof httpRequestData.postData === "object" ?
-                    JSON.stringify(httpRequestData.postData) : httpRequestData.postData;
+                JSON.stringify(httpRequestData.postData) : httpRequestData.postData;
 
             res = nlapiRequestURL(finalUrl, postDataString, httpRequestData.headers, httpRequestData.method);
         }
@@ -325,25 +324,24 @@ ShopifyWrapper = (function () {
         Password: '',
         AuthHeader: '',
 
-        ServerUrl :
-          'https://b388d7f6e9f8b4a83e8c3727a81e0f0b:1a17d30a1d626eece53d366ab0b2b240@f3-test-store-001.myshopify.com/admin/',
+        ServerUrl: 'https://b388d7f6e9f8b4a83e8c3727a81e0f0b:1a17d30a1d626eece53d366ab0b2b240@f3-test-store-001.myshopify.com/admin/',
 
         /**
          * Gets supported Date Format
          * @returns {string}
          */
-        getDateFormat: function() {
+        getDateFormat: function () {
             return 'ISO';
         },
 
-        getSessionIDFromServer: function(userName, apiKey) {
+        getSessionIDFromServer: function (userName, apiKey) {
             var sessionID = 'DUMMY_SESSION_ID';
 
             ShopifyWrapper.UserName = userName;
             ShopifyWrapper.Password = apiKey;
 
             if (!!base64_encode) {
-                ShopifyWrapper.AuthHeader =  base64_encode(ShopifyWrapper.UserName + ':' + ShopifyWrapper.Password);
+                ShopifyWrapper.AuthHeader = base64_encode(ShopifyWrapper.UserName + ':' + ShopifyWrapper.Password);
             }
 
             return sessionID;
@@ -355,7 +353,7 @@ ShopifyWrapper = (function () {
          * @param sessionID
          * @returns {*}
          */
-        getSalesOrders : function (order, sessionID) {
+        getSalesOrders: function (order, sessionID) {
 
             var httpRequestData = {
                 additionalUrl: 'orders.json?created_at_min=' + order.updateDate,
@@ -472,11 +470,11 @@ ShopifyWrapper = (function () {
                     product: {
                         id: magID,
                         variants: [{
-                                id: firstProduct.variants[0].id,
-                                price: product.price,
-                                inventory_quantity: product.quantity,
-                                product_id: magID
-                            }
+                            id: firstProduct.variants[0].id,
+                            price: product.price,
+                            inventory_quantity: product.quantity,
+                            product_id: magID
+                        }
                         ]
                     }
                 }
@@ -524,7 +522,7 @@ ShopifyWrapper = (function () {
 
             var httpRequestData = {
                 additionalUrl: 'products.json?ids=' + product.magentoSKU +
-                    (!!variantRequest && variantRequest.length > 0 ? variantRequest : ''),
+                (!!variantRequest && variantRequest.length > 0 ? variantRequest : ''),
                 method: 'GET'
             };
 
@@ -549,7 +547,7 @@ ShopifyWrapper = (function () {
             if (!!serverResponse && serverResponse.products) {
                 serverFinalResponse.product = parseProductResponse(serverResponse.products);
 
-                
+
             }
 
             // If some problem
@@ -560,7 +558,11 @@ ShopifyWrapper = (function () {
             return serverFinalResponse;
         },
 
-        createFulfillment: function(sessionID, serverItemIds, serverSOId) {
+        hasDifferentLineItemIds: function () {
+            return false;
+        },
+
+        createFulfillment: function (sessionID, serverItemIds, serverSOId) {
 
             var httpRequestData = {
                 additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
@@ -664,7 +666,7 @@ ShopifyWrapper = (function () {
             return serverFinalResponse;
         },
 
-        getCustomerAddress: function(customer_id, sessionID) {
+        getCustomerAddress: function (customer_id, sessionID) {
 
             var httpRequestData = {
                 additionalUrl: 'customers/' + customer_id + '/addresses.json',
@@ -699,6 +701,25 @@ ShopifyWrapper = (function () {
             }
 
             return serverFinalResponse;
+        },
+
+        createSalesOrder: function (internalId, orderRecord, store, sessionId) {
+        },
+
+        upsertCustomer: function () {
+        },
+        requiresAddressCall: function () {
+            return true;
+        },
+        upsertCustomerAddress: function () {
+        },
+        upsertCoupons: function () {},
+
+        cancelSalesOrder: function (data) {
+        },
+
+        requiresOrderUpdateAfterCancelling: function () {
+            return false;
         }
     };
 

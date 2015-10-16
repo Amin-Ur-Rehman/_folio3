@@ -131,4 +131,65 @@ class F3_Generic_Api_Base
 
         return $response;
     }
+
+	public function getSalesOrderList($data){
+        try {
+            $responseData = array();
+            $fromDate = $data->fromDate;
+            $statuses = $data->statuses;
+            $ordersFound = Mage::getModel('sales/order')->getCollection()
+                ->addAttributeToFilter('updated_at', array('gt'=>$fromDate))
+                ->addAttributeToFilter('status', array('in' => $statuses));
+            $orderIds = array();
+            if(isset($ordersFound)) {
+                //$responseData["orders_found"] = count($ordersFound);
+                foreach ($ordersFound as $order) {
+                    $orderIds[] = $order->getIncrementId();
+                }
+            }
+            $responseData["orders"] = $orderIds;
+            // making response object
+            $response["status"] = 1;
+            $response["message"] = "Sales Order List";
+            $response["data"] = $responseData;
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.getSalesOrderList - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+        return $response;
+    }
+    public function cancelSalesOrder($data)
+        {
+            try {
+                $orderIncrementId = property_exists($data, "orderIncrementId") && !empty($data->orderIncrementId) ? $data->orderIncrementId : null;
+                $nsTransactionId = property_exists($data, "nsTransactionId") && !empty($data->nsTransactionId) ? $data->nsTransactionId : null;
+
+                if ($orderIncrementId == null) {
+                    throw new Exception("Undefined Order IncrementId");
+                }
+
+                if ($nsTransactionId == null) {
+                    throw new Exception("Undefined NetSuite Transaction Id");
+                }
+
+                $order = Mage::getModel('sales/order')->loadByIncrementId($orderIncrementId);
+
+                $state = Mage_Sales_Model_Order::STATE_CANCELED;
+                $order->setData('state', $state);
+                $order->setStatus($state);
+                $history = $order->addStatusHistoryComment('This order has been cancelled due to editing of its NetSuite Sales Order Having Transaction Id: ' . $nsTransactionId, false);
+                $history->setIsCustomerNotified(false);
+                $responseData = array();
+
+                // making response object
+                $response["status"] = 1;
+                $response["message"] = "Sales Order has been cancelled";
+                $response["data"] = $responseData;
+            } catch (Exception $e) {
+                Mage::log("F3_Generic_Api_Base.getGiftCardAmount - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+                throw new Exception($e->getMessage());
+            }
+
+            return $response;
+        }
 }

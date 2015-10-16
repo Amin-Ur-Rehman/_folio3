@@ -54,7 +54,7 @@ var ExportPromoCodes = (function () {
 
             var promoCodeRecord = PromoCodesExportHelper.getPromoCode(promoCodeObject.internalId, store);
 
-            //PromoCodesExportHelper.sendRequestToMagento(promoCodeObject.internalId, promoCodeRecord, store, true);
+            //PromoCodesExportHelper.sendRequestToExternalSystem(promoCodeObject.internalId, promoCodeRecord, store, true);
         },
 
         /**

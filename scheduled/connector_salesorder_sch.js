@@ -33,32 +33,12 @@
 
 var SO_IMPORT_MIN_USAGELIMIT = 1000;        // For the safe side its 1000, we calculate , in actual it is 480
 
-/*var cyberSouceConfig = getCyberSourceConfiguration();
-
- // load the configuration from custom record and return as an object
- function getCyberSourceConfiguration() {
- var config = {};
- var rec;
- try {
- rec = nlapiLoadRecord('customrecord_cybersource_configuration', 1);
- config.merchantId = rec.getFieldValue('custrecord_csc_merchant_id');
- config.secretId = rec.getFieldValue('custrecord_csc_secret_key');
- config.reportingUser = rec.getFieldValue('custrecord_csc_reporting_user');
- config.reportingUserPass = rec.getFieldValue('custrecord_csc_reporting_user_pass');
- } catch (ex) {
- nlapiLogExecution('DEBUG', 'getCyberSourceConfiguration', ex.toString());
- }
- return config;
- }*/
-
 function syncSalesOrderMagento(sessionID, updateDate) {
     var order = {};
 
     var serverOrdersResponse;
     var salesOrderDetails;
     var orders;
-    var orderXML;
-    var productXML;
     var products;
     var netsuiteMagentoProductMap;
     var netsuiteMagentoProductMapData;
@@ -75,7 +55,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
 
         // Make Call and Get Data
-        serverOrdersResponse = ConnectorConstants.CurrentWrapper.getSalesOrders(order, sessionID);
+	serverOrdersResponse = getSalesOrderList(order, sessionID, ConnectorConstants.CurrentStore);
         Utility.logDebug('syncSalesOrderMagento > serverOrdersResponse', JSON.stringify(serverOrdersResponse));
 
         // If some problem
@@ -104,8 +84,6 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                     salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
                     //Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
-
-
                     //Utility.logDebug('stages_w', 'Step-c');
 
                     // Could not fetch sales order information from Magento
@@ -118,23 +96,6 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     var shippingAddress = salesOrderDetails.shippingAddress;
                     var billingAddress = salesOrderDetails.billingAddress;
                     var payment = salesOrderDetails.payment;
-
-                    /*if (isBlankOrNull(payment.csTranId)) {
-                     var ccdate;
-                     // TODO: test this part
-                     try {
-                     ccdate = getDate(orders[i].created_at + '');
-                     var ccRefCode = orders[i].increment_id;
-
-                     CyberSourceSingleTransactionReport.setup(cyberSouceConfig.reportingUser, cyberSouceConfig.reportingUserPass, cyberSouceConfig.merchantId);
-                     payment.csTranId = CyberSourceSingleTransactionReport.retieveRequestId(ccRefCode, ccdate);
-                     payment.csReposne = CyberSourceSingleTransactionReport.csResponse;
-                     nlapiLogExecution('DEBUG', 'Request Id from CyberSource', payment.csTranId);
-                     } catch (ex) {
-                     nlapiLogExecution('DEBUG', 'Error in getting request id', ex.toString());
-                     }
-                     }*/
-
                     products = salesOrderDetails.products;
 
                     Utility.logDebug('products', JSON.stringify(products));
@@ -152,7 +113,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
                     //Utility.logDebug('stages_w', 'Step-f');
-                    var customer = ConnectorModels.getCustomerObject(orders[i]);
+                    var customer = ConnectorModels.getCustomerObject(salesOrderDetails.customer);
                     //Utility.logDebug('stages_w', 'Step-g');
                     // adding shipping and billing address in customer object getting from sales order
                     customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
@@ -163,7 +124,12 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     var leadCreateAttemptResult = {};
 
                     // if order comes with guest customer whose record is not existed in Magento
-                    if (Utility.isBlankOrNull(orders[i].customer_id)) {
+                    if (Utility.isBlankOrNull(salesOrderDetails.customer.customer_id)) {
+                        // Check for feature availability
+                        if (!FeatureVerification.isPermitted(Features.IMPORT_SO_GUEST_CUSTOMER, ConnectorConstants.CurrentStore.permissions)) {
+                            Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_GUEST_CUSTOMER + ' NOT ALLOWED');
+                            continue;
+                        }
                         Utility.logDebug('Guest Customer Exists', '');
 
                         // adding shipping and billing address in customer object getting from sales order
@@ -190,7 +156,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         if (!!customerNSInternalId) {
                             // make order data object
-                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products,
+                            salesOrderObj = ConnectorModels.getSalesOrderObject(salesOrderDetails.customer, '', products,
                                 netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress,
                                     billingAddress, payment);
 
@@ -230,7 +196,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         // make order data object
                         salesOrderObj = ConnectorModels.getSalesOrderObject(
-                            orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
+                            salesOrderDetails.customer, '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
                                 shippingAddress, billingAddress, payment);
                         Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
                         // create sales order
@@ -278,6 +244,26 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
 }
 
+/**
+ * Get list of sales order from magento according to provided parameters
+ * @param soListParams
+ * @param sessionID
+ * @param store
+ * @returns {*}
+ */
+function getSalesOrderList(soListParams, sessionID, store) {
+    var responseMagentoOrders = null;
+    if(!!store.entitySyncInfo.common && !!store.entitySyncInfo.common.customRestApiUrl) {
+        Utility.logDebug('Inside MagentoRestApiWrapper', 'getSalesOrdersList call');
+        var mgRestAPiWrapper = new MagentoRestApiWrapper();
+        responseMagentoOrders = mgRestAPiWrapper.getSalesOrdersList(soListParams.updateDate, store.entitySyncInfo.salesorder.status, store);
+        Utility.logDebug('responseMagentoOrders from MagentoRestApiWrapper', JSON.stringify(responseMagentoOrders));
+    }
+    else {
+        responseMagentoOrders = ConnectorConstants.CurrentWrapper.getSalesOrders(soListParams, sessionID);
+    }
+    return responseMagentoOrders;
+}
 function startup(type) {
     if (type.toString() === 'scheduled' || type.toString() === 'userinterface' || type.toString() === 'ondemand') {
         if (MC_SYNC_CONSTANTS.isValidLicense()) {
@@ -295,7 +281,7 @@ function startup(type) {
             // getting last store id if script has been rescheduled
             lastStoreId = context.getSetting('SCRIPT', ConnectorConstants.ScriptParameters.LastStoreIdSalesOrder);
             // TODO: remove hard coding
-            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 2 : parseInt(lastStoreId);
+            lastStoreId = Utility.isBlankOrNull(lastStoreId) ? 1 : parseInt(lastStoreId);
 
             for (var system = lastStoreId; system < externalSystemConfig.length; system++) {
                 // Add a Check whether categories synched or not , if not then stop and give msg that ensure the sync of categories first
@@ -310,10 +296,20 @@ function startup(type) {
                     context.setPercentComplete(0.00);
                     // set store for ustilizing in other functions
                     ConnectorConstants.CurrentStore = store;
-
+                    // Check for feature availability
+                    if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        return;
+                    }
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                     ConnectorConstants.CurrentWrapper.initialize(store);
-                    ConnectorConstants.initializeDummyItem();
+
+                    // Check for feature availability
+                    if (FeatureVerification.isPermitted(Features.IMPORT_SO_DUMMMY_ITEM, ConnectorConstants.CurrentStore.permissions)) {
+                        ConnectorConstants.initializeDummyItem();
+                    }else{
+                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_DUMMMY_ITEM + ' NOT ALLOWED');
+                    }
 
                     var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
                     //var sofrequency = 120;

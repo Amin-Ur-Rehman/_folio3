@@ -607,6 +607,7 @@ function F3PurestColloidsClient() {
         var shippingCost = order.shipping_amount || 0;
 
         if (!(Utility.isBlankOrNull(shippingCarrier) || Utility.isBlankOrNull(shippingMethod))) {
+            Utility.logDebug('set shippingCarrier # shippingMethod', shippingCarrier + ' # ' + shippingMethod);
             rec.setFieldValue('shipcarrier', shippingCarrier);
             rec.setFieldValue('shipmethod', shippingMethod);
             rec.setFieldValue('shippingcost', shippingCost);
@@ -641,7 +642,12 @@ function F3PurestColloidsClient() {
         //Utility.logDebug('Setting Billing Fields', '');
 
         // set payment details
-        ConnectorCommon.setPayment(rec, payment);
+        ConnectorCommon.setPayment(
+            rec
+            , payment
+            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.netsuitePaymentTypes
+            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.magentoCCSupportedPaymentTypes
+        );
 
 
         for (var x = 0; x < products.length; x++) {
@@ -658,6 +664,7 @@ function F3PurestColloidsClient() {
                 rec.setLineItemValue('item', 'quantity', x + 1, products[x].qty_ordered);
                 rec.setLineItemValue('item', 'price', x + 1, 1);
                 rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                rec.setLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, x + 1, products[x].item_id);// -Not Taxable-
             }
             else {
                 if (ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.setDummyItem) {
@@ -666,6 +673,7 @@ function F3PurestColloidsClient() {
                     isDummyItemSetInOrder = true;
                     rec.setLineItemValue('item', 'amount', x + 1, '0');
                     rec.setLineItemValue('item', 'taxcode', x + 1, '-7');// -Not Taxable-
+                    rec.setLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, x + 1, products[x].item_id);// -Not Taxable-
                 }
             }
 
@@ -708,6 +716,7 @@ function F3PurestColloidsClient() {
             }
 
             rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
+            rec.setFieldValue(ConnectorConstants.Transaction.Fields.FromOtherSystem, 'T');
 
             //rec.setFieldValue('subsidiary', '3');// TODO generalize
 
@@ -901,35 +910,10 @@ function F3BaseV1Client() {
             rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
 
             //rec.setFieldValue('subsidiary', '3');// TODO generalize
-
-
-            //Utility.logDebug('w_DiscountItem', rec.getFieldValue('discountitem'));
-
-
             Utility.logDebug('Going to submit SO', 'Submitting');
             //var id = nlapiSubmitRecord(rec, {disabletriggers: true, ignoremandatoryfields: true}, false);
             var id = nlapiSubmitRecord(rec, true, true);
             Utility.logDebug('Netsuite SO-ID for magento order ' + order.increment_id, id);
-            /*if (isDummyItemSetInOrder) {
-             // if order has dummy item then don't create invoice and customer payment
-             return;
-             }
-             else {
-             // try creating Invoice
-             var invoiceResult = createInvoice(id, invoiceNum);
-             if (invoiceResult.errorMsg != '') {
-             nlapiLogExecution('ERROR', 'Could not create Invoice ', invoiceResult.errorMsg);
-             return;
-             }
-
-             // Now create Payment
-             var paymentResult = createCustomerPayment(invoiceResult.invoiceId);
-             if (paymentResult.errorMsg != '') {
-             nlapiLogExecution('ERROR', 'Could not create payment ', paymentResult.errorMsg);
-             return;
-             }
-
-             }*/
         }
         catch (ex) {
             //emailMsg = 'Order having Magento Id: ' + order.increment_id + ' did not created because of an error.\n' + ex.toString() + '.';

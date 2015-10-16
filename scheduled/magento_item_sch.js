@@ -55,7 +55,7 @@ function getMagentoParents(itemId) {
  */
 function syncProduct(product, productRecordtype, product_id, sessionID, isParent) {
     try {
-        Utility.logDebug('Sync Product ',isParent);
+        Utility.logDebug('Sync Product ', isParent);
         var itemXML;
         // check if Magento Item is in NetSuite
         if (!Utility.isBlankOrNull(product.magentoSKU)) {
@@ -99,16 +99,19 @@ function ws_soaftsubm(type) {
             ConnectorConstants.CurrentStore = store;
             ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
             ConnectorConstants.CurrentWrapper.initialize(store);
-            if (store.entitySyncInfo.item.isSync) {
-                var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
-                if (!sessionID) {
-                    Utility.logDebug('sessionID', 'sessionID is empty');
-                    return;
-                }
-                store.sessionID = sessionID;
-                // push store object after getting id for updating items in this store
-                externalSystemArr.push(store);
+            // Check for feature availability
+            if (!FeatureVerification.isPermitted(Features.UPDATE_ITEM_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                Utility.logDebug('FEATURE PERMISSION', Features.UPDATE_ITEM_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                return;
             }
+            var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
+            if (!sessionID) {
+                Utility.logDebug('sessionID', 'sessionID is empty');
+                return;
+            }
+            store.sessionID = sessionID;
+            // push store object after getting id for updating items in this store
+            externalSystemArr.push(store);
         });
 
         if (externalSystemArr.length === 0) {
@@ -186,7 +189,7 @@ function ws_soaftsubm(type) {
 
                             ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                             ConnectorConstants.CurrentWrapper.initialize(store);
-			    
+
                             Utility.logDebug('checkpoint', '1');
                             var magentoId = itemRec.getFieldValue(ConnectorConstants.Item.Fields.MagentoId);
                             // parse object

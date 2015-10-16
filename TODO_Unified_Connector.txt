@@ -4,7 +4,13 @@ Generalize product mapping logic in all the wrappers/Should be different logic
 Remove zero index of system config array
 Replace JSON with Sublist
 Customer Sync Logic
+Upsert method for create or update customer.
 
 
 WOO/shopify:
-Conditional getOrderInfor call
+Conditional getOrderInfo call
+
+Promotion export to WOO as coupon codes. In NS, more than one codes can be generated under on promotion rule, current connector supports for exporting one standard promotion with one code only .
+
+
+Tier Pricing in Item Sync script is not merged.

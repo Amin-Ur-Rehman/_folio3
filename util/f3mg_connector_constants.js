@@ -27,6 +27,7 @@ ConnectorConstants = (function () {
         ScheduleScriptInvokedFormUserEvent: 'custscript_sch_invoke_from_ue',
         ExternalSystemConfig: [],
         CurrentStore: {},
+        FeatureVerification: null,
         /**
          * Current Wrapper that is being referred to in Scheduled Scripts and User Events
          */
@@ -53,7 +54,9 @@ ConnectorConstants = (function () {
                 CreditMemoMagentoId: 'custbody_credit_memo_magentoid',
                 CancelledMagentoSOId: 'custbody_f3mg_cancelled_mg_so_id',
                 CustomerRefundMagentoId: 'custbody_cash_refund_magentoid',
-                DontSyncToMagento: 'custbody_f3mg_dont_sync_to_magento'
+                DontSyncToMagento: 'custbody_f3mg_dont_sync_to_magento',
+                FromOtherSystem: 'custbody_f3_so_from_other_system',
+                MagentoInvoiceId: 'custbody_f3mg_invoice_id'
             },
             Columns: {
                 MagentoOrderId: 'custcol_mg_order_item_id'
@@ -157,6 +160,16 @@ ConnectorConstants = (function () {
         },
         MagentoProductTypes: {
             GiftCard: "aw_giftcard"
+        },
+	 NetSuitePaymentTypes:{
+            Cash : '1',
+            Check : '2',
+            Discover : '3',
+            MasterCard : '4',
+            Visa : '5',
+            AmericanExpress : '6',
+            PayPal : '7',
+            EFT : '8'
         },
         /**
          * Init method
