@@ -157,39 +157,87 @@ var RefundExportHelper = (function () {
          * @param orderRecord
          * @param orderDataObject
          */
-        appendItemsInDataObject: function (creditMemoRecord, creditMemoDataObject) {
+        appendItemsInDataObject: function (creditMemoRecord, creditMemoDataObject, store) {
             creditMemoDataObject.items = [];
-
+            var adjustmentRefundItem = store.entitySyncInfo.cashrefund.adjustmentRefundItem;
+            Utility.logDebug('adjustmentRefundItem', adjustmentRefundItem);
+            var adjustmentRefundAmount = 0;
+            var cashSaleItemsArray = [];
             var totalLines = creditMemoRecord.getLineItemCount('item');
-
-            //var magentoItemsMap = ConnectorCommon.getMagentoItemIds(this.getNSItemIds(creditMemoRecord));
-
-            //Utility.logDebug('appendItemsInDataObject - magentoItemsMap', JSON.stringify(magentoItemsMap));
-
-            //var orderId = creditMemoDataObject.orderId;
-
-            //var magentoOrderItemIdsMap = ConnectorCommon.getMagentoOrderItemIdsMap(orderId, magentoItemsMap);
-            //Utility.logDebug('appendItemsInDataObject - magentoOrderItemIdsMap', JSON.stringify(magentoOrderItemIdsMap));
-
             for (var line = 1; line <= totalLines; line++) {
                 var nsId = creditMemoRecord.getLineItemValue('item', 'item', line);
                 var qty = creditMemoRecord.getLineItemValue('item', 'quantity', line);
-
-                //var magentoOrderItemIdMap = magentoOrderItemIdsMap.hasOwnProperty(nsId) ? magentoOrderItemIdsMap[nsId] : null;
-                //var orderItemId = !!magentoOrderItemIdMap && magentoOrderItemIdMap.hasOwnProperty('orderItemId') ? magentoOrderItemIdMap.orderItemId : null;
+                var itemId = creditMemoRecord.getLineItemValue('item', 'item', line);
                 var orderItemId = creditMemoRecord.getLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, line);
+                if(adjustmentRefundItem != itemId) {
+                    if (!Utility.isBlankOrNull(orderItemId)) {
+                        cashSaleItemsArray[orderItemId] = qty;
+                    }
+                }
+                else {
+                    var amount = creditMemoRecord.getLineItemValue('item', 'amount', line);
+                    adjustmentRefundAmount += parseFloat(amount);
+                }
+            }
+            if(adjustmentRefundAmount > 0){
+                creditMemoDataObject.adjustmentPositive = adjustmentRefundAmount;
+            }
+            Utility.logDebug('cashSaleItemsArray', JSON.stringify(cashSaleItemsArray));
 
+            // 'created from' would be either a cash sale or an invoice
+            var createdFromId = creditMemoRecord.getFieldValue('createdfrom');
+            var createdFromRecordType = this.getRecordTypeOfCreatedFromTransaction(createdFromId);
+            Utility.logDebug('createdFromId # createdFromRecordType', createdFromId+' # '+createdFromRecordType);
+            var createdFromRec = nlapiLoadRecord(createdFromRecordType, createdFromId);
+            var createdFromRecordLinesCount = createdFromRec.getLineItemCount('item');
+            for (var line = 1; line <= createdFromRecordLinesCount; line++) {
+                var orderItemId = createdFromRec.getLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, line);
                 if (!Utility.isBlankOrNull(orderItemId)) {
-
+                    var qty = cashSaleItemsArray[orderItemId];
+                    if(!qty) {
+                        qty = 0;
+                    }
                     var obj = {};
-
-                    obj.nsId = nsId;
                     obj.qty = qty;
                     obj.orderItemId = orderItemId;
-
                     creditMemoDataObject.items.push(obj);
                 }
             }
+
+            /*for (var line = 1; line <= totalLines; line++) {
+             var nsId = creditMemoRecord.getLineItemValue('item', 'item', line);
+             var qty = creditMemoRecord.getLineItemValue('item', 'quantity', line);
+
+             //var magentoOrderItemIdMap = magentoOrderItemIdsMap.hasOwnProperty(nsId) ? magentoOrderItemIdsMap[nsId] : null;
+             //var orderItemId = !!magentoOrderItemIdMap && magentoOrderItemIdMap.hasOwnProperty('orderItemId') ? magentoOrderItemIdMap.orderItemId : null;
+             var itemId = creditMemoRecord.getLineItemValue('item', 'item', line);
+             var orderItemId = creditMemoRecord.getLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, line);
+             if(adjustmentRefundItem != itemId) {
+             if (!Utility.isBlankOrNull(orderItemId)) {
+             var obj = {};
+             obj.nsId = nsId;
+             obj.qty = qty;
+             obj.orderItemId = orderItemId;
+             creditMemoDataObject.items.push(obj);
+             }
+             }
+             else {
+             var amount = creditMemoRecord.getLineItemValue('item', 'amount', line);
+             adjustmentRefundAmount += parseFloat(amount);
+             }
+             }*/
+        },
+
+        /**
+         * Get record type of the 'Created From' transaction
+         * @param internalId
+         */
+        getRecordTypeOfCreatedFromTransaction: function(internalId) {
+            var records = nlapiSearchRecord('transaction', null, [new nlobjSearchFilter('internalid', null, 'is', internalId)]);
+            if(!!records && records.length > 0) {
+                return records[0].getRecordType();
+            }
+            return '';
         },
 
         /**
@@ -270,13 +318,33 @@ var RefundExportHelper = (function () {
             try {
                 var cashRefundNsId = record.getId();
                 // get credit card data
-                var cashRefund = this.getCustomerRefund(cashRefundNsId);
-
-                if (cashRefund.items.length === 0) {
+                var cashRefund = this.getCustomerRefund(cashRefundNsId, store);
+                if (cashRefund.items.length === 0 && !cashRefund.adjustmentPositive) {
                     Utility.throwException(null, 'No item found to refund');
                 }
+                Utility.logDebug('cashRefund object', JSON.stringify(cashRefund));
+                var params = this.getRequestParameters(cashRefund, store);
+                var requestParam = {"data": JSON.stringify(params), "method" : "createCreditMemo"};
+                Utility.logDebug('requestParam', JSON.stringify(requestParam));
+                var magentoCreditMemoCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
+                Utility.logDebug('magentoCreditMemoCreationUrl', magentoCreditMemoCreationUrl);
+                var resp = nlapiRequestURL(magentoCreditMemoCreationUrl, requestParam, null, 'POST');
+                var responseBody = resp.getBody();
+                Utility.logDebug('responseBody_w', responseBody);
+                responseBody = JSON.parse(responseBody);
+                if(!!responseBody.status) {
+                    if(!!responseBody.increment_id) {
+                        ExportCustomerRefunds.setCashRefundMagentoId(responseBody.increment_id, cashRefundNsId);
+                    } else {
+                        Utility.logDebug('Error', 'Magento Credit Memo Increment Id not found');
+                    }
+                    Utility.logDebug('successfully', 'magento credit memo created');
+                } else {
+                    Utility.logException('Some error occurred while creating Magento credit memo', responseBody.error);
+                }
 
-                var requestXml = XmlUtility.getCreditMemoCreateXml(cashRefund, store.sessionID);
+
+                /*var requestXml = XmlUtility.getCreditMemoCreateXml(cashRefund, store.sessionID);
                 Utility.logDebug('cashRefund requestXml', requestXml);
                 var responseMagento = XmlUtility.validateAndTransformResponse(XmlUtility.soapRequestToMagento(requestXml), XmlUtility.transformCreditMemoCreateResponse);
 
@@ -285,7 +353,8 @@ var RefundExportHelper = (function () {
                 } else {
                     Utility.logDebug('RefundExportHelper.processCustomerRefund', responseMagento.faultString);
                     ExportCustomerRefunds.markRecords(cashRefundNsId, responseMagento.faultString);
-                }
+                }*/
+
             } catch (e) {
                 Utility.logException('RefundExportHelper.processCustomerRefund', e);
                 ExportCustomerRefunds.markRecords(cashRefundNsId, e.toString());
@@ -293,10 +362,67 @@ var RefundExportHelper = (function () {
         },
 
         /**
+         * Get Credit Memo request parameters
+         * @param cashRefundObj
+         */
+        getRequestParameters : function (cashRefundObj, store){
+            var params = {};
+            params.order_increment_id = cashRefundObj.orderId;
+            params.invoice_increment_id = cashRefundObj.invoiceId;
+            params.shipping_cost = !!cashRefundObj.shippingCost ? cashRefundObj.shippingCost : 0;
+            params.adjustment_positive = !!cashRefundObj.adjustmentPositive ? cashRefundObj.adjustmentPositive : 0;
+            params.quantities = [];
+            for (var i in cashRefundObj.items) {
+                params.quantities.push({order_item_id: cashRefundObj.items[i].orderItemId, qty: cashRefundObj.items[i].qty});
+                //params.quantities[cashRefundObj.items[i].orderItemId] = cashRefundObj.items[i].qty;
+            }
+
+            var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(cashRefundObj.paymentMethod, cashRefundObj.isSOFromOtherSystem, store);
+            params.capture_online = onlineCapturingPaymentMethod.toString();
+
+            return params;
+        },
+
+        /**
+         * Check either payment of this Invoice should capture online or not
+         */
+        checkPaymentCapturingMode : function(sOPaymentMethod, isSOFromOtherSystem, store) {
+            var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
+            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+                return true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Check either payment method capturing is online supported or not??
+         * @param sOPaymentMethodId
+         */
+        isOnlineCapturingPaymentMethod : function (sOPaymentMethodId, store) {
+            var onlineSupported = false;
+            switch (sOPaymentMethodId) {
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Discover:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.MasterCard:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Visa:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.AmericanExpress:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.PayPal:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.EFT:
+                    onlineSupported = true;
+                    break;
+                default :
+                    onlineSupported = false;
+                    break;
+            }
+
+            return onlineSupported;
+        },
+
+        /**
          * Gets a credit memo data object
          * @param parameter
          */
-        getCustomerRefund: function (refundInternalId) {
+        getCustomerRefund: function (refundInternalId, store) {
             var cashRefundDataObject = null;
             try {
                 var cashRefundRecord = nlapiLoadRecord('cashrefund', refundInternalId, null);
@@ -306,6 +432,7 @@ var RefundExportHelper = (function () {
 
                     cashRefundDataObject.storeId = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore);
                     cashRefundDataObject.orderId = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoId);
+                    cashRefundDataObject.invoiceId = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.MagentoInvoiceId);
                     cashRefundDataObject.shippingCost = cashRefundRecord.getFieldValue('shippingcost');
                     cashRefundDataObject.comment = cashRefundRecord.getFieldValue('memo');
                     cashRefundDataObject.adjustmentPositive = '';
@@ -313,9 +440,11 @@ var RefundExportHelper = (function () {
                     cashRefundDataObject.notifyCustomer = '0';
                     cashRefundDataObject.includeComment = '1';
                     cashRefundDataObject.refundToStoreCreditAmount = '';// store id optional field know itself
+                    cashRefundDataObject.paymentMethod = cashRefundRecord.getFieldValue('paymentmethod');
+                    cashRefundDataObject.isSOFromOtherSystem = cashRefundRecord.getFieldValue(ConnectorConstants.Transaction.Fields.FromOtherSystem);
                     cashRefundDataObject.nsObj = cashRefundRecord;
 
-                    this.appendItemsInDataObject(cashRefundRecord, cashRefundDataObject);
+                    this.appendItemsInDataObject(cashRefundRecord, cashRefundDataObject, store);
                 }
             } catch (e) {
                 Utility.logException('CreditMemoExportHelper.getCustomerRefund', e);
@@ -496,10 +625,11 @@ var ExportCustomerRefunds = (function () {
                         var records = this.getRecords(store.systemId);
 
 
-                        Utility.logDebug('debug', 'Step-3');
+                        
 
                         if (records !== null && records.length > 0) {
                             Utility.logDebug('fetched refunds count', records.length);
+			    Utility.logDebug('debug', 'Step-3');
                             this.processRecords(records, store);
                         } else {
                             Utility.logDebug('ExportCustomerRefunds.scheduled', 'No records found to process - StoreId: ' + store.systemId);

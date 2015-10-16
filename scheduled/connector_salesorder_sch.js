@@ -55,7 +55,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
 
         // Make Call and Get Data
-        serverOrdersResponse = ConnectorConstants.CurrentWrapper.getSalesOrders(order, sessionID);
+	serverOrdersResponse = getSalesOrderList(order, sessionID, ConnectorConstants.CurrentStore);
         Utility.logDebug('syncSalesOrderMagento > serverOrdersResponse', JSON.stringify(serverOrdersResponse));
 
         // If some problem
@@ -113,7 +113,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
                     //Utility.logDebug('stages_w', 'Step-f');
-                    var customer = ConnectorModels.getCustomerObject(orders[i]);
+                    var customer = ConnectorModels.getCustomerObject(salesOrderDetails.customer);
                     //Utility.logDebug('stages_w', 'Step-g');
                     // adding shipping and billing address in customer object getting from sales order
                     customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
@@ -124,7 +124,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     var leadCreateAttemptResult = {};
 
                     // if order comes with guest customer whose record is not existed in Magento
-                    if (Utility.isBlankOrNull(orders[i].customer_id)) {
+                    if (Utility.isBlankOrNull(salesOrderDetails.customer.customer_id)) {
                         // Check for feature availability
                         if (!FeatureVerification.isPermitted(Features.IMPORT_SO_GUEST_CUSTOMER, ConnectorConstants.CurrentStore.permissions)) {
                             Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_GUEST_CUSTOMER + ' NOT ALLOWED');
@@ -156,7 +156,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         if (!!customerNSInternalId) {
                             // make order data object
-                            salesOrderObj = ConnectorModels.getSalesOrderObject(orders[i], '', products,
+                            salesOrderObj = ConnectorModels.getSalesOrderObject(salesOrderDetails.customer, '', products,
                                 netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress,
                                     billingAddress, payment);
 
@@ -196,7 +196,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         // make order data object
                         salesOrderObj = ConnectorModels.getSalesOrderObject(
-                            orders[i], '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
+                            salesOrderDetails.customer, '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
                                 shippingAddress, billingAddress, payment);
                         Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
                         // create sales order
@@ -244,6 +244,26 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
 }
 
+/**
+ * Get list of sales order from magento according to provided parameters
+ * @param soListParams
+ * @param sessionID
+ * @param store
+ * @returns {*}
+ */
+function getSalesOrderList(soListParams, sessionID, store) {
+    var responseMagentoOrders = null;
+    if(!!store.entitySyncInfo.common && !!store.entitySyncInfo.common.customRestApiUrl) {
+        Utility.logDebug('Inside MagentoRestApiWrapper', 'getSalesOrdersList call');
+        var mgRestAPiWrapper = new MagentoRestApiWrapper();
+        responseMagentoOrders = mgRestAPiWrapper.getSalesOrdersList(soListParams.updateDate, store.entitySyncInfo.salesorder.status, store);
+        Utility.logDebug('responseMagentoOrders from MagentoRestApiWrapper', JSON.stringify(responseMagentoOrders));
+    }
+    else {
+        responseMagentoOrders = ConnectorConstants.CurrentWrapper.getSalesOrders(soListParams, sessionID);
+    }
+    return responseMagentoOrders;
+}
 function startup(type) {
     if (type.toString() === 'scheduled' || type.toString() === 'userinterface' || type.toString() === 'ondemand') {
         if (MC_SYNC_CONSTANTS.isValidLicense()) {
