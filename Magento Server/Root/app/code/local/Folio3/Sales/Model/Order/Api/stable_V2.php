@@ -1,12 +1,7 @@
 <?php
 
-//require_once '/var/www/html/app/code/local/Folio3/Common/CustomAttributeEntity.php';
-//require_once 'Folio3/Common/CustomAttributeEntity.php';
-
-//require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomAttributeEntity.php';
-//require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomOrderItemEntity.php';
-require_once(Mage::getBaseDir('code') . '/local/Folio3/Common/CustomAttributeEntity.php');
-require_once(Mage::getBaseDir('code') . '/local/Folio3/Common/CustomOrderItemEntity.php');
+require_once Mage::getBaseDir('code') .'/local/Folio3/Common/CustomAttributeEntity.php';
+require_once Mage::getBaseDir('code') .'/local/Folio3/Common/CustomOrderItemEntity.php';
 
 class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
@@ -301,27 +296,7 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
         // set coupon code if necessory
         //$quote->setCouponCode('ABCD');
-        //$this->quote->getPayment()->importData(array('method' => 'checkmo'));
-
-        $paymentInfo = array();
-        $paymentInfo['method'] = $this->paymentData->method;
-        Mage::log('paymentMethod: ' . ($this->paymentData->method), null, 'create-order.log', true);
-        Mage::log('paymentType: ' . ($this->paymentData->cc_type), null, 'create-order.log', true);
-        if(isset($this->paymentData->cc_type)) {
-            Mage::log('Inside payment setting', null, 'create-order.log', true);
-            $paymentInfo['cc_type'] = $this->paymentData->cc_type;
-            $paymentInfo['cc_number'] = $this->paymentData->cc_number;
-            $paymentInfo['cc_owner'] = $this->paymentData->cc_owner;
-            $paymentInfo['cc_exp_year'] = $this->paymentData->cc_exp_year;
-            $paymentInfo['cc_exp_month'] = $this->paymentData->cc_exp_month;
-            $paymentInfo['cc_cid'] = $this->paymentData->cc_type == 'AE' ? 1234 : 123;
-            //$paymentInfo['cc_cid'] = '123';
-
-            Mage::log('paymentMethod: ' . (json_encode($paymentInfo)), null, 'create-order.log', true);
-        }
-
-        $this->quote->getPayment()->importData($paymentInfo);
-
+        $this->quote->getPayment()->importData(array('method' => 'checkmo'));
         $this->quote->collectTotals()->save();
     }
 

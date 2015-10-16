@@ -64,7 +64,7 @@ var FulfillmentExportHelper = (function () {
 
                 // Check for feature availability
                 if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO, ConnectorConstants.CurrentStore.permissions)) {
-                    Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO + ' NOT ALLOWED');
+                    Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO + ' NOT ALLOWED');
                     return responseMagento;
                 }
 
@@ -189,7 +189,7 @@ var FulfillmentExport = (function () {
 
                     // Check for feature availability
                     if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                        Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                         return;
                     }
 

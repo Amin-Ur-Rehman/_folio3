@@ -74,7 +74,7 @@ var GenericDataExportManager = (function () {
                 ConnectorConstants.CurrentStore = externalSystemConfig[promoCodeRecord.magentoStore];
                 // Check for feature availability
                 if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                    Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_PROMOTION_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                    Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_PROMOTION_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                     result.error = Features.EXPORT_PROMOTION_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED';
                     result.status = false;
                     return result;

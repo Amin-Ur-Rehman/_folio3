@@ -310,7 +310,6 @@
                     <element name="sku" type="xsd:string" minOccurs="0"/>
                     <element name="qty" type="xsd:double" minOccurs="0"/>
                     <element name="customprice" type="xsd:double" minOccurs="0"/>
-                    <element name="f3_gc_info" type="typens:f3GcInfoEntityArray" minOccurs="0" maxOccurs="1"/>
                     <element name="options" type="typens:associativeArray" minOccurs="0"/>
                     <element name="bundle_option" type="typens:associativeArray" minOccurs="0"/>
                     <element name="bundle_option_qty" type="typens:associativeArray" minOccurs="0"/>
@@ -350,37 +349,6 @@
                     </restriction>
                 </complexContent>
             </complexType>
-            <complexType name="f3GcInfoEntity">
-                <all>
-                    <element name="aw_gc_amount" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_sender_name" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_sender_email" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_recipient_name" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_recipient_email" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_message" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="aw_gc_code" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                </all>
-            </complexType>
-            <complexType name="f3GcInfoEntityArray">
-                <complexContent>
-                    <restriction base="soapenc:Array">
-                        <attribute ref="soapenc:arrayType" wsdl:arrayType="typens:f3GcInfoEntity[]"/>
-                    </restriction>
-                </complexContent>
-            </complexType>
-            <complexType name="giftCodeEntity">
-                <all>
-                    <element name="auth_code" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                    <element name="auth_code_applied_amt" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-                </all>
-            </complexType>
-            <complexType name="giftCodeEntityArray">
-                <complexContent>
-                    <restriction base="soapenc:Array">
-                        <attribute ref="soapenc:arrayType" wsdl:arrayType="typens:giftCodeEntity[]"/>
-                    </restriction>
-                </complexContent>
-            </complexType>
         </schema>
     </types>
     <message name="folio3_salesOrderGetSalesOrderInfoRequest">
@@ -400,7 +368,6 @@
         <part name="paymentmethod" type="typens:shoppingCartPaymentMethodEntity"/>
         <part name="history" type="xsd:string" />
         <part name="status" type="xsd:string" />
-        <part name="giftCodes" type="typens:giftCodeEntityArray"/>
     </message>
     <message name="folio3_salesOrderCreateSalesOrderResponse">
         <part name="result" type="typens:customObjectEntityArray" />

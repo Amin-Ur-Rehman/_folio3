@@ -768,7 +768,7 @@ var ExportSalesOrders = (function () {
                         ConnectorConstants.CurrentStore = store;
                         // Check for feature availability
                         if (!FeatureVerification.isPermitted(Features.EXPORT_SO_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                            Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_SO_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                            Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_SO_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                             continue;
                         }
                         ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);

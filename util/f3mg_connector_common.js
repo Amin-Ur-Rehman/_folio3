@@ -1540,7 +1540,7 @@ var ConnectorCommon = (function () {
                 ConnectorConstants.CurrentStore = externalSystemConfig[storeId];
                 // Check for feature availability
                 if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                    Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                    Utility.logEmergency('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                     result.error = Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED';
                     return result;
                 }

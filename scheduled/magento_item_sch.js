@@ -101,7 +101,7 @@ function ws_soaftsubm(type) {
             ConnectorConstants.CurrentWrapper.initialize(store);
             // Check for feature availability
             if (!FeatureVerification.isPermitted(Features.UPDATE_ITEM_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                Utility.logDebug('FEATURE PERMISSION', Features.UPDATE_ITEM_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                Utility.logEmergency('FEATURE PERMISSION', Features.UPDATE_ITEM_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                 return;
             }
             var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);

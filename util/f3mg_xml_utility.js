@@ -1735,7 +1735,7 @@ MagentoXmlWrapper = (function () {
             return responseTracking;
         },
 
-        getCustomerAddressa: function (customerID, sessionID) {
+        getCustomerAddress: function (customerID, sessionID) {
             var custAddrXML = MagentoWrapper.getCustomerAddressXML(customerID, sessionID);
 
             var addressResponse =
