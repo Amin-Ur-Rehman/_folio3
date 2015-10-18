@@ -45,6 +45,80 @@ function getMagentoParents(itemId) {
     }
     return result;
 }
+
+
+/**
+ * Making an object required for generating CatalogProductAttributeTierPriceUpdate XML
+ * @param product
+ * @return {object}
+ *
+ * Note: Currently I handle only one curreny USD and base price level having id 1
+ *
+ * Help:
+ * Sublist Sample Code: https://system.netsuite.com/app/help/helpcenter.nl?fid=section_N3216851.html#bridgehead_N3221129
+ */
+function getTierPriceDataObj(product) {
+    // Check the features enabled in the account. See Pricing Sublist Feature Dependencies for
+    // details on why this is important.
+    var multiCurrency = nlapiGetContext().getFeature('MULTICURRENCY');
+    var multiPrice = nlapiGetContext().getFeature('MULTPRICE');
+    var quantityPricing = nlapiGetContext().getFeature('QUANTITYPRICING');
+
+    // Set the name of the Price sublist based on features enabled and currency type.
+    // See Pricing Sublist Internal IDs for details on why this is important.
+    var priceID;
+    var currencyID = "USD";
+
+    // Set the ID for the sublist and the price field. Note that if all pricing-related features
+    // are disabled, you will set the price in the rate field. See Pricing Sublist Feature Dependencies
+    // for details.
+    if (!multiCurrency && !multiPrice && !quantityPricing) {
+        priceID = "rate";
+    }
+    else {
+        priceID = "price";
+        if (multiCurrency) {
+            //var internalId = nlapiSearchRecord('currency', null, new nlobjSearchFilter('symbol', null, 'contains', currencyID))[0].getId();
+            //for USD as default curremcy id - TODO: generalize in future for more than one currency support
+            var internalId = 1;
+            // Append the currency ID to the sublist name
+            priceID = priceID + internalId;
+        }
+    }
+
+    var obj = {};
+    var itemRec = product.itemRec;
+    var catalogProductTierPriceEntityArray = [];
+    var qty, price;
+
+    // reading price level from configuration
+    var priceLevel = ConnectorConstants.CurrentStore.entitySyncInfo.item.priceLevel;
+
+    for (var i = 2; i <= 5; i++) {
+        var catalogProductTierPriceEntity = {};
+        // update tier price if tiers exist
+        if (!!itemRec.getMatrixValue(priceID, 'price', i)) {
+
+            qty = itemRec.getMatrixValue(priceID, 'price', i);
+            //price = itemRec.getLineItemValue('price', 'price_' + i + '_', priceLevel);
+            price = itemRec.getLineItemMatrixValue(priceID, 'price', priceLevel, i);
+
+            catalogProductTierPriceEntity.qty = qty;
+            catalogProductTierPriceEntity.price = price;
+
+            catalogProductTierPriceEntityArray.push(catalogProductTierPriceEntity);
+        }
+    }
+
+    obj.catalogProductTierPriceEntityArray = catalogProductTierPriceEntityArray;
+    obj.product = product.magentoSKU;
+    obj.identifierType = product.identifierType;
+
+    Utility.logDebug('getTierPriceDataObj', JSON.stringify(obj));
+
+    return obj;
+}
+
 /**
  * Sync inventory quantity and price for matirx child and parent products to magento
  * @param product
@@ -78,6 +152,23 @@ function syncProduct(product, productRecordtype, product_id, sessionID, isParent
             } else {
                 // Updated Successfully
                 Utility.logDebug('item: ' + product_id + ' price: ', +product.price + ' item synced successfully - quantity: ' + product.quatity);
+
+                // Check for feature availability
+                if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_TIERED_PRICING, ConnectorConstants.CurrentStore.permissions)) {
+                    Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_ITEM_TIERED_PRICING + ' NOT ALLOWED');
+                    return;
+                }
+
+                product.tierPriceDataObj = getTierPriceDataObj(product);
+
+                // syncing tier prices after updating item succesfully
+                var tierPriceResponse = ConnectorConstants.CurrentWrapper.syncProductTierPrice(product);
+                if (tierPriceResponse.status) {
+                    Utility.logDebug('Tier Price Update Successfully', 'Magento Id: ' + product.magentoSKU);
+                } else {
+                    var msg = 'Item having Magento Id: ' + product.magentoSKU + ' has not exported. -- ' + tierPriceResponse.faultCode + '--' + tierPriceResponse.faultString;
+                    Utility.logDebug('Tier Price Update Failed', msg);
+                }
             }
         }
     } catch (ex) {
@@ -211,6 +302,9 @@ function ws_soaftsubm(type) {
                             var quantityLocation = store.entitySyncInfo.item.quantityLocation;
 
                             var product = {};
+                            product.itemRec = itemRec;
+                            product.identifierType = "sku";
+
                             // product.queenStock = itemRec.getFieldValue('custitem_queenst_stock');
                             if (!ConnectorCommon.isDevAccount()) {
                                 Utility.logDebug('checkpoint', '6');
