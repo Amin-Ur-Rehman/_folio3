@@ -62,7 +62,7 @@ class Folio3_CancelOrder_Model_Observer
             $data["apiMethod"] = "cancelSalesOrder";
             $data["data"] = array(
                 "soIncrementId" => "$orderIncrementId",
-                "storeId", "$storeId"
+                "storeId" => "$storeId"
             );
 
             // send request to NetSuite
