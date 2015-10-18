@@ -1,14 +1,10 @@
 <?php
 
-//require_once '/var/www/html/app/code/local/Folio3/Common/CustomAttributeEntity.php';
-//require_once 'Folio3/Common/CustomAttributeEntity.php';
-
-//require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomAttributeEntity.php';
-//require_once '/home/purestcolloids/public_html/cart/app/code/local/Folio3/Common/CustomOrderItemEntity.php';
 require_once(Mage::getBaseDir('code') . '/local/Folio3/Common/CustomAttributeEntity.php');
 require_once(Mage::getBaseDir('code') . '/local/Folio3/Common/CustomOrderItemEntity.php');
 
-class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
+class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2
+{
 
     private $storeId;
     private $customer;
@@ -17,15 +13,16 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
     private $shippingMehtod;
     private $paymentData;
     private $quote;
+    private $isOnlyGiftCard = true;
+    private $giftCodes;
 
     /**
      * Retrieve Sales Order data
-     *
-     * @param string $increamentId
-     * @param array $attributes
+     * @param $increamentId
      * @return array
      */
-    public function getSalesOrderInfo($increamentId) {
+    public function getSalesOrderInfo($increamentId)
+    {
 
         // get default sales order info
         $result = parent::info($increamentId);
@@ -49,112 +46,74 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
     /**
      * Create sales order in one request
-     * @param string $storeId
-     * @param object $customer
-     * @param object $products
-     * @param string $shippingmethod
-     * @param object $paymentmethod
-     * @param double $customShippingCost
-     * @param string $status
+     * @param $storeId
+     * @param $customer
+     * @param $products
+     * @param $shippingmethod
+     * @param $customshippingcost
+     * @param $paymentmethod
+     * @param $history
+     * @param $status
+     * @param $giftCodes
      * @return array
+     * @throws Exception
      */
-    public function createSalesOrder($storeId, $customer, $products, $shippingmethod, $customshippingcost, $paymentmethod, $history, $status) {
-        $logStr = 'Func Start: createSalesOrder';
+    public function createSalesOrder($storeId, $customer, $products, $shippingmethod, $customshippingcost, $paymentmethod, $history, $status, $giftCodes)
+    {
+        $GLOBALS["f3_giftcard_code"] = array();
         $result = array();
-        $logStr .= '__Before: initDataForQuote';
-        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
         // initialize members variables for quote
-        $this->initDataForQuote($storeId, $customer, $products, $shippingmethod, $paymentmethod);
-        $logStr .= '__After: initDataForQuote';
-        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+        $this->initDataForQuote($storeId, $customer, $products, $shippingmethod, $paymentmethod, $giftCodes);
 
         $quoteId = null;
         try {
-            $logStr .= '__Before: createQuote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+
             // create quote
             $quoteId = $this->createQuote();
-            $logStr .= '__After: createQuote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
-            Mage::log('quote: ' . $quoteId, null, 'create-order.log', true);
+            //Mage::log('quote: ' . $quoteId, null, 'create-order.log', true);
 
-            $logStr .= '__Before: getModel sales/service_quote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // create sales order from quote
             $service = Mage::getModel('sales/service_quote', $this->quote);
-            $logStr .= '__After: getModel sales/service_quote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
-            $logStr .= '__Before: submit order';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             $service->submitAll();
-            $logStr .= '__After: submit order';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // getting created order
-            $logStr .= '__Before: get order';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             $order = $service->getOrder();
-            $logStr .= '__After: get order';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+            //Mage::log('order: ' . json_encode($order), null, 'create-order.log', true);
 
-            $logStr .= '__Before: addHistoryInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // add history in comments
             $this->addHistoryInOrder($order, $history);
-            $logStr .= '__After: addHistoryInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
 
-            $logStr .= '__Before: setShippingCostInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // set custom shipping cost
             $this->setShippingCostInOrder($order, $customshippingcost);
-            $logStr .= '__After: setShippingCostInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
-
-            $logStr .= '__Before: setStatusInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // set set
             $this->setStatusInOrder($order, $status);
-            $logStr .= '__After: setStatusInOrder';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
-            // set order increment id in web service response
 
+            Mage::log('IncrementId: ' . $order->getIncrementId(), null, 'create-order.log', true);
+
+            // set order increment id in web service response
+            Mage::log('CustomAttributeEntity: ' . class_exists("CustomAttributeEntity"), null, 'create-order.log', true);
             $customAttribute = new CustomAttributeEntity();
             $customAttribute->field_id = 'orderIncrementId';
             $customAttribute->field_value = $order->getIncrementId();
             $result['result'][] = $customAttribute;
-            $logStr .= '__Before: getOrderItemEntityArray';
-            //$result['orderitementityarray'] = array();
-            $result['orderitementityarray']= CustomOrderItemEntity::getOrderItemEntityArray($order->getIncrementId());
-            $logStr .= '__After: getOrderItemEntityArray';
-            Mage::log($logStr, null, 'create-order.log', true);
+            $result['orderitementityarray'] = CustomOrderItemEntity::getOrderItemEntityArray($order->getIncrementId());
+
+            Mage::log('result1: ' . json_encode($result), null, 'create-order.log', true);
 
         } catch (Exception $e) {
-            $logStr .= '__ERROR: ' . $e->getMessage();
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
-
-            $logStr .= '__Before: deleteQuote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
             // TODO: handle quote rollback - future
             $this->delteQuote($quoteId);
-            $logStr .= '__After: deleteQuote';
-            //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
-            //$this->_fault('Delete Quote Id: ' . $quoteId);
 
             $customAttribute = new CustomAttributeEntity();
             $customAttribute->field_id = 'Delete Quote Id: ' . $quoteId;
             $customAttribute->field_value = $e->getMessage();
 
-
-
-            Mage::log(' Catch Log Error: ' . $logStr, null, 'order-status.log', true);
+            Mage::log('Catch Log Error: ' . $e->getMessage(), null, 'order-status.log', true);
 
             throw $e;
         }
 
-        $logStr .= '__Func End: createSalesOrder';
-
-        //Mage::log('ZeeLogs: ' . $logStr, null, 'order-status.log', true);
+        Mage::log('result2: ' . json_encode($result), null, 'create-order.log', true);
 
         return $result;
     }
@@ -168,20 +127,24 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * @param object $paymentData
      * @return void
      */
-    private function initDataForQuote($storeId, $customerData, $products, $shippingMethod, $paymentData) {
+    private function initDataForQuote($storeId, $customerData, $products, $shippingMethod, $paymentData, $giftCodes)
+    {
         $this->storeId = $storeId;
         $this->customer = $customerData->entity;
         $this->addresses = $customerData->address;
         $this->products = $products;
         $this->shippingMehtod = $shippingMethod;
         $this->paymentData = $paymentData;
+        $this->giftCodes = $giftCodes;
     }
 
     /**
      * Create a Quote
-     * @return string $quoteId
+     * @return mixed
+     * @throws Exception
      */
-    private function createQuote() {
+    private function createQuote()
+    {
         $this->quote = $this->getQuoteModel();
 
         $this->setStoreId();
@@ -191,13 +154,40 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
         $this->quote->save();
         $quoteId = $this->quote->getId();
 
+        // handling for AW gift card extension - start
+        $giftCodes = $this->giftCodes;
+
+        if (count($giftCodes) > 0) {
+            foreach ($giftCodes as $giftCode) {
+                $authCode = $giftCode->auth_code;
+                $authCodeAppliedAmt = $giftCode->auth_code_applied_amt;
+                $giftcardModel = Mage::getModel('aw_giftcard/giftcard')->loadByCode($authCode);
+
+                $isValid = $giftcardModel->isValidForRedeem($this->quote->getStoreId());
+
+                // if any of gift card remaining balance is lower than required throw an error
+                if ($isValid && $giftcardModel->getBalance() < $authCodeAppliedAmt) {
+                    throw new Exception("Order is not redeemabe with requested Gift Card(s) Balance.");
+                }
+
+                Mage::getModel('aw_giftcard/quote_giftcard')
+                    ->setQuoteEntityId($quoteId)
+                    ->setBaseGiftcardAmount($authCodeAppliedAmt)
+                    ->setGiftcardAmount($authCodeAppliedAmt)
+                    ->setGiftcardId($giftcardModel->getId())
+                    ->save();
+            }
+        }
+        // handling for AW gift card extension - start
+
         return $quoteId;
     }
 
     /**
      * Set Store Id in Quote
      */
-    private function setStoreId() {
+    private function setStoreId()
+    {
         $this->quote->setStoreId($this->storeId);
     }
 
@@ -205,14 +195,16 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * Get Quote Model
      * @return  Mage_Core_Model_Abstract|false
      */
-    private function getQuoteModel() {
+    private function getQuoteModel()
+    {
         return Mage::getModel('sales/quote');
     }
 
     /**
      * Assign/Set Customer in the Quote
      */
-    private function setCustomer() {
+    private function setCustomer()
+    {
         // get Customer Id - TODO: generalize for guest, new and existing customers
         $id = $this->customer->customer_id;
         $customer = Mage::getModel('customer/customer')->load($id);
@@ -223,9 +215,12 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
     /**
      * Add products in the Quote
      */
-    private function addProducts() {
+    private function addProducts()
+    {
         $products = $this->products;
+        Mage::log('products: ' . json_encode($products), null, 'create-order.log', true);
         foreach ($products as $p) {
+            Mage::log('p: ' . json_encode($p), null, 'create-order.log', true);
             // add product(s)
             $product = Mage::getModel('catalog/product');
 
@@ -236,28 +231,71 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
                 $productId = $p->product_id;
             }
 
-            $product = $product->load($productId);
+            // todo generalize store id
+            $product = $product->setStore(1)->setStoreId(1)->load($productId);
 
-            $customPrice = $p->customprice;
+            if (!empty($product) && $product->getTypeId() != "aw_giftcard") {
+                $this->isOnlyGiftCard = false;
+            }
 
+            $isCustomPrice = array_key_exists("customprice", $p);
+
+            // set data in quote item
             $params = array();
             $params['qty'] = $p->qty;
+            if (isset($p->f3_gc_info) && count($p->f3_gc_info) > 0) {
+                $gcInfo = $p->f3_gc_info[0];
+                $params['aw_gc_amount'] = $gcInfo->aw_gc_amount;
+                $params['aw_gc_sender_name'] = $gcInfo->aw_gc_sender_name;
+                $params['aw_gc_sender_email'] = $gcInfo->aw_gc_sender_email;
+                $params['aw_gc_recipient_name'] = $gcInfo->aw_gc_recipient_name;
+                $params['aw_gc_recipient_email'] = $gcInfo->aw_gc_recipient_email;
+                $params['aw_gc_message'] = $gcInfo->aw_gc_message;
+                //$params['aw_gc_created_codes'] = array(1);
+
+                // set global variables to use in gift card extension
+                if (!array_key_exists("f3_giftcard_code", $GLOBALS)) {
+                    $GLOBALS["f3_giftcard_code"] = array();
+                }
+
+                $giftCardObj = array();
+                $giftCardObj['aw_gc_amount'] = $gcInfo->aw_gc_amount;
+                $giftCardObj['aw_gc_sender_name'] = $gcInfo->aw_gc_sender_name;
+                $giftCardObj['aw_gc_sender_email'] = $gcInfo->aw_gc_sender_email;
+                $giftCardObj['aw_gc_recipient_name'] = $gcInfo->aw_gc_recipient_name;
+                $giftCardObj['aw_gc_recipient_email'] = $gcInfo->aw_gc_recipient_email;
+                $giftCardObj['aw_gc_code'] = $gcInfo->aw_gc_code;
+                $giftCardObj['use'] = false;
+
+                $GLOBALS["f3_giftcard_code"][] = $giftCardObj;
+
+                Mage::log('gcInfo - aw_gc_amount: ' . $gcInfo->aw_gc_amount, null, 'create-order.log', true);
+            }
+
+            Mage::log('params: ' . json_encode($params), null, 'create-order.log', true);
+
             $request = new Varien_Object();
             $request->setData($params);
 
-            if (!isset($customPrice)) {
-                $this->quote->addProduct($product, $request);
-            } else {
+            if ($isCustomPrice) {
+                $customPrice = $p->customprice;
                 // we need (setOriginalCustomPrice) since Magento 1.4
-                $this->quote->addProduct($product, $request)->setOriginalCustomPrice($customPrice); //custom price
+                $quoteItem = $this->quote->addProduct($product, $request)->setOriginalCustomPrice($customPrice); //custom price
+            } else {
+                $quoteItem = $this->quote->addProduct($product, $request);
             }
+
+            //Mage::log('quoteItem: ' . $quoteItem, null, 'create-order.log', true);
+
+            //$quoteItem->setQuote($this->quote);
         }
     }
 
     /**
      * Set Shipping & Billing Addresses and Shipping & Payment information in the Quote
      */
-    private function setAddressesAndPaymentInfo() {
+    private function setAddressesAndPaymentInfo()
+    {
         // TODO: getting shipping and billing data from request if found else fetch it from customer else throw error
         $shippingAddress = null;
         $addresses = $this->addresses;
@@ -286,19 +324,22 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
             }
         }
 
-        // set Shipping and Payment Information
-        if ($this->shippingMehtod == 'freeshipping_freeshipping') {
-            $shippingAddress->setFreeShipping(true)
+        if ($this->isOnlyGiftCard) {
+            $this->quote->setPaymentMethod("cashondelivery");
+        } else {
+            // set Shipping and Payment Information
+            if ($this->shippingMehtod == 'freeshipping_freeshipping') {
+                $shippingAddress->setFreeShipping(true)
                     ->setCollectShippingRates(true)->collectShippingRates()
                     ->setShippingMethod('freeshipping_freeshipping')
-                    ->setPaymentMethod('checkmo');
-        } else {
-            $shippingAddress->setCollectShippingRates(true);
-            $shippingAddress->collectShippingRates();
-            $shippingAddress->setShippingMethod($this->shippingMehtod);
-            $shippingAddress->setPaymentMethod('checkmo');
+                    ->setPaymentMethod('cashondelivery');
+            } else {
+                $shippingAddress->setCollectShippingRates(true);
+                $shippingAddress->collectShippingRates();
+                $shippingAddress->setShippingMethod($this->shippingMehtod);
+                $shippingAddress->setPaymentMethod('cashondelivery');
+            }
         }
-
         // set coupon code if necessory
         //$quote->setCouponCode('ABCD');
         //$this->quote->getPayment()->importData(array('method' => 'checkmo'));
@@ -329,7 +370,8 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * Delete Quote
      * @param string $quoteId
      */
-    private function delteQuote($quoteId) {
+    private function delteQuote($quoteId)
+    {
         // delete quote if sales order is not created
         if (!empty($quoteId)) {
             try {
@@ -349,7 +391,8 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * @param type $order
      * @param type $cost
      */
-    private function setShippingCostInOrder($order, $cost) {
+    private function setShippingCostInOrder($order, $cost)
+    {
         try {
             if (empty($cost)) {
                 $cost = 0;
@@ -381,6 +424,31 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
 
             $order->setGrandTotal($oldGrandTotal + $cost - $oldShipAmt);
             $order->setBaseGrandTotal($oldBaseGrandTotal + $cost - $oldBaseShipAmt);
+
+            // AW gift card handling - start
+            $giftCodes = $this->giftCodes;
+
+            Mage::log('OK giftCodes: ' . json_encode($giftCodes), null, 'create-order.log', true);
+            if (count($giftCodes) > 0) {
+                $authCodeAppliedAmtTotal = 0;
+
+                // calculate total discount amount by gift codes
+                foreach ($giftCodes as $giftCode) {
+                    $authCodeAppliedAmt = $giftCode->auth_code_applied_amt;
+                    $authCodeAppliedAmtTotal += floatval($authCodeAppliedAmt);
+                }
+
+                Mage::log('OK authCodeAppliedAmtTotal: ' . json_encode($authCodeAppliedAmtTotal), null, 'create-order.log', true);
+
+                // get base total and grand base total
+                $baseGrandTotal = $order->getBaseGrandTotal();
+                $grandTotal = $order->getGrandTotal();
+                // set discount in base total and grand base total
+                $order->setBaseGrandTotal($baseGrandTotal - $authCodeAppliedAmtTotal);
+                $order->setGrandTotal($grandTotal - $authCodeAppliedAmtTotal);
+            }
+            // AW gift card handling - end
+
             $order->save();
 
             //$this->showAmountBreakup($order);
@@ -394,7 +462,8 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
      * @param type $order
      * @param type $history
      */
-    private function addHistoryInOrder($order, $history) {
+    private function addHistoryInOrder($order, $history)
+    {
         try {
             if (!empty($history)) {
                 $history = urldecode($history);
@@ -406,7 +475,8 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
         }
     }
 
-    private function showAmountBreakup($order) {
+    private function showAmountBreakup($order)
+    {
         try {
             $shippingCost = $order->getShippingAmount();
             //shipping cost in base currency
@@ -437,11 +507,10 @@ class Folio3_Sales_Model_Order_Api_V2 extends Mage_Sales_Model_Order_Api_V2 {
         }
     }
 
-    private function setStatusInOrder($order, $status) {
+    private function setStatusInOrder($order, $status)
+    {
         try {
-            $state;
-
-            Mage::log('setStatusInOrder - $status: ' . $status, null, 'create-order.log', true);
+            Mage::log('setStatusInOrder - status: ' . $status, null, 'create-order.log', true);
 
             $order = Mage::getModel('sales/order')->loadByIncrementId($order->getIncrementId());
 
