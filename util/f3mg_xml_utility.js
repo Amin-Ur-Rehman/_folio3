@@ -782,6 +782,8 @@ MagentoXmlWrapper = (function () {
             } else if (!Utility.isBlankOrNull(magentoItemID)) {
                 responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
+                responseMagento.product = {};
+                responseMagento.product.id = magentoItemID;
             } else // Not Attribute ID Found, Nor fault code found
             {
                 responseMagento.status = false;
