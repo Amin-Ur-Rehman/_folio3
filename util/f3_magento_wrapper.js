@@ -637,7 +637,7 @@ MagentoXmlWrapper = (function () {
                 var payment = nlapiSelectNodes(xml, "//payment");
                 var statusHistory = nlapiSelectNodes(xml, "//status_history/item");
                 var authorizedId;
-                Utility.logDebug('payment XXL', payment);
+                Utility.logDebug('payment XML', nlapiXMLToString(payment));
                 faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 if (!Utility.isBlankOrNull(faultCode)) {
@@ -1271,18 +1271,18 @@ MagentoXmlWrapper = (function () {
 
             paymentXml += '<paymentmethod xsi:type="urn:shoppingCartPaymentMethodEntity" xs:type="type:shoppingCartPaymentMethodEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             paymentXml += '<method xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.paymentMethod + '</method>';
-            if(!!paymentInfo.ccType) {
+            if (!!paymentInfo.ccType) {
                 paymentXml += '<cc_type xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccType + '</cc_type>';
-                if(!!paymentInfo.ccNumber) {
+                if (!!paymentInfo.ccNumber) {
                     paymentXml += '<cc_number xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccNumber + '</cc_number>';
                 }
-                if(!!paymentInfo.ccOwner) {
+                if (!!paymentInfo.ccOwner) {
                     paymentXml += '<cc_owner xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccOwner + '</cc_owner>';
                 }
-                if(!!paymentInfo.ccExpiryYear) {
+                if (!!paymentInfo.ccExpiryYear) {
                     paymentXml += '<cc_exp_year xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryYear + '</cc_exp_year>';
                 }
-                if(!!paymentInfo.ccExpiryMonth) {
+                if (!!paymentInfo.ccExpiryMonth) {
                     paymentXml += '<cc_exp_month xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryMonth + '</cc_exp_month>';
                 }
             }
@@ -2059,7 +2059,7 @@ MagentoXmlWrapper = (function () {
             return true;
         },
 
-        getCatalogProductAttributeTierPriceUpdateXML:function(tierPriceDataObj, sessionID){
+        getCatalogProductAttributeTierPriceUpdateXML: function (tierPriceDataObj, sessionID) {
             var xml = '';
 
             xml += this.XmlHeader;
@@ -2090,7 +2090,7 @@ MagentoXmlWrapper = (function () {
 
             return xml;
         },
-        transformCatalogProductAttributeTierPriceUpdateResponse:function(xml){
+        transformCatalogProductAttributeTierPriceUpdateResponse: function (xml) {
             var obj = {};
 
             var result = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductAttributeTierPriceUpdateResponse/result");
@@ -2099,7 +2099,7 @@ MagentoXmlWrapper = (function () {
             return obj;
         },
 
-        syncProductTierPrice: function(product){
+        syncProductTierPrice: function (product) {
             var tierPriceDataObj = product.tierPriceDataObj;
 
             var sessionID = ConnectorConstants.CurrentStore.sessionID;
@@ -2107,6 +2107,92 @@ MagentoXmlWrapper = (function () {
             var responseMagento = this.validateAndTransformResponse(this.soapRequestToServer(catalogProductAttributeTierPriceUpdateXML), this.transformCatalogProductAttributeTierPriceUpdateResponse);
 
             return responseMagento;
+        },
+
+
+        getCCType: function (ccType, netsuitePaymentTypes) {
+            ccType += '';
+            // Visa
+            if (ccType === '001' || ccType === '0001' || ccType === 'VI') {
+                return netsuitePaymentTypes.Visa;
+            }
+            // Master Card
+            if (ccType === '002' || ccType === '0002' || ccType === 'MC') {
+                return netsuitePaymentTypes.MasterCard;
+            }
+            // American Express
+            if (ccType === '003' || ccType === '0003' || ccType === 'AE') {
+                return netsuitePaymentTypes.AmericanExpress;
+            }
+            // Discover
+            if (ccType === '004' || ccType === '0004' || ccType === 'DI') {// Diners in Magento
+                return netsuitePaymentTypes.Discover;
+            }
+            return '';
+        },
+        getPaymentInfo: function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+            var paymentInfo = {
+                "paymentmethod": "",
+                "pnrefnum": "",
+                "ccapproved": "",
+                "paypalauthid": ""
+            };
+
+            var paypalPaymentMethod = netsuitePaymentTypes.PayPal;
+
+            /*if (payment.method.toString() === 'ccsave') {
+             rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+             if(!!payment.authorizedId) {
+             rec.setFieldValue('pnrefnum', payment.authorizedId);
+             }
+             rec.setFieldValue('ccapproved', 'T');
+             return;
+             }
+             //paypal_direct
+             else if (payment.method.toString() === 'paypal_direct') {
+             rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+             rec.setFieldValue('pnrefnum', payment.authorizedId);
+             rec.setFieldValue('ccapproved', 'T');
+             return;
+             }*/
+
+            var paymentMethod = (payment.method);
+
+            // if no payment method found return
+            if (!paymentMethod) {
+                return paymentInfo;
+            }
+
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
+            paymentMethod = (paymentMethod + "").toLowerCase();
+
+            if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(paymentMethod) > -1) {
+                paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "CreditCardType", payment.ccType);
+                if (!!payment.authorizedId) {
+                    paymentInfo.pnrefnum = payment.authorizedId;
+                }
+                paymentInfo.ccapproved = "T";
+                return;
+            }
+            else if (paymentMethod === 'paypal_express' || paymentMethod === 'payflow_advanced') {
+                paymentInfo.paymentmethod = paypalPaymentMethod;
+                paymentInfo.paypalauthid = payment.authorizedId;
+                return;
+            }
+            else {
+                var otherPaymentMethod = paymentMethod;
+                Utility.logDebug("paymentMethodLookup_Key", otherPaymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, 'PaymentMethod', otherPaymentMethod);
+                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
+                if (!!paymentMethodLookupValue && paymentMethodLookupValue != otherPaymentMethod) {
+                    paymentInfo.paymentmethod = paymentMethodLookupValue;
+                }
+            }
+
+            return paymentInfo;
         }
     };
 })();

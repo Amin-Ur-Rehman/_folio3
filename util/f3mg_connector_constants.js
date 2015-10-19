@@ -33,7 +33,7 @@ ConnectorConstants = (function () {
          */
         CurrentWrapper: {},
         Client: null,
-        NSToMGShipMap: {},
+        ScrubsList: {},
         DummyItem: {
             ItemId: 'unmatched_magento_item',
             Id: null
@@ -178,6 +178,9 @@ ConnectorConstants = (function () {
             //this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.ExternalSystemConfig = ExternalSystemConfig.getConfig();
             this.Client = F3ClientFactory.createClient('F3BaseV1');
+        },
+        initializeScrubList: function () {
+            this.ScrubsList = FC_ScrubHandler.getAllScrubsList();
         },
         initializeDummyItem: function () {
             this.DummyItem.Id = ConnectorCommon.getDummyItemId(this.DummyItem.ItemId);

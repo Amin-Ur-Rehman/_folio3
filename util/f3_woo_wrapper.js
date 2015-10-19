@@ -1430,6 +1430,12 @@ WooWrapper = (function () {
 
         requiresOrderUpdateAfterCancelling: function () {
             return false;
+        },
+
+        getPaymentInfo: function(payment){
+            var paymentInfo = {};
+
+            return paymentInfo;
         }
     };
 

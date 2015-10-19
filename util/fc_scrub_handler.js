@@ -75,17 +75,73 @@ var FC_ScrubHandler = (function () {
     //region Public
 
     return {
-
-        /*
-         Get List of Scrubs for all fields in provided records mapping(mappingRecords) of a particular record
+        /**
+         * Get List of Scrubs for all fields in provided record
+         * @return {*}
+         * Note: Supported only for first 1000 scrubs
          */
-        getAllScrubsList: function (mappingRecords) {
+        getAllScrubsList: function () {
             var scrubsList = {};
-            for (var i = 0; i < mappingRecords.length; i++) {
-                var mappingRecord = mappingRecords[i];
-                scrubsList[mappingRecord.custrecord_fc_sfm_fieldinternalid] = mappingRecord.custrecord_fc_sfm_scrub;
+
+            // if scrub is already fecthed the return extisng one
+            if (Object.keys(ConnectorConstants.ScrubsList).length > 0) {
+                return ConnectorConstants.ScrubsList;
             }
+
+            var columns = [];
+            columns.push(new nlobjSearchColumn("custrecord_fc_system", null, null));
+            columns.push(new nlobjSearchColumn("custrecord_fc_scrub_type", null, null));
+            columns.push(new nlobjSearchColumn("custrecord_fc_scrub_key", null, null));
+            columns.push(new nlobjSearchColumn("custrecord_fc_scrub_value", null, null));
+            columns.push(new nlobjSearchColumn("internalid", null, null).setSort(false));
+
+            var res = nlapiSearchRecord('customrecord_fc_scrub', null, null, columns);
+
+            if (!!res && res.length > 0) {
+                for (var i in res) {
+                    var scrub = res[i];
+                    var system = scrub.getValue("custrecord_fc_system") || "";
+                    var type = scrub.getText("custrecord_fc_scrub_type") || "";
+                    var key = scrub.getValue("custrecord_fc_scrub_key") || "";
+                    var value = scrub.getValue("custrecord_fc_scrub_value") || "";
+
+                    if (!scrubsList.hasOwnProperty(system)) {
+                        scrubsList[system] = {};
+                    }
+
+                    if (!scrubsList[system].hasOwnProperty(type)) {
+                        scrubsList[system][type] = {};
+                    }
+
+                    scrubsList[system][type][key] = value;
+                }
+            }
+
             return scrubsList;
+        },
+
+        /**
+         * Find value by system, scrub type and key
+         * @param {string} system
+         * @param {string} type
+         * @param {string} key
+         * @return {string}
+         * Note: If system value is found as blank string it means that it will be a global scrub
+         * and saved in ""(blank) attribute in global object.
+         */
+        findValue: function (system, type, key) {
+            var value = key;
+            var scrubsList = ConnectorConstants.ScrubsList;
+            if (scrubsList.hasOwnProperty(system)) {
+                var _system = scrubsList[system];
+                if (_system.hasOwnProperty(type)) {
+                    var _type = _system[type];
+                    if (_type.hasOwnProperty(key)) {
+                        value = _type[key];
+                    }
+                }
+            }
+            return value;
         },
 
         /*
