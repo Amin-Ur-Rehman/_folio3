@@ -764,16 +764,13 @@ function F3BaseV1Client() {
      * @param salesOrderObj
      */
     currentClient.createSalesOrder = function (salesOrderObj) {
-        //Utility.logDebug('salesOrderObj_w', JSON.stringify(salesOrderObj));
+        Utility.logDebug("F3BaseV1Client.createSalesOrder", "Start");
+        Utility.logDebug("salesOrderObj", JSON.stringify(salesOrderObj));
 
         var order = salesOrderObj.order;
-        var invoiceNum = salesOrderObj.invoiceNum;
         var products = salesOrderObj.products;
         var netsuiteMagentoProductMap = salesOrderObj.netsuiteMagentoProductMap;
         var netsuiteCustomerId = salesOrderObj.netsuiteCustomerId;
-        var configuration = salesOrderObj.configuration;
-        var shippingAddress = salesOrderObj.shippingAddress;
-        var billingAddress = salesOrderObj.billingAddress;
         var payment = salesOrderObj.payment;
 
         var magentoIdId;
@@ -808,7 +805,12 @@ function F3BaseV1Client() {
 
 
         // set payment details
-        //ConnectorCommon.setPayment(rec, payment);
+        ConnectorCommon.setPayment(
+            rec
+            , payment
+            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.netsuitePaymentTypes
+            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.magentoCCSupportedPaymentTypes
+        );
 
 
         for (var x = 0; x < products.length; x++) {
@@ -908,6 +910,7 @@ function F3BaseV1Client() {
             }
 
             rec.setFieldValue(ConnectorConstants.Transaction.Fields.MagentoStore, ConnectorConstants.CurrentStore.systemId);
+            rec.setFieldValue(ConnectorConstants.Transaction.Fields.FromOtherSystem, 'T');
 
             //rec.setFieldValue('subsidiary', '3');// TODO generalize
             Utility.logDebug('Going to submit SO', 'Submitting');
@@ -919,9 +922,10 @@ function F3BaseV1Client() {
             //emailMsg = 'Order having Magento Id: ' + order.increment_id + ' did not created because of an error.\n' + ex.toString() + '.';
             //generateErrorEmail(emailMsg, configuration, 'order');
 
-            Utility.logException('F3OrsonGygiClient_createSalesOrder', ex);
+            Utility.logException('F3BaseV1Client.createSalesOrder', ex);
             // }
         }
+        Utility.logDebug("F3BaseV1Client.createSalesOrder", "End");
     };
 
     /**
@@ -944,6 +948,10 @@ function F3BaseV1Client() {
      * @return {Object}
      */
     currentClient.createLeadInNetSuite = function (magentoCustomerObj, sessionID, isGuest) {
+        Utility.logDebug("currentClient.createLeadInNetSuite", "Start");
+        Utility.logDebug("customerId", JSON.stringify(customerId));
+        Utility.logDebug("magentoCustomerObj", JSON.stringify(magentoCustomerObj));
+        Utility.logDebug("sessionID", JSON.stringify(sessionID));
 
         var result = {
             errorMsg: '',
@@ -1026,6 +1034,8 @@ function F3BaseV1Client() {
             Utility.logException('createLeadInNetSuite', ex);
         }
 
+        Utility.logDebug("currentClient.createLeadInNetSuite", "End");
+
         return result;
     };
 
@@ -1037,6 +1047,10 @@ function F3BaseV1Client() {
      * @return {Object}
      */
     currentClient.updateCustomerInNetSuite = function (customerId, magentoCustomerObj, sessionID) {
+        Utility.logDebug("F3BaseV1Client.updateCustomerInNetSuite", "Start");
+        Utility.logDebug("customerId", JSON.stringify(customerId));
+        Utility.logDebug("magentoCustomerObj", JSON.stringify(magentoCustomerObj));
+        Utility.logDebug("sessionID", JSON.stringify(sessionID));
         var result = {};
         var rec = nlapiLoadRecord('customer', customerId, null);
 
@@ -1054,7 +1068,7 @@ function F3BaseV1Client() {
         //  rec.setFieldValue('salutation','');
 
         // set if customer is taxable or not
-        var groupId = magentoCustomerObj.group_id;
+        var groupId = magentoCustomerObj.group_id || "";
 
         Utility.logDebug("Magento GroupId =  " + groupId, "Config Magento GroupId =  " + ConnectorConstants.CurrentStore.entitySyncInfo.customer.magentoCustomerGroups.taxExempt);
 
@@ -1090,6 +1104,7 @@ function F3BaseV1Client() {
         // zee: get customer address list: end
         var id = nlapiSubmitRecord(rec, true, true);
         Utility.logDebug('Customer updated in NetSuite', 'Customer Id: ' + id);
+        Utility.logDebug("F3BaseV1Client.updateCustomerInNetSuite", "End");
     };
 
     /**

@@ -83,7 +83,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     }
 
                     salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
-                    //Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
+                    Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
                     //Utility.logDebug('stages_w', 'Step-c');
 
                     // Could not fetch sales order information from Magento
@@ -127,7 +127,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     if (Utility.isBlankOrNull(salesOrderDetails.customer.customer_id)) {
                         // Check for feature availability
                         if (!FeatureVerification.isPermitted(Features.IMPORT_SO_GUEST_CUSTOMER, ConnectorConstants.CurrentStore.permissions)) {
-                            Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_GUEST_CUSTOMER + ' NOT ALLOWED');
+                            Utility.logEmergency('FEATURE PERMISSION', Features.IMPORT_SO_GUEST_CUSTOMER + ' NOT ALLOWED');
                             continue;
                         }
                         Utility.logDebug('Guest Customer Exists', '');
@@ -298,7 +298,7 @@ function startup(type) {
                     ConnectorConstants.CurrentStore = store;
                     // Check for feature availability
                     if (!FeatureVerification.isPermitted(Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        Utility.logEmergency('FEATURE PERMISSION', Features.IMPORT_SO_FROM_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                         return;
                     }
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
@@ -308,7 +308,7 @@ function startup(type) {
                     if (FeatureVerification.isPermitted(Features.IMPORT_SO_DUMMMY_ITEM, ConnectorConstants.CurrentStore.permissions)) {
                         ConnectorConstants.initializeDummyItem();
                     }else{
-                        Utility.logDebug('FEATURE PERMISSION', Features.IMPORT_SO_DUMMMY_ITEM + ' NOT ALLOWED');
+                        Utility.logEmergency('FEATURE PERMISSION', Features.IMPORT_SO_DUMMMY_ITEM + ' NOT ALLOWED');
                     }
 
                     var sofrequency = store.entitySyncInfo.salesorder.noOfDays;
