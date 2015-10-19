@@ -1,5 +1,5 @@
 
-<h2 class="view-heading">Execute Cash Refund Script</h2>
+<h2 class="view-heading">Sync Cash Refunds</h2>
 
 
 <br /><br />
@@ -7,11 +7,30 @@
     <a ng-click="viewModel.execute();" class="btn btn-success btn-lg"> Execute Scheduled Script </a>
 </div>
 
-<div class="alert alert-success" ng-if="!!viewModel.successMessage">
-    success
+<br /><br />
+
+<div class="alert alert-info" ng-if="!!viewModel.successMessage">
+
+    <div ng-if="viewModel.executionStatus == 'QUEUED'">
+        The script has been queued for execution.
+    </div>
+
+    <div ng-if="viewModel.executionStatus == 'INQUEUE'">
+        The script you requested is already in a queue and waiting to be run. This script cannot be requested
+        again until it finishes processing. If the script is INQUEUE,
+        you must try again later if you want to run the script.
+    </div>
+
+    <div ng-if="viewModel.executionStatus == 'INPROGRESS'">
+        The scheduled script is currently running.
+    </div>
+
+    <div ng-if="viewModel.executionStatus == 'SCHEDULED'">
+        The script's deployment status is set to scheduled and will be picked up and put into the execution queue.
+    </div>
+
 </div>
 
-
 <div class="alert alert-danger" ng-if="!!viewModel.errorMessage">
-    error
+    An error has occurred. Please try again.
 </div>

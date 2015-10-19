@@ -29,8 +29,21 @@
                 })
 
 
+                .state('Import SO', {
+                    title: 'Import Sales Order',
+                    url: "/import-salesorder",
+                    templateUrl: f3_base_url + "/f3-dash/templates/actions-import-salesorder.html",
+                    controller: 'ImportSalesorderController',
+                    controllerAs: 'viewModel'
+                })
 
-
+                .state('Export SO', {
+                    title: 'Export Sales Order',
+                    url: "/export-salesorder",
+                    templateUrl: f3_base_url + "/f3-dash/templates/actions-export-salesorder.html",
+                    controller: 'ExportSalesorderController',
+                    controllerAs: 'viewModel'
+                })
 
                 .state('search-orders', {
                     group: 'Search',

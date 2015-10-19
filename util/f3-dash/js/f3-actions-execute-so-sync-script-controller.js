@@ -24,6 +24,7 @@
             var apiUrl = location.href.replace(location.hash, '') + '&method=executeSOSyncScript';
             $http.get(apiUrl)
                 .success(function(response) {
+                    viewModel.executionStatus = response.status;
                     viewModel.successMessage = response.success;
                     viewModel.errorMessage = response.error;
                     viewModel.showLoadingIcon = false;

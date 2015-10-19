@@ -40,9 +40,11 @@
 
                             console.log('response: ', response);
 
-                            _self.hasRecords = !response || !response.length;
+                            _self.hasRecords = (response || []).length > 0;
 
-                            if(!!response && response.length) {
+                            console.log('_self.hasRecords: ', _self.hasRecords);
+
+                            if(_self.hasRecords === true) {
                                 $grid[0].addJSONData(response);
                             }
                             else {
@@ -70,11 +72,12 @@
                     //self.onGridCompleteInner();
                 },
                 colModel: [
-                    {sortable: false, hidden: true, label: '', name: 'guid', key: true},
-                    {sortable: false, label: 'Date', name: 'date', width: 35},
-                    {sortable: false, label: 'Time', name: 'time', width: 30},
-                    {sortable: false, label: 'Title', name: 'title', width: 150},
-                    {sortable: false, label: 'Detail', name: 'detail', width: 250}
+                    {hidden: true, label: '', name: 'guid', key: true},
+                    {label: 'Type', name: 'type', width: 30},
+                    {label: 'Date', name: 'date', width: 35},
+                    {label: 'Time', name: 'time', width: 30},
+                    {label: 'Title', name: 'title', width: 150},
+                    {label: 'Detail', name: 'detail', width: 250}
                 ],
                 viewrecords: true, // show records label in footer
                 height: '500px',
