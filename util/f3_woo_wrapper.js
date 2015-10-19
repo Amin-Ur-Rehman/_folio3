@@ -31,16 +31,22 @@ WooWrapper = (function () {
 
         var localOrder = ConnectorModels.salesOrderModel();
 
-        localOrder.increment_id = serverOrder.order_number;
+        localOrder.increment_id = serverOrder.order_number.toString();
+        // hack for SO list logic changes
+        localOrder.customer = {};
+        localOrder.customer.increment_id = serverOrder.order_number.toString();
 
         if (serverOrder.shipping_lines && serverOrder.shipping_lines.length > 0) {
             localOrder.shipping_amount = serverOrder.shipping_lines[0].total;
             localOrder.shipment_method = serverOrder.shipping_lines[0].method_id;
+
+            // hack for SO list logic changes
+            localOrder.customer.shipping_amount = serverOrder.shipping_lines[0].total;
+            localOrder.customer.shipment_method = serverOrder.shipping_lines[0].method_id;
         }
 
         if (serverOrder.customer) {
             localOrder.customer_id = serverOrder.customer.id;
-
             localOrder.email = serverOrder.customer.email;
             localOrder.firstname = serverOrder.customer.first_name;
             localOrder.middlename = ' ';
@@ -53,6 +59,21 @@ WooWrapper = (function () {
             localOrder.customer_firstname = localOrder.firstname;
             localOrder.customer_middlename = localOrder.middlename;
             localOrder.customer_lastname = localOrder.lastname;
+
+            // hack for SO list logic changes
+            localOrder.customer.customer_id = serverOrder.customer.id;
+            localOrder.customer.email = serverOrder.customer.email;
+            localOrder.customer.firstname = serverOrder.customer.first_name;
+            localOrder.customer.middlename = ' ';
+            localOrder.customer.lastname = serverOrder.customer.last_name;
+            localOrder.customer.group_id = serverOrder.customer.customer_group_id;
+            localOrder.customer.prefix = '';
+            localOrder.customer.suffix = '';
+            localOrder.customer.dob = '';
+
+            localOrder.customer.customer_firstname = localOrder.customer.firstname;
+            localOrder.customer.customer_middlename = localOrder.customer.middlename;
+            localOrder.customer.customer_lastname = localOrder.customer.lastname;
         }
 
         if (serverOrder.shipping_address) {
@@ -896,7 +917,7 @@ WooWrapper = (function () {
                 var orders = parseSalesOrderResponse(serverResponse.orders);
 
                 if (!!orders && orders.length > 0) {
-                    serverFinalResponse.customer_id = orders[0].customer_id;
+                    serverFinalResponse.customer = orders[0].customer;
                     serverFinalResponse.shippingAddress = orders[0].shippingAddress;
                     serverFinalResponse.billingAddress = orders[0].billingAddress;
                     serverFinalResponse.payment = orders[0].payment;
@@ -1386,9 +1407,9 @@ WooWrapper = (function () {
                 Utility.logException('Error during cancelSalesOrder', e);
             }
 
-            if(error !== null){
+            if (error !== null) {
                 serverFinalResponse.status = false;
-                serverFinalResponse.error = error.code + " -- "+ error.message;
+                serverFinalResponse.error = error.code + " -- " + error.message;
                 return serverFinalResponse;
             }
 
@@ -1407,7 +1428,7 @@ WooWrapper = (function () {
             return serverFinalResponse;
         },
 
-        requiresOrderUpdateAfterCancelling:function(){
+        requiresOrderUpdateAfterCancelling: function () {
             return false;
         }
     };

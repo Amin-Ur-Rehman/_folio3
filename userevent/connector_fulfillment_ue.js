@@ -64,7 +64,7 @@ var FulfillmentExportHelper = (function () {
 
                 // Check for feature availability
                 if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO, ConnectorConstants.CurrentStore.permissions)) {
-                    Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO + ' NOT ALLOWED');
+                    Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TRACKING_INFO + ' NOT ALLOWED');
                     return responseMagento;
                 }
 
@@ -186,14 +186,14 @@ var FulfillmentExport = (function () {
                     var sessionID;
 
                     var store = externalSystemConfig[salesOrderStore];
+                    ConnectorConstants.CurrentStore = store;
 
                     // Check for feature availability
                     if (!FeatureVerification.isPermitted(Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
-                        Utility.logDebug('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                        Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_ITEM_FULFILLMENT_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
                         return;
                     }
 
-                    ConnectorConstants.CurrentStore = store;
                     ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                     ConnectorConstants.CurrentWrapper.initialize(store);
                     sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);

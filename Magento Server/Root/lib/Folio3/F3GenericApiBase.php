@@ -179,6 +179,8 @@ class F3_Generic_Api_Base
                 $order->setStatus($state);
                 $history = $order->addStatusHistoryComment('This order has been cancelled due to editing of its NetSuite Sales Order Having Transaction Id: ' . $nsTransactionId, false);
                 $history->setIsCustomerNotified(false);
+
+                $order->save();
                 $responseData = array();
 
                 // making response object

@@ -14,3 +14,7 @@ Promotion export to WOO as coupon codes. In NS, more than one codes can be gener
 
 
 Tier Pricing in Item Sync script is not merged.
+
+
+For Refund handling:
+Adjustment refund item to be created in unified connector's NS account. And set it in config json.

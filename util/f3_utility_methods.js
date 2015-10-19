@@ -98,6 +98,26 @@ Utility = (function () {
                 nlapiLogExecution('DEBUG', title, description);
             }
         },
+        /**
+         * This function prints debug logs in NetSuite server script or in browser console.
+         *
+         * @param {string} title
+         * @param {string}  description
+         * @return {void}
+         *
+         * @since    Jan 12, 2015
+         */
+        logEmergency: function (title, description) {
+            if (!this.b_logDebug) {
+                // supress debug
+                return;
+            }
+            if (!!window.console) {
+                console.log('EMERGENCY :: ' + title + ' :: ' + description);
+            } else {
+                nlapiLogExecution('EMERGENCY', title, description);
+            }
+        },
         isBlankOrNull: function (str) {
             return str == null || str == undefined || typeof (str) == 'undefined' || str == 'undefined' || (str + '').trim().length == 0;
         },

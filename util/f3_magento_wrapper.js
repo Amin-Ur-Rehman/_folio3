@@ -782,6 +782,8 @@ MagentoXmlWrapper = (function () {
             } else if (!Utility.isBlankOrNull(magentoItemID)) {
                 responseMagento.status = true; // Means There is fault
                 responseMagento.result = magentoItemID;
+                responseMagento.product = {};
+                responseMagento.product.id = magentoItemID;
             } else // Not Attribute ID Found, Nor fault code found
             {
                 responseMagento.status = false;
@@ -1735,7 +1737,7 @@ MagentoXmlWrapper = (function () {
             return responseTracking;
         },
 
-        getCustomerAddressa: function (customerID, sessionID) {
+        getCustomerAddress: function (customerID, sessionID) {
             var custAddrXML = MagentoWrapper.getCustomerAddressXML(customerID, sessionID);
 
             var addressResponse =
@@ -2055,6 +2057,56 @@ MagentoXmlWrapper = (function () {
 
         requiresOrderUpdateAfterCancelling: function () {
             return true;
+        },
+
+        getCatalogProductAttributeTierPriceUpdateXML:function(tierPriceDataObj, sessionID){
+            var xml = '';
+
+            xml += this.XmlHeader;
+
+            xml += '<urn:catalogProductAttributeTierPriceUpdate soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">';
+            xml += '<sessionId xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + sessionID + '</sessionId>';
+            xml += '<product xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + tierPriceDataObj.product + '</product>';
+
+            var catalogProductTierPriceEntityArray = tierPriceDataObj.catalogProductTierPriceEntityArray;
+
+            xml += '<tier_price xsi:type="urn:catalogProductTierPriceEntityArray" soapenc:arrayType="urn:catalogProductTierPriceEntity[' + catalogProductTierPriceEntityArray.length + ']">';
+
+            for (var i in catalogProductTierPriceEntityArray) {
+
+                var catalogProductTierPriceEntity = catalogProductTierPriceEntityArray[i];
+
+                xml = xml + '<catalogProductTierPriceEntity>';
+                xml = xml + '<qty xsi:type="xsd:int">' + catalogProductTierPriceEntity.qty + '</qty>';
+                xml = xml + '<price xsi:type="xsd:double">' + catalogProductTierPriceEntity.price + '</price>';
+                xml = xml + '</catalogProductTierPriceEntity>';
+            }
+
+            xml += '</tier_price>';
+            xml += '<identifierType xsi:type="xsd:string" xs:type="type:string" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">' + tierPriceDataObj.identifierType + '</identifierType>';
+            xml += '</urn:catalogProductAttributeTierPriceUpdate>';
+
+            xml += this.XmlFooter;
+
+            return xml;
+        },
+        transformCatalogProductAttributeTierPriceUpdateResponse:function(xml){
+            var obj = {};
+
+            var result = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductAttributeTierPriceUpdateResponse/result");
+            obj.result = result;
+
+            return obj;
+        },
+
+        syncProductTierPrice: function(product){
+            var tierPriceDataObj = product.tierPriceDataObj;
+
+            var sessionID = ConnectorConstants.CurrentStore.sessionID;
+            var catalogProductAttributeTierPriceUpdateXML = this.getCatalogProductAttributeTierPriceUpdateXML(tierPriceDataObj, sessionID);
+            var responseMagento = this.validateAndTransformResponse(this.soapRequestToServer(catalogProductAttributeTierPriceUpdateXML), this.transformCatalogProductAttributeTierPriceUpdateResponse);
+
+            return responseMagento;
         }
     };
 })();
