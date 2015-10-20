@@ -33,7 +33,8 @@ MagentoXmlWrapper = (function () {
         soapRequestToServer: function (xml) {
             var res = nlapiRequestURL(ConnectorConstants.CurrentStore.endpoint, xml);
             var body = res.getBody();
-            Utility.logDebug('requestbody', body);
+            Utility.logDebug('requestbody', xml);
+            Utility.logDebug('responsetbody', body);
             var responseXML = nlapiStringToXML(body);
 
             return responseXML;
@@ -41,7 +42,8 @@ MagentoXmlWrapper = (function () {
         soapRequestToServerSpecificStore: function (xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
             var body = res.getBody();
-            Utility.logDebug('requestbody', body);
+            Utility.logDebug('requestbody', xml);
+            Utility.logDebug('responsetbody', body);
             var responseXML = nlapiStringToXML(body);
 
             return responseXML;
@@ -327,10 +329,7 @@ MagentoXmlWrapper = (function () {
 
             custAddrListXML = custAddrListXML + this.XmlFooter;
 
-
-            var responseMagento = MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrListXML));
-
-            return responseMagento;
+            return custAddrListXML;
         },
         getCreateItemXML: function (product, sessionID, categoryIds) {
             var xml = '';
@@ -486,13 +485,14 @@ MagentoXmlWrapper = (function () {
         transformSalesOrderInfoXMLtoshippingAddress: function (shipping) {
             var shippingObj = {};
 
+            shippingObj.address_id = nlapiSelectValue(shipping[0], 'address_id');
             shippingObj.street = nlapiSelectValue(shipping[0], 'street');
             shippingObj.city = nlapiSelectValue(shipping[0], 'city');
             shippingObj.phone = nlapiSelectValue(shipping[0], 'telephone');
-            shippingObj.state = nlapiSelectValue(shipping[0], 'region');
+            shippingObj.region = nlapiSelectValue(shipping[0], 'region');
             shippingObj.region_id = nlapiSelectValue(shipping[0], 'region_id');
             shippingObj.zip = nlapiSelectValue(shipping[0], 'postcode');
-            shippingObj.country = nlapiSelectValue(shipping[0], 'country_id');
+            shippingObj.country_id = nlapiSelectValue(shipping[0], 'country_id');
             shippingObj.firstname = nlapiSelectValue(shipping[0], 'firstname');
             shippingObj.lastname = nlapiSelectValue(shipping[0], 'lastname');
 
@@ -501,10 +501,11 @@ MagentoXmlWrapper = (function () {
         transformSalesOrderInfoXMLtobillingAddress: function (billing) {
             var billingObj = {};
 
+            billingObj.address_id = nlapiSelectValue(billing[0], 'address_id');
             billingObj.street = nlapiSelectValue(billing[0], 'street');
             billingObj.city = nlapiSelectValue(billing[0], 'city');
             billingObj.phone = nlapiSelectValue(billing[0], 'telephone');
-            billingObj.state = nlapiSelectValue(billing[0], 'region');
+            billingObj.region = nlapiSelectValue(billing[0], 'region');
             billingObj.region_id = nlapiSelectValue(billing[0], 'region_id');
             billingObj.zip = nlapiSelectValue(billing[0], 'postcode');
             billingObj.country = nlapiSelectValue(billing[0], 'country_id');
@@ -637,7 +638,7 @@ MagentoXmlWrapper = (function () {
                 var payment = nlapiSelectNodes(xml, "//payment");
                 var statusHistory = nlapiSelectNodes(xml, "//status_history/item");
                 var authorizedId;
-                Utility.logDebug('payment XXL', payment);
+                Utility.logDebug('payment XML', nlapiXMLToString(payment));
                 faultCode = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultcode");
                 faultString = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/SOAP-ENV:Fault/faultstring");
                 if (!Utility.isBlankOrNull(faultCode)) {
@@ -1271,18 +1272,18 @@ MagentoXmlWrapper = (function () {
 
             paymentXml += '<paymentmethod xsi:type="urn:shoppingCartPaymentMethodEntity" xs:type="type:shoppingCartPaymentMethodEntity" xmlns:xs="http://www.w3.org/2000/XMLSchema-instance">';
             paymentXml += '<method xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.paymentMethod + '</method>';
-            if(!!paymentInfo.ccType) {
+            if (!!paymentInfo.ccType) {
                 paymentXml += '<cc_type xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccType + '</cc_type>';
-                if(!!paymentInfo.ccNumber) {
+                if (!!paymentInfo.ccNumber) {
                     paymentXml += '<cc_number xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccNumber + '</cc_number>';
                 }
-                if(!!paymentInfo.ccOwner) {
+                if (!!paymentInfo.ccOwner) {
                     paymentXml += '<cc_owner xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccOwner + '</cc_owner>';
                 }
-                if(!!paymentInfo.ccExpiryYear) {
+                if (!!paymentInfo.ccExpiryYear) {
                     paymentXml += '<cc_exp_year xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryYear + '</cc_exp_year>';
                 }
-                if(!!paymentInfo.ccExpiryMonth) {
+                if (!!paymentInfo.ccExpiryMonth) {
                     paymentXml += '<cc_exp_month xsi:type="xsd:string" xs:type="type:string">' + paymentInfo.ccExpiryMonth + '</cc_exp_month>';
                 }
             }
@@ -1729,6 +1730,69 @@ MagentoXmlWrapper = (function () {
             return responseMagento;
         },
 
+        /**
+         * Create invoice in magento
+         * @param sessionID
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {string}
+         */
+        createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
+            var magentoInvoiceCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
+            Utility.logDebug('magentoInvoiceCreationUrl_w', magentoInvoiceCreationUrl);
+            var dataObj = {};
+            dataObj.increment_id = netsuiteInvoiceObj.otherSystemSOId;
+            var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(netsuiteInvoiceObj, store);
+            dataObj.capture_online = onlineCapturingPaymentMethod.toString();
+            var requestParam = {"data": JSON.stringify(dataObj), "apiMethod" : "createInvoice"};
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+            var resp = nlapiRequestURL(magentoInvoiceCreationUrl, requestParam, null, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('responseBody_w', responseBody);
+            responseBody = JSON.parse(responseBody);
+            return responseBody;
+        },
+        /**
+         * Check either payment of this Invoice should capture online or not
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {boolean}
+         */
+        checkPaymentCapturingMode: function(netsuiteInvoiceObj, store){
+            var salesOrderId = netsuiteInvoiceObj.netsuiteSOId;
+            var isSOFromOtherSystem = netsuiteInvoiceObj.isSOFromOtherSystem;
+            var sOPaymentMethod = netsuiteInvoiceObj.sOPaymentMethod;
+            var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
+            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+                return true;
+            } else {
+                return false;
+            }
+            //Utility.logDebug('salesOrderId # isSOFromOtherSystem # sOPaymentMethod', salesOrderId + ' # ' + isSOFromOtherSystem + ' # ' + sOPaymentMethod);
+        },
+        /**
+         * Check either payment method capturing is online supported or not??
+         * @param sOPaymentMethodId
+         * @param store
+         * @returns {boolean}
+         */
+        isOnlineCapturingPaymentMethod: function (sOPaymentMethodId, store) {
+            var onlineSupported = false;
+            switch (sOPaymentMethodId) {
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Discover:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.MasterCard:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Visa:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.AmericanExpress:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.PayPal:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.EFT:
+                    onlineSupported = true;
+                    break;
+                default :
+                    onlineSupported = false;
+                    break;
+            }
+            return onlineSupported;
+        },
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
             var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
 
@@ -2059,7 +2123,7 @@ MagentoXmlWrapper = (function () {
             return true;
         },
 
-        getCatalogProductAttributeTierPriceUpdateXML:function(tierPriceDataObj, sessionID){
+        getCatalogProductAttributeTierPriceUpdateXML: function (tierPriceDataObj, sessionID) {
             var xml = '';
 
             xml += this.XmlHeader;
@@ -2090,7 +2154,7 @@ MagentoXmlWrapper = (function () {
 
             return xml;
         },
-        transformCatalogProductAttributeTierPriceUpdateResponse:function(xml){
+        transformCatalogProductAttributeTierPriceUpdateResponse: function (xml) {
             var obj = {};
 
             var result = nlapiSelectValue(xml, "SOAP-ENV:Envelope/SOAP-ENV:Body/ns1:catalogProductAttributeTierPriceUpdateResponse/result");
@@ -2099,7 +2163,7 @@ MagentoXmlWrapper = (function () {
             return obj;
         },
 
-        syncProductTierPrice: function(product){
+        syncProductTierPrice: function (product) {
             var tierPriceDataObj = product.tierPriceDataObj;
 
             var sessionID = ConnectorConstants.CurrentStore.sessionID;
@@ -2107,6 +2171,90 @@ MagentoXmlWrapper = (function () {
             var responseMagento = this.validateAndTransformResponse(this.soapRequestToServer(catalogProductAttributeTierPriceUpdateXML), this.transformCatalogProductAttributeTierPriceUpdateResponse);
 
             return responseMagento;
+        },
+
+
+        getCCType: function (ccType, netsuitePaymentTypes) {
+            ccType += '';
+            // Visa
+            if (ccType === '001' || ccType === '0001' || ccType === 'VI') {
+                return netsuitePaymentTypes.Visa;
+            }
+            // Master Card
+            if (ccType === '002' || ccType === '0002' || ccType === 'MC') {
+                return netsuitePaymentTypes.MasterCard;
+            }
+            // American Express
+            if (ccType === '003' || ccType === '0003' || ccType === 'AE') {
+                return netsuitePaymentTypes.AmericanExpress;
+            }
+            // Discover
+            if (ccType === '004' || ccType === '0004' || ccType === 'DI') {// Diners in Magento
+                return netsuitePaymentTypes.Discover;
+            }
+            return '';
+        },
+        getPaymentInfo: function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+            var paymentInfo = {
+                "paymentmethod": "",
+                "pnrefnum": "",
+                "ccapproved": "",
+                "paypalauthid": ""
+            };
+
+            var paypalPaymentMethod = netsuitePaymentTypes.PayPal;
+
+            /*if (payment.method.toString() === 'ccsave') {
+             rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+             if(!!payment.authorizedId) {
+             rec.setFieldValue('pnrefnum', payment.authorizedId);
+             }
+             rec.setFieldValue('ccapproved', 'T');
+             return;
+             }
+             //paypal_direct
+             else if (payment.method.toString() === 'paypal_direct') {
+             rec.setFieldValue('paymentmethod', this.getCCType(payment.ccType, netsuitePaymentTypes));
+             rec.setFieldValue('pnrefnum', payment.authorizedId);
+             rec.setFieldValue('ccapproved', 'T');
+             return;
+             }*/
+
+            var paymentMethod = (payment.method);
+
+            // if no payment method found return
+            if (!paymentMethod) {
+                return paymentInfo;
+            }
+
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
+            paymentMethod = (paymentMethod + "").toLowerCase();
+
+            if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(paymentMethod) > -1) {
+                paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "CreditCardType", payment.ccType);
+                if (!!payment.authorizedId) {
+                    paymentInfo.pnrefnum = payment.authorizedId;
+                }
+                paymentInfo.ccapproved = "T";
+            }
+            else if (paymentMethod === 'paypal_express' || paymentMethod === 'payflow_advanced') {
+                paymentInfo.paymentmethod = paypalPaymentMethod;
+                paymentInfo.paypalauthid = payment.authorizedId;
+            }
+            else {
+                var otherPaymentMethod = paymentMethod;
+                Utility.logDebug("paymentMethodLookup_Key", otherPaymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, 'PaymentMethod', otherPaymentMethod);
+                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
+                if (!!paymentMethodLookupValue && paymentMethodLookupValue != otherPaymentMethod) {
+                    paymentInfo.paymentmethod = paymentMethodLookupValue;
+                }
+            }
+
+            return paymentInfo;
         }
     };
 })();

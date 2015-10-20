@@ -803,14 +803,11 @@ function F3BaseV1Client() {
         // set shipping information
         this.setShippingInformation(salesOrderObj, rec);
 
-
         // set payment details
-        ConnectorCommon.setPayment(
-            rec
+        this.setPayment(rec
             , payment
             , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.netsuitePaymentTypes
-            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.magentoCCSupportedPaymentTypes
-        );
+            , ConnectorConstants.CurrentStore.entitySyncInfo.salesorder.magentoCCSupportedPaymentTypes);
 
 
         for (var x = 0; x < products.length; x++) {
@@ -926,6 +923,20 @@ function F3BaseV1Client() {
             // }
         }
         Utility.logDebug("F3BaseV1Client.createSalesOrder", "End");
+    };
+
+    currentClient.setPayment = function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+        Utility.logDebug("F3BaseV1Client.setPayment", "Start");
+        var paymentInfo = ConnectorConstants.CurrentWrapper.getPaymentInfo(payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes);
+
+        Utility.logDebug("paymentInfo", JSON.stringify(paymentInfo));
+
+        rec.setFieldValue("paymentmethod", paymentInfo.paymentmethod);
+        rec.setFieldValue("pnrefnum", paymentInfo.pnrefnum);
+        rec.setFieldValue("ccapproved", paymentInfo.ccapproved);
+        rec.setFieldValue("paypalauthid", paymentInfo.paypalauthid);
+
+        Utility.logDebug("F3BaseV1Client.setPayment", "End");
     };
 
     /**
@@ -1108,7 +1119,7 @@ function F3BaseV1Client() {
     };
 
     /**
-     *  Get Discount amount from magento agaist quote id and apply in order here.
+     * Get Discount amount from magento agaist quote id and apply in order here.
      * @param rec
      * @param quoteId
      */

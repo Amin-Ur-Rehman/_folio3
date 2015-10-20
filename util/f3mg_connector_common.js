@@ -403,7 +403,7 @@ var ConnectorCommon = (function () {
             isDefaultShipping = address.is_default_shipping ? 'T' : 'F';
 
             if (!Utility.isBlankOrNull(region)) {
-                regionId = region;
+                regionId = FC_ScrubHandler.getMappedValue('State', region);
             } else {
                 regionId = FC_ScrubHandler.getMappedValue('State', regionId);
             }
