@@ -1439,6 +1439,16 @@ WooWrapper = (function () {
             responseBody.message = '';
             responseBody.data = {increment_id: ''};
             return responseBody;
+        },
+        getPaymentInfo: function(payment){
+            var paymentInfo = {
+                "paymentmethod": "",
+                "pnrefnum": "",
+                "ccapproved": "",
+                "paypalauthid": ""
+            };
+
+            return paymentInfo;
         }
     };
 
