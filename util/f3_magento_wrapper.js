@@ -1729,6 +1729,74 @@ MagentoXmlWrapper = (function () {
             return responseMagento;
         },
 
+        /**
+         * Create invoice in magento
+         * @param sessionID
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {string}
+         */
+        createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
+            var magentoInvoiceCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
+            Utility.logDebug('magentoInvoiceCreationUrl_w', magentoInvoiceCreationUrl);
+
+            var dataObj = {};
+            dataObj.increment_id = netsuiteInvoiceObj.otherSystemSOId;
+            var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(netsuiteInvoiceObj, store);
+            dataObj.capture_online = onlineCapturingPaymentMethod.toString();
+            var requestParam = {"data": JSON.stringify(dataObj), "apiMethod" : "createInvoice"};
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+            var resp = nlapiRequestURL(magentoInvoiceCreationUrl, requestParam, null, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('responseBody_w', responseBody);
+            responseBody = JSON.parse(responseBody);
+            return responseBody;
+        },
+
+        /**
+         * Check either payment of this Invoice should capture online or not
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {boolean}
+         */
+        checkPaymentCapturingMode: function(netsuiteInvoiceObj, store){
+            var salesOrderId = netsuiteInvoiceObj.netsuiteSOId;
+            var isSOFromOtherSystem = netsuiteInvoiceObj.isSOFromOtherSystem;
+            var sOPaymentMethod = netsuiteInvoiceObj.sOPaymentMethod;
+            var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
+            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+                return true;
+            } else {
+                return false;
+            }
+            //Utility.logDebug('salesOrderId # isSOFromOtherSystem # sOPaymentMethod', salesOrderId + ' # ' + isSOFromOtherSystem + ' # ' + sOPaymentMethod);
+        },
+
+        /**
+         * Check either payment method capturing is online supported or not??
+         * @param sOPaymentMethodId
+         * @param store
+         * @returns {boolean}
+         */
+        isOnlineCapturingPaymentMethod: function (sOPaymentMethodId, store) {
+            var onlineSupported = false;
+            switch (sOPaymentMethodId) {
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Discover:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.MasterCard:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Visa:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.AmericanExpress:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.PayPal:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.EFT:
+                    onlineSupported = true;
+                    break;
+                default :
+                    onlineSupported = false;
+                    break;
+            }
+
+            return onlineSupported;
+        },
+
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
             var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
 

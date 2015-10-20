@@ -608,7 +608,7 @@ var ExportCustomerRefunds = (function () {
                 externalSystemArr = this.extractExternalSystems(externalSystemConfig);
 
                 if (externalSystemArr.length <= 0) {
-                    Utility.logDebug('Customer Export Script', 'Store(s) is/are not active');
+                    Utility.logDebug('Cash Refund Export Script', 'Store(s) is/are not active');
                     return null;
                 }
 
@@ -619,7 +619,13 @@ var ExportCustomerRefunds = (function () {
                         var store = externalSystemArr[i];
 
                         ConnectorConstants.CurrentStore = store;
-
+                        // Check for feature availability
+                        if (!FeatureVerification.isPermitted(Features.EXPORT_CASH_REFUND_TO_EXTERNAL_SYSTEM, ConnectorConstants.CurrentStore.permissions)) {
+                            Utility.logEmergency('FEATURE PERMISSION', Features.EXPORT_CASH_REFUND_TO_EXTERNAL_SYSTEM + ' NOT ALLOWED');
+                            continue;
+                        }
+                        ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                        ConnectorConstants.CurrentWrapper.initialize(store);
                         Utility.logDebug('debug', 'Step-2');
 
                         var records = this.getRecords(store.systemId);

@@ -1430,6 +1430,15 @@ WooWrapper = (function () {
 
         requiresOrderUpdateAfterCancelling: function () {
             return false;
+        },
+
+        createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
+            // To be implement later
+            var responseBody = {};
+            responseBody.status = 1;
+            responseBody.message = '';
+            responseBody.data = {increment_id: ''};
+            return responseBody;
         }
     };
 
