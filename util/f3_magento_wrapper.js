@@ -1740,6 +1740,7 @@ MagentoXmlWrapper = (function () {
         createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
             var magentoInvoiceCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
             Utility.logDebug('magentoInvoiceCreationUrl_w', magentoInvoiceCreationUrl);
+
             var dataObj = {};
             dataObj.increment_id = netsuiteInvoiceObj.otherSystemSOId;
             var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(netsuiteInvoiceObj, store);
@@ -1752,6 +1753,7 @@ MagentoXmlWrapper = (function () {
             responseBody = JSON.parse(responseBody);
             return responseBody;
         },
+
         /**
          * Check either payment of this Invoice should capture online or not
          * @param netsuiteInvoiceObj
@@ -1770,6 +1772,7 @@ MagentoXmlWrapper = (function () {
             }
             //Utility.logDebug('salesOrderId # isSOFromOtherSystem # sOPaymentMethod', salesOrderId + ' # ' + isSOFromOtherSystem + ' # ' + sOPaymentMethod);
         },
+
         /**
          * Check either payment method capturing is online supported or not??
          * @param sOPaymentMethodId
@@ -1791,8 +1794,10 @@ MagentoXmlWrapper = (function () {
                     onlineSupported = false;
                     break;
             }
+
             return onlineSupported;
         },
+
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
             var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
 

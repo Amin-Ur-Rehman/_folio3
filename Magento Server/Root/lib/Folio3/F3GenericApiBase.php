@@ -158,6 +158,7 @@ class F3_Generic_Api_Base
         }
         return $response;
     }
+
     public function cancelSalesOrder($data)
         {
             try {
@@ -188,10 +189,70 @@ class F3_Generic_Api_Base
                 $response["message"] = "Sales Order has been cancelled";
                 $response["data"] = $responseData;
             } catch (Exception $e) {
-                Mage::log("F3_Generic_Api_Base.getGiftCardAmount - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+                Mage::log("F3_Generic_Api_Base.cancelSalesOrder - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
                 throw new Exception($e->getMessage());
             }
 
             return $response;
         }
+
+    public function createInvoice($data){
+        try {
+            $responseArr = array();
+            if(isset($data->increment_id)) {
+                $increment_id = $data->increment_id;
+                $order = Mage::getModel('sales/order')->loadByIncrementId($increment_id);
+
+                $grandTotal = $order->getGrandTotal();
+                $totalPaid = $order->getTotalPaid();
+                $grandTotal = round($grandTotal, 2);
+                $totalPaid = round($totalPaid, 2);
+                $invoices = array();
+                $selectedInvoice = null;
+                foreach ($order->getInvoiceCollection() as $invoice) {
+                    $invoices[] = $invoice;
+                }
+                $invoiceCount = count($invoices);
+                if($grandTotal == $totalPaid && $invoiceCount > 0) {
+                    $selectedInvoice = $invoices[$invoiceCount - 1];
+                    $responseArr["increment_id"] = $selectedInvoice->getIncrementId();
+                    $response["status"] = 1;
+                    $response["message"] = "Invoice was already created";
+                    $response["data"] = $responseArr;
+                    return $response;
+                }
+
+
+                if (!$order->canInvoice())
+                {
+                    Mage::throwException(Mage::helper('core')->__('Cannot create an invoice.'));
+                }
+                $invoice = Mage::getModel('sales/service_order', $order)->prepareInvoice();
+                if (!$invoice->getTotalQty())
+                {
+                    Mage::throwException(Mage::helper('core')->__('Cannot create an invoice without products.'));
+                }
+                if ($data->capture_online == 'true')
+                {
+                    $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::CAPTURE_ONLINE);
+                }
+                else {
+                    $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::NOT_CAPTURE);
+                }
+
+                $invoice->register();
+                $transactionSave = Mage::getModel('core/resource_transaction')->addObject($invoice)->addObject($invoice->getOrder());
+                $transactionSave->save();
+                $responseArr["increment_id"] = $invoice->getIncrementId();
+                $response["status"] = 1;
+                $response["message"] = "Invoice has been created";
+                $response["data"] = $responseArr;
+            }
+
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.createInvoice - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+        return $response;
+    }
 }
