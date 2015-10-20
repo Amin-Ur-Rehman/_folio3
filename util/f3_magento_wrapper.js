@@ -33,7 +33,8 @@ MagentoXmlWrapper = (function () {
         soapRequestToServer: function (xml) {
             var res = nlapiRequestURL(ConnectorConstants.CurrentStore.endpoint, xml);
             var body = res.getBody();
-            Utility.logDebug('requestbody', body);
+            Utility.logDebug('requestbody', xml);
+            Utility.logDebug('responsetbody', body);
             var responseXML = nlapiStringToXML(body);
 
             return responseXML;
@@ -41,7 +42,8 @@ MagentoXmlWrapper = (function () {
         soapRequestToServerSpecificStore: function (xml, store) {
             var res = nlapiRequestURL(store.endpoint, xml);
             var body = res.getBody();
-            Utility.logDebug('requestbody', body);
+            Utility.logDebug('requestbody', xml);
+            Utility.logDebug('responsetbody', body);
             var responseXML = nlapiStringToXML(body);
 
             return responseXML;
@@ -327,10 +329,7 @@ MagentoXmlWrapper = (function () {
 
             custAddrListXML = custAddrListXML + this.XmlFooter;
 
-
-            var responseMagento = MagentoWrapper.validateCustomerAddressResponse(MagentoWrapper.soapRequestToServer(custAddrListXML));
-
-            return responseMagento;
+            return custAddrListXML;
         },
         getCreateItemXML: function (product, sessionID, categoryIds) {
             var xml = '';
@@ -486,13 +485,14 @@ MagentoXmlWrapper = (function () {
         transformSalesOrderInfoXMLtoshippingAddress: function (shipping) {
             var shippingObj = {};
 
+            shippingObj.address_id = nlapiSelectValue(shipping[0], 'address_id');
             shippingObj.street = nlapiSelectValue(shipping[0], 'street');
             shippingObj.city = nlapiSelectValue(shipping[0], 'city');
             shippingObj.phone = nlapiSelectValue(shipping[0], 'telephone');
-            shippingObj.state = nlapiSelectValue(shipping[0], 'region');
+            shippingObj.region = nlapiSelectValue(shipping[0], 'region');
             shippingObj.region_id = nlapiSelectValue(shipping[0], 'region_id');
             shippingObj.zip = nlapiSelectValue(shipping[0], 'postcode');
-            shippingObj.country = nlapiSelectValue(shipping[0], 'country_id');
+            shippingObj.country_id = nlapiSelectValue(shipping[0], 'country_id');
             shippingObj.firstname = nlapiSelectValue(shipping[0], 'firstname');
             shippingObj.lastname = nlapiSelectValue(shipping[0], 'lastname');
 
@@ -501,10 +501,11 @@ MagentoXmlWrapper = (function () {
         transformSalesOrderInfoXMLtobillingAddress: function (billing) {
             var billingObj = {};
 
+            billingObj.address_id = nlapiSelectValue(billing[0], 'address_id');
             billingObj.street = nlapiSelectValue(billing[0], 'street');
             billingObj.city = nlapiSelectValue(billing[0], 'city');
             billingObj.phone = nlapiSelectValue(billing[0], 'telephone');
-            billingObj.state = nlapiSelectValue(billing[0], 'region');
+            billingObj.region = nlapiSelectValue(billing[0], 'region');
             billingObj.region_id = nlapiSelectValue(billing[0], 'region_id');
             billingObj.zip = nlapiSelectValue(billing[0], 'postcode');
             billingObj.country = nlapiSelectValue(billing[0], 'country_id');
@@ -1729,6 +1730,69 @@ MagentoXmlWrapper = (function () {
             return responseMagento;
         },
 
+        /**
+         * Create invoice in magento
+         * @param sessionID
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {string}
+         */
+        createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
+            var magentoInvoiceCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
+            Utility.logDebug('magentoInvoiceCreationUrl_w', magentoInvoiceCreationUrl);
+            var dataObj = {};
+            dataObj.increment_id = netsuiteInvoiceObj.otherSystemSOId;
+            var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(netsuiteInvoiceObj, store);
+            dataObj.capture_online = onlineCapturingPaymentMethod.toString();
+            var requestParam = {"data": JSON.stringify(dataObj), "apiMethod" : "createInvoice"};
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+            var resp = nlapiRequestURL(magentoInvoiceCreationUrl, requestParam, null, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('responseBody_w', responseBody);
+            responseBody = JSON.parse(responseBody);
+            return responseBody;
+        },
+        /**
+         * Check either payment of this Invoice should capture online or not
+         * @param netsuiteInvoiceObj
+         * @param store
+         * @returns {boolean}
+         */
+        checkPaymentCapturingMode: function(netsuiteInvoiceObj, store){
+            var salesOrderId = netsuiteInvoiceObj.netsuiteSOId;
+            var isSOFromOtherSystem = netsuiteInvoiceObj.isSOFromOtherSystem;
+            var sOPaymentMethod = netsuiteInvoiceObj.sOPaymentMethod;
+            var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
+            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+                return true;
+            } else {
+                return false;
+            }
+            //Utility.logDebug('salesOrderId # isSOFromOtherSystem # sOPaymentMethod', salesOrderId + ' # ' + isSOFromOtherSystem + ' # ' + sOPaymentMethod);
+        },
+        /**
+         * Check either payment method capturing is online supported or not??
+         * @param sOPaymentMethodId
+         * @param store
+         * @returns {boolean}
+         */
+        isOnlineCapturingPaymentMethod: function (sOPaymentMethodId, store) {
+            var onlineSupported = false;
+            switch (sOPaymentMethodId) {
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Discover:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.MasterCard:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.Visa:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.AmericanExpress:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.PayPal:
+                case store.entitySyncInfo.salesorder.netsuitePaymentTypes.EFT:
+                    onlineSupported = true;
+                    break;
+                default :
+                    onlineSupported = false;
+                    break;
+            }
+            return onlineSupported;
+        },
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
             var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
 
@@ -2175,12 +2239,10 @@ MagentoXmlWrapper = (function () {
                     paymentInfo.pnrefnum = payment.authorizedId;
                 }
                 paymentInfo.ccapproved = "T";
-                return;
             }
             else if (paymentMethod === 'paypal_express' || paymentMethod === 'payflow_advanced') {
                 paymentInfo.paymentmethod = paypalPaymentMethod;
                 paymentInfo.paypalauthid = payment.authorizedId;
-                return;
             }
             else {
                 var otherPaymentMethod = paymentMethod;

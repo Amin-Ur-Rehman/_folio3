@@ -722,8 +722,21 @@ ShopifyWrapper = (function () {
             return false;
         },
 
+        createInvoice: function (sessionID, netsuiteInvoiceObj, store) {
+            // To be implement later
+            var responseBody = {};
+            responseBody.status = 1;
+            responseBody.message = '';
+            responseBody.data = {increment_id: ''};
+            return responseBody;
+        },
         getPaymentInfo: function(payment){
-            var paymentInfo = {};
+            var paymentInfo = {
+                "paymentmethod": "",
+                "pnrefnum": "",
+                "ccapproved": "",
+                "paypalauthid": ""
+            };
 
             return paymentInfo;
         }

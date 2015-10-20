@@ -926,13 +926,17 @@ function F3BaseV1Client() {
     };
 
     currentClient.setPayment = function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+        Utility.logDebug("F3BaseV1Client.setPayment", "Start");
         var paymentInfo = ConnectorConstants.CurrentWrapper.getPaymentInfo(payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes);
+
+        Utility.logDebug("paymentInfo", JSON.stringify(paymentInfo));
 
         rec.setFieldValue("paymentmethod", paymentInfo.paymentmethod);
         rec.setFieldValue("pnrefnum", paymentInfo.pnrefnum);
         rec.setFieldValue("ccapproved", paymentInfo.ccapproved);
         rec.setFieldValue("paypalauthid", paymentInfo.paypalauthid);
 
+        Utility.logDebug("F3BaseV1Client.setPayment", "End");
     };
 
     /**
