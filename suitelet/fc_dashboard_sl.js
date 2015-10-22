@@ -309,6 +309,8 @@ var ConnectorDashboard = (function () {
                             '  </ul>' +
                             '</li>',
 
+
+
         /**
          * Description of method getFileUrl
          * @param parameter

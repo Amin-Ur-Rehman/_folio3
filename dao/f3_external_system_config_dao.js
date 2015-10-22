@@ -111,6 +111,7 @@ ExternalSystemConfig = (function () {
                 var password = config.getValue(this.FieldName.Password, null, null);
                 var endpoint = config.getValue(this.FieldName.Endpoint, null, null);
                 var entitySyncInfo = JSON.parse(config.getValue(this.FieldName.EntitySyncInfo, null, null));
+                var permissions = JSON.parse(config.getValue(this.FieldName.Permission, null, null) || "[]");
 
                 //TODO: Need to pick this from Database
                 var systemType = config.getValue(this.FieldName.SystemType, null, null);
@@ -123,7 +124,8 @@ ExternalSystemConfig = (function () {
                     password: password,
                     endpoint: endpoint,
                     entitySyncInfo: entitySyncInfo,
-                    systemType: systemType
+                    systemType: systemType,
+                    permissions: permissions
                 };
 
                 systemConfig.push(obj);
