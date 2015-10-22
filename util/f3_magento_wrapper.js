@@ -1745,7 +1745,7 @@ MagentoXmlWrapper = (function () {
             dataObj.increment_id = netsuiteInvoiceObj.otherSystemSOId;
             var onlineCapturingPaymentMethod = this.checkPaymentCapturingMode(netsuiteInvoiceObj, store);
             dataObj.capture_online = onlineCapturingPaymentMethod.toString();
-            var requestParam = {"data": JSON.stringify(dataObj), "apiMethod" : "createInvoice"};
+            var requestParam = {"data": JSON.stringify(dataObj), "apiMethod": "createInvoice"};
             Utility.logDebug('requestParam', JSON.stringify(requestParam));
             var resp = nlapiRequestURL(magentoInvoiceCreationUrl, requestParam, null, 'POST');
             var responseBody = resp.getBody();
@@ -1760,12 +1760,12 @@ MagentoXmlWrapper = (function () {
          * @param store
          * @returns {boolean}
          */
-        checkPaymentCapturingMode: function(netsuiteInvoiceObj, store){
+        checkPaymentCapturingMode: function (netsuiteInvoiceObj, store) {
             var salesOrderId = netsuiteInvoiceObj.netsuiteSOId;
             var isSOFromOtherSystem = netsuiteInvoiceObj.isSOFromOtherSystem;
             var sOPaymentMethod = netsuiteInvoiceObj.sOPaymentMethod;
             var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
-            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+            if (!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
                 return true;
             } else {
                 return false;
@@ -2199,14 +2199,14 @@ MagentoXmlWrapper = (function () {
             }
             return '';
         },
-        getPaymentInfo: function (rec, payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
+        getPaymentInfo: function (payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
             var paymentInfo = {
                 "paymentmethod": "",
                 "pnrefnum": "",
                 "ccapproved": "",
                 "paypalauthid": ""
             };
-
+            Utility.logDebug("MagentoWrapper.getPaymentInfo", "Start");
             var paypalPaymentMethod = netsuitePaymentTypes.PayPal;
 
             /*if (payment.method.toString() === 'ccsave') {
@@ -2227,6 +2227,9 @@ MagentoXmlWrapper = (function () {
 
             var paymentMethod = (payment.method);
 
+            Utility.logDebug("paymentMethod", paymentMethod);
+            Utility.logDebug("!paymentMethod", !paymentMethod);
+
             // if no payment method found return
             if (!paymentMethod) {
                 return paymentInfo;
@@ -2236,20 +2239,29 @@ MagentoXmlWrapper = (function () {
             ConnectorConstants.initializeScrubList();
             var system = ConnectorConstants.CurrentStore.systemId;
 
+            Utility.logDebug("ConnectorConstants.ScrubsList", JSON.stringify(ConnectorConstants.ScrubsList));
+
             paymentMethod = (paymentMethod + "").toLowerCase();
 
+            Utility.logDebug("system", system);
+            Utility.logDebug("paymentMethod", paymentMethod);
+
             if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(paymentMethod) > -1) {
+                Utility.logDebug("Condition (1)", "");
                 paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "CreditCardType", payment.ccType);
+                Utility.logDebug("paymentInfo.paymentmethod", paymentInfo.paymentmethod);
                 if (!!payment.authorizedId) {
                     paymentInfo.pnrefnum = payment.authorizedId;
                 }
                 paymentInfo.ccapproved = "T";
             }
             else if (paymentMethod === 'paypal_express' || paymentMethod === 'payflow_advanced') {
+                Utility.logDebug("Condition (2)", "");
                 paymentInfo.paymentmethod = paypalPaymentMethod;
                 paymentInfo.paypalauthid = payment.authorizedId;
             }
             else {
+                Utility.logDebug("Condition (3)", "");
                 var otherPaymentMethod = paymentMethod;
                 Utility.logDebug("paymentMethodLookup_Key", otherPaymentMethod);
                 var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, 'PaymentMethod', otherPaymentMethod);
@@ -2258,8 +2270,76 @@ MagentoXmlWrapper = (function () {
                     paymentInfo.paymentmethod = paymentMethodLookupValue;
                 }
             }
-
+            Utility.logDebug("MagentoWrapper.getPaymentInfo", "End");
             return paymentInfo;
+        },
+
+        getPaymentInfoToExport: function (orderRecord, orderDataObject, store) {
+            var obj = {};
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
+            var allMagentoPaymentMethodConfigured = store.entitySyncInfo.salesorder.allMagentoPaymentMethodConfigured;
+            var paymentMethod = orderRecord.getFieldValue('paymentmethod');
+            if (!!allMagentoPaymentMethodConfigured && allMagentoPaymentMethodConfigured == 'true' && !!paymentMethod) {
+                var ccNumber = orderRecord.getFieldValue('ccnumber');
+                var ccExpireDate = orderRecord.getFieldValue('ccexpiredate');
+                var ccName = orderRecord.getFieldValue('ccname');
+
+                Utility.logDebug("paymentMethodLookup_Key", paymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
+                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
+                var paymentMethodDetail = (paymentMethodLookupValue + '').split('_');
+                var magentoPaymentMethod = paymentMethodDetail.length === 2 ? paymentMethodDetail[0] : '';
+                var magentoCCType = paymentMethodDetail.length === 2 ? paymentMethodDetail[1] : '';
+                // If payment method still not found in mapping, then set default
+                if (!magentoPaymentMethod) {
+                    magentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
+                }
+                obj.paymentMethod = magentoPaymentMethod;
+                obj.ccType = magentoCCType;
+                obj.ccNumber = '';
+                if (!!ccNumber) {
+                    var dummyCCNumber = this.getDummyCreditCardNumber(store, ccNumber, paymentMethod);
+                    if (!!dummyCCNumber) {
+                        obj.ccNumber = dummyCCNumber;
+                        orderDataObject.history += '  ##  ' + store.entitySyncInfo.salesorder.dummyCreditCardMessage + '  ##  ';
+                    }
+                }
+                obj.ccOwner = !!ccName ? ccName : '';
+                obj.ccExpiryYear = '';
+                obj.ccExpiryMonth = '';
+                if (!!ccExpireDate) {
+                    // Keep it safe
+                    try {
+                        var expiryDetails = (ccExpireDate).split('/');
+                        obj.ccExpiryMonth = expiryDetails.length === 2 ? expiryDetails[0] : '';
+                        obj.ccExpiryYear = expiryDetails.length === 2 ? expiryDetails[1] : '';
+                    } catch (e) {
+                    }
+                }
+            } else {
+                var defaultMagentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
+                obj.paymentMethod = defaultMagentoPaymentMethod;
+            }
+            return obj;
+        },
+        /**
+         * Get dummy credit card number according to credit card type, otherwise show netsuite entered credit card number
+         * @param store
+         */
+        getDummyCreditCardNumber: function (store, netSuiteCCNumber, ccType) {
+            var ccNumber = '';
+            var creditCardsDataList = store.entitySyncInfo.salesorder.netsuiteCreditCardInfo;
+            for (var i = 0; i < creditCardsDataList.length; i++) {
+                var obj = creditCardsDataList[i];
+                if (obj.id == ccType) {
+                    ccNumber = obj.dummyNumber;
+                    break;
+                }
+            }
+            return ccNumber;
         }
     };
 })();

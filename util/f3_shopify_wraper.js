@@ -739,6 +739,10 @@ ShopifyWrapper = (function () {
             };
 
             return paymentInfo;
+        },
+
+        getPaymentInfoToExport:function(orderRecord, orderDataObject, store){
+
         }
     };
 
