@@ -1798,6 +1798,78 @@ MagentoXmlWrapper = (function () {
             return onlineSupported;
         },
 
+        /**
+         * Create refund in magento
+         * @param sessionID
+         * @param netsuiteRefundObj
+         * @param store
+         */
+        createCustomerRefund: function(sessionID, cashRefund, store) {
+            if (cashRefund.items.length === 0 && !cashRefund.adjustmentPositive) {
+                Utility.throwException(null, 'No item found to refund');
+            }
+            Utility.logDebug('cashRefund object', JSON.stringify(cashRefund));
+            var params = this.getCustomerRefundRequestParameters(cashRefund, store);
+            var requestParam = {"data": JSON.stringify(params), "apiMethod" : "createCreditMemo"};
+            Utility.logDebug('requestParam', JSON.stringify(requestParam));
+            var magentoCreditMemoCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
+            Utility.logDebug('magentoCreditMemoCreationUrl', magentoCreditMemoCreationUrl);
+            var resp = nlapiRequestURL(magentoCreditMemoCreationUrl, requestParam, null, 'POST');
+            var responseBody = resp.getBody();
+            Utility.logDebug('responseBody_w', responseBody);
+            responseBody = JSON.parse(responseBody);
+            return responseBody;
+
+
+            /*var requestXml = XmlUtility.getCreditMemoCreateXml(cashRefund, store.sessionID);
+             Utility.logDebug('cashRefund requestXml', requestXml);
+             var responseMagento = XmlUtility.validateAndTransformResponse(XmlUtility.soapRequestToMagento(requestXml), XmlUtility.transformCreditMemoCreateResponse);
+
+             if (responseMagento.status) {
+             ExportCustomerRefunds.setCashRefundMagentoId(responseMagento.result.creditMemoId, cashRefundNsId);
+             } else {
+             Utility.logDebug('RefundExportHelper.processCustomerRefund', responseMagento.faultString);
+             ExportCustomerRefunds.markRecords(cashRefundNsId, responseMagento.faultString);
+             }*/
+        },
+
+        /**
+         * Get Credit Memo request parameters
+         * @param cashRefundObj
+         */
+        getCustomerRefundRequestParameters : function (cashRefundObj, store){
+            var params = {};
+            params.order_increment_id = cashRefundObj.orderId;
+            params.invoice_increment_id = cashRefundObj.invoiceId;
+            params.shipping_cost = !!cashRefundObj.shippingCost ? cashRefundObj.shippingCost : 0;
+            params.adjustment_positive = !!cashRefundObj.adjustmentPositive ? cashRefundObj.adjustmentPositive : 0;
+            params.quantities = [];
+            for (var i in cashRefundObj.items) {
+                params.quantities.push({order_item_id: cashRefundObj.items[i].orderItemId, qty: cashRefundObj.items[i].qty});
+                //params.quantities[cashRefundObj.items[i].orderItemId] = cashRefundObj.items[i].qty;
+            }
+
+            var onlineCapturingPaymentMethod = this.checkRefundPaymentCapturingMode(cashRefundObj.paymentMethod, cashRefundObj.isSOFromOtherSystem, store);
+            params.capture_online = onlineCapturingPaymentMethod.toString();
+
+            return params;
+        },
+
+        /**
+         * Check either payment of this Invoice should capture online or not
+         * @param sOPaymentMethod
+         * @param isSOFromOtherSystem
+         * @param store
+         * @returns {boolean}
+         */
+        checkRefundPaymentCapturingMode : function(sOPaymentMethod, isSOFromOtherSystem, store) {
+            var isOnlineMethod = this.isOnlineCapturingPaymentMethod(sOPaymentMethod, store);
+            if(!!isSOFromOtherSystem && isSOFromOtherSystem == 'T' && isOnlineMethod) {
+                return true;
+            } else {
+                return false;
+            }
+        },
         createTracking: function (result, carrier, carrierText, tracking, sessionID, serverSOId) {
             var trackingXML = MagentoWrapper.createTrackingXML(result, carrier, carrierText, tracking, sessionID);
 

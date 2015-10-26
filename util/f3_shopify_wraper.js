@@ -741,6 +741,20 @@ ShopifyWrapper = (function () {
             return paymentInfo;
         },
 
+/**
+         * Create refund in shopify
+         * @param sessionID
+         * @param netsuiteRefundObj
+         * @param store
+         */
+        createCustomerRefund: function(sessionID, cashRefund, store) {
+            // To be implement later
+            var responseBody = {};
+            responseBody.status = 1;
+            responseBody.message = '';
+            responseBody.data = {increment_id: ''};
+            return responseBody;
+        },
         getPaymentInfoToExport:function(orderRecord, orderDataObject, store){
 
         }

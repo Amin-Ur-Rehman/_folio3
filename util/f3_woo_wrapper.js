@@ -944,33 +944,12 @@ WooWrapper = (function () {
          * @returns {{status: boolean, faultCode: string, faultString: string}}
          */
         updateItem: function (product, sessionID, magID, isParent) {
-
-            // first get the product id here
-            /*var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
-             var firstProduct = productInfo[0];
-             var httpRequestData = {
-             additionalUrl: 'products/' + magID + '.json',
-             method: 'PUT',
-             postData: {
-             product: {
-             id: magID,
-             variants: [{
-             id: firstProduct.variants[0].id,
-             price: product.price,
-             inventory_quantity: product.quantity,
-             product_id: magID
-             }
-             ]
-             }
-             }
-             };*/
             var httpRequestData = {
                 url: 'products/' + magID.toString(),
                 method: 'PUT',
                 postData: {
                     product: {
                         regular_price: product.price,
-                        sale_price: 0,
                         stock_quantity: product.quantity
                     }
                 }
@@ -1467,6 +1446,20 @@ WooWrapper = (function () {
             return paymentInfo;
         },
 
+/**
+         * Create refund in wocommerce
+         * @param sessionID
+         * @param netsuiteRefundObj
+         * @param store
+         */
+        createCustomerRefund: function(sessionID, cashRefund, store) {
+            // To be implement later
+            var responseBody = {};
+            responseBody.status = 1;
+            responseBody.message = '';
+            responseBody.data = {increment_id: ''};
+            return responseBody;
+        },
         getPaymentInfoToExport: function (orderRecord, orderDataObject, store) {
             var obj = {};
             // initialize scrub
