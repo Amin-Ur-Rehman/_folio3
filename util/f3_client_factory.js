@@ -961,7 +961,6 @@ function F3BaseV1Client() {
      */
     currentClient.createLeadInNetSuite = function (magentoCustomerObj, sessionID, isGuest) {
         Utility.logDebug("currentClient.createLeadInNetSuite", "Start");
-        Utility.logDebug("customerId", JSON.stringify(customerId));
         Utility.logDebug("magentoCustomerObj", JSON.stringify(magentoCustomerObj));
         Utility.logDebug("sessionID", JSON.stringify(sessionID));
 
@@ -977,7 +976,6 @@ function F3BaseV1Client() {
 
         // zee: get customer address list: start
 
-        var custAddrXML;
         var responseMagento;
         var addresses = {};
 

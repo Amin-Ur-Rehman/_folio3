@@ -53,9 +53,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
         order.updateDate = updateDate;
 
 
-
         // Make Call and Get Data
-	serverOrdersResponse = getSalesOrderList(order, sessionID, ConnectorConstants.CurrentStore);
+        serverOrdersResponse = getSalesOrderList(order, sessionID, ConnectorConstants.CurrentStore);
         Utility.logDebug('syncSalesOrderMagento > serverOrdersResponse', JSON.stringify(serverOrdersResponse));
 
         // If some problem
@@ -160,7 +159,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                             // make order data object
                             salesOrderObj = ConnectorModels.getSalesOrderObject(salesOrderDetails.customer, '', products,
                                 netsuiteMagentoProductMapData, customerNSInternalId, '', shippingAddress,
-                                    billingAddress, payment);
+                                billingAddress, payment);
 
                             Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
 
@@ -174,7 +173,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
 
                         // searching customer record in NetSuite
                         customerSearchObj =
-                          ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, customer[customerIndex].customer_id);
+                            ConnectorConstants.Client.searchCustomerInNetSuite(customer[customerIndex].email, customer[customerIndex].customer_id);
 
                         // if customer record found in NetSuite, update the customer record
                         if (customerSearchObj.status) {
@@ -187,7 +186,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                             // if customer record not found in NetSuite, create a lead record in NetSuite
                             Utility.logDebug('Start Creating Lead', '');
                             leadCreateAttemptResult =
-                              ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, false);
+                                ConnectorConstants.Client.createLeadInNetSuite(customer[customerIndex], sessionID, false);
                             Utility.logDebug('Attempt to create lead', JSON.stringify(leadCreateAttemptResult));
                             if (!Utility.isBlankOrNull(leadCreateAttemptResult.errorMsg) || !Utility.isBlankOrNull(leadCreateAttemptResult.infoMsg)) {
                                 continue;
@@ -199,7 +198,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         // make order data object
                         salesOrderObj = ConnectorModels.getSalesOrderObject(
                             salesOrderDetails.customer, '', products, netsuiteMagentoProductMapData, customerNSInternalId, '',
-                                shippingAddress, billingAddress, payment);
+                            shippingAddress, billingAddress, payment);
                         Utility.logDebug('ZEE->salesOrderObj', JSON.stringify(salesOrderObj));
                         // create sales order
                         ConnectorConstants.Client.createSalesOrder(salesOrderObj);
@@ -255,7 +254,7 @@ function syncSalesOrderMagento(sessionID, updateDate) {
  */
 function getSalesOrderList(soListParams, sessionID, store) {
     var responseMagentoOrders = null;
-    if(!!store.entitySyncInfo.common && !!store.entitySyncInfo.common.customRestApiUrl) {
+    if (!!store.entitySyncInfo.common && !!store.entitySyncInfo.common.customRestApiUrl) {
         Utility.logDebug('Inside MagentoRestApiWrapper', 'getSalesOrdersList call');
         var mgRestAPiWrapper = new MagentoRestApiWrapper();
         responseMagentoOrders = mgRestAPiWrapper.getSalesOrdersList(soListParams.updateDate, store.entitySyncInfo.salesorder.status, store);
@@ -290,7 +289,7 @@ function startup(type) {
                 try {
                     // getting store/system object
                     store = externalSystemConfig[system];
-                    if(!store) {
+                    if (!store) {
                         //Utility.logDebug('store ' + system, 'This store is null');
                         continue;
                     }
@@ -309,7 +308,7 @@ function startup(type) {
                     // Check for feature availability
                     if (FeatureVerification.isPermitted(Features.IMPORT_SO_DUMMMY_ITEM, ConnectorConstants.CurrentStore.permissions)) {
                         ConnectorConstants.initializeDummyItem();
-                    }else{
+                    } else {
                         Utility.logEmergency('FEATURE PERMISSION', Features.IMPORT_SO_DUMMMY_ITEM + ' NOT ALLOWED');
                     }
 

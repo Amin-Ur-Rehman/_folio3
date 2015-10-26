@@ -219,7 +219,7 @@ function ws_soaftsubm(type) {
             var lastModifiedDate = ConnectorCommon.getLastModifiedDate();
 
             if (Utility.isBlankOrNull(scriptStartDate)) {
-                var currentDate = Utility.getDateUTC(0);
+                var currentDate = Utility.getDateUTC(-8);
                 scriptStartDate = nlapiDateToString(currentDate, 'datetimetz');
             }
 
@@ -236,9 +236,8 @@ function ws_soaftsubm(type) {
                 filter.push(new nlobjSearchFilter('internalidnumber', null, 'greaterthan', !!paramInternalId ? paramInternalId : '-1', null));
                 //filter.push(new nlobjSearchFilter('internalid', null, 'is', '387'));
                 filter.push(new nlobjSearchFilter(ConnectorConstants.Item.Fields.MagentoSync, null, 'is', 'T', null));
-                // TODO: undo filter
-                //filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', lastModifiedDate, null));
-                filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', '8/18/2015 8:15 am', null));
+                filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', lastModifiedDate, null));
+                //filter.push(new nlobjSearchFilter('lastmodifieddate', null, 'onorafter', '8/18/2015 8:15 am', null));
                 // for test add this filter by allozhu
                 //filter.push(new nlobjSearchFilter('internalid', null, 'anyof', ["728"], null));
 
@@ -326,6 +325,9 @@ function ws_soaftsubm(type) {
                                 //product.quatity = itemRec.getLineItemValue('locations', 'quantityonhand', 1) || 0;
                                 product.quatity = itemRec.getLineItemValue('locations', 'quantityavailable', 1) || 0;
                             }
+
+                            // for woo
+                            product.quantity = product.quatity;
 
                             var productRecordtype = records[j].getRecordType();
                             var matrixType = itemRec.getFieldValue('matrixtype');

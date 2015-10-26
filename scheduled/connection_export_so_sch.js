@@ -330,70 +330,10 @@ var OrderExportHelper = (function () {
         appendPaymentInfoInDataObject: function (orderRecord, orderDataObject, store) {
             var obj = {};
 
-            // initialize scrub
-            ConnectorConstants.initializeScrubList();
-            var system = ConnectorConstants.CurrentStore.systemId;
+            obj = ConnectorConstants.CurrentWrapper.getPaymentInfoToExport(orderRecord, orderDataObject, store);
 
-            var allMagentoPaymentMethodConfigured = store.entitySyncInfo.salesorder.allMagentoPaymentMethodConfigured;
-            var paymentMethod = orderRecord.getFieldValue('paymentmethod');
-            if(!!allMagentoPaymentMethodConfigured && allMagentoPaymentMethodConfigured == 'true' && !!paymentMethod) {
-                var ccNumber = orderRecord.getFieldValue('ccnumber');
-                var ccExpireDate = orderRecord.getFieldValue('ccexpiredate');
-                var ccName = orderRecord.getFieldValue('ccname');
-
-                Utility.logDebug("paymentMethodLookup_Key", paymentMethod);
-                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
-                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
-                var paymentMethodDetail = (paymentMethodLookupValue + '').split('_');
-                var magentoPaymentMethod = paymentMethodDetail.length === 2 ? paymentMethodDetail[0] : '';
-                var magentoCCType = paymentMethodDetail.length === 2 ? paymentMethodDetail[1] : '';
-                // If payment method still not found in mapping, then set default
-                if(!magentoPaymentMethod) {
-                    magentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
-                }
-                obj.paymentMethod = magentoPaymentMethod;
-                obj.ccType = magentoCCType;
-                obj.ccNumber = '';
-                if(!!ccNumber) {
-                    var dummyCCNumber = this.getDummyCreditCardNumber(store, ccNumber, paymentMethod);
-                    if(!!dummyCCNumber) {
-                        obj.ccNumber = dummyCCNumber;
-                        orderDataObject.history += '  ##  ' + store.entitySyncInfo.salesorder.dummyCreditCardMessage + '  ##  ';
-                    }
-                }
-                obj.ccOwner = !!ccName ? ccName : '';
-                obj.ccExpiryYear = '';
-                obj.ccExpiryMonth = '';
-                if(!!ccExpireDate) {
-                    // Keep it safe
-                    try {
-                        var expiryDetails = (ccExpireDate).split('/');
-                        obj.ccExpiryMonth = expiryDetails.length === 2 ? expiryDetails[0] : '';
-                        obj.ccExpiryYear = expiryDetails.length === 2 ? expiryDetails[1] : '';
-                    } catch (e){}
-                }
-            } else {
-                var defaultMagentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
-                obj.paymentMethod = defaultMagentoPaymentMethod;
-            }
             Utility.logDebug("paymentInfo", JSON.stringify(obj));
             orderDataObject.paymentInfo = obj;
-        },
-/**
-         * Get dummy credit card number according to credit card type, otherwise show netsuite entered credit card number
-         * @param store
-         */
-        getDummyCreditCardNumber : function(store, netSuiteCCNumber, ccType) {
-            var ccNumber = '';
-            var creditCardsDataList = store.entitySyncInfo.salesorder.netsuiteCreditCardInfo;
-            for (var i = 0; i < creditCardsDataList.length; i++) {
-                var obj = creditCardsDataList[i];
-                if(obj.id == ccType) {
-                    ccNumber = obj.dummyNumber;
-                    break;
-                }
-            }
-            return ccNumber;
         },
         /**
          * This function appends the gift card certificates in order data object
