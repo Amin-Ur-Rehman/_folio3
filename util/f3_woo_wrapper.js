@@ -116,6 +116,12 @@ WooWrapper = (function () {
 
         }
 
+        if (serverOrder.payment_details) {
+            localOrder.payment.method = serverOrder.payment_details.method_id;
+            localOrder.payment.methodTitle = serverOrder.payment_details.method_title;
+            localOrder.payment.paid = serverOrder.payment_details.paid;
+        }
+
         return localOrder;
     }
 
@@ -519,12 +525,11 @@ WooWrapper = (function () {
      */
     function getSalesOrderPaymentDetails(orderRecord) {
         var paymentDetail = {};
-        var paymentInfo = paymentDetail.paymentInfo;
+        var paymentInfo = orderRecord.paymentInfo;
 
-        // TODO: need to be dynamic
-        paymentDetail.method_id = "bacs";
-        paymentDetail.method_title = "Direct Bank Transfer";
-        paymentDetail.paid = true;
+        paymentDetail.method_id = paymentInfo.paymentMethod;
+        paymentDetail.method_title = paymentInfo.paymentMethodTitle;
+        paymentDetail.paid = false;
 
         return paymentDetail;
     }
@@ -890,11 +895,8 @@ WooWrapper = (function () {
         getSalesOrderInfo: function (increment_id, sessionID) {
 
             var httpRequestData = {
-                url: 'orders',
-                method: 'GET',
-                data: {
-                    ids: increment_id
-                }
+                url: 'orders/' + increment_id.toString(),
+                method: 'GET'
             };
             var serverResponse = null;
 
@@ -913,15 +915,15 @@ WooWrapper = (function () {
                 Utility.logException('Error during getSalesOrders', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var orders = parseSalesOrderResponse(serverResponse.orders);
+            if (!!serverResponse && serverResponse.order) {
+                var order = parseSingleSalesOrderResponse(serverResponse.order);
 
-                if (!!orders && orders.length > 0) {
-                    serverFinalResponse.customer = orders[0].customer;
-                    serverFinalResponse.shippingAddress = orders[0].shippingAddress;
-                    serverFinalResponse.billingAddress = orders[0].billingAddress;
-                    serverFinalResponse.payment = orders[0].payment;
-                    serverFinalResponse.products = orders[0].products;
+                if (!!order) {
+                    serverFinalResponse.customer = order.customer;
+                    serverFinalResponse.shippingAddress = order.shippingAddress;
+                    serverFinalResponse.billingAddress = order.billingAddress;
+                    serverFinalResponse.payment = order.payment;
+                    serverFinalResponse.products = order.products;
                 }
             }
 
@@ -942,33 +944,12 @@ WooWrapper = (function () {
          * @returns {{status: boolean, faultCode: string, faultString: string}}
          */
         updateItem: function (product, sessionID, magID, isParent) {
-
-            // first get the product id here
-            /*var productInfo = WooWrapper.getProduct(sessionID, product, '&fields=variants');
-             var firstProduct = productInfo[0];
-             var httpRequestData = {
-             additionalUrl: 'products/' + magID + '.json',
-             method: 'PUT',
-             postData: {
-             product: {
-             id: magID,
-             variants: [{
-             id: firstProduct.variants[0].id,
-             price: product.price,
-             inventory_quantity: product.quantity,
-             product_id: magID
-             }
-             ]
-             }
-             }
-             };*/
             var httpRequestData = {
                 url: 'products/' + magID.toString(),
                 method: 'PUT',
                 postData: {
                     product: {
                         regular_price: product.price,
-                        sale_price: 0,
                         stock_quantity: product.quantity
                     }
                 }
@@ -1440,7 +1421,7 @@ WooWrapper = (function () {
             responseBody.data = {increment_id: ''};
             return responseBody;
         },
-        getPaymentInfo: function(payment){
+        getPaymentInfo: function (payment) {
             var paymentInfo = {
                 "paymentmethod": "",
                 "pnrefnum": "",
@@ -1448,7 +1429,53 @@ WooWrapper = (function () {
                 "paypalauthid": ""
             };
 
+            var paymentMethod = payment.method;
+
+            // if no payment method found return
+            if (!paymentMethod) {
+                return paymentInfo;
+            }
+
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
+            paymentMethod = (paymentMethod + "").toLowerCase();
+            paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
+
             return paymentInfo;
+        },
+
+/**
+         * Create refund in wocommerce
+         * @param sessionID
+         * @param netsuiteRefundObj
+         * @param store
+         */
+        createCustomerRefund: function(sessionID, cashRefund, store) {
+            // To be implement later
+            var responseBody = {};
+            responseBody.status = 1;
+            responseBody.message = '';
+            responseBody.data = {increment_id: ''};
+            return responseBody;
+        },
+        getPaymentInfoToExport: function (orderRecord, orderDataObject, store) {
+            var obj = {};
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
+            var paymentMethod = orderRecord.getFieldValue('paymentmethod');
+            if (!!paymentMethod) {
+                obj.paymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
+                obj.paymentMethodTitle = FC_ScrubHandler.findValue(system, "PaymentMethodTitle", paymentMethod);
+            } else {
+                var defaultMagentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
+                obj.paymentMethodTitle = FC_ScrubHandler.findValue(system, "PaymentMethodTitle", "DEFAULT_EXT");
+                obj.paymentMethod = defaultMagentoPaymentMethod;
+            }
+            return obj;
         }
     };
 
