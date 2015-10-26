@@ -2130,8 +2130,8 @@ MagentoXmlWrapper = (function () {
             return responseMagento;
         },
         upsertCoupons: function (promoCodeRecord) {
-            var magentoUrl = this.getMagentoUrl(promoCodeRecord.magentoStore);
-            //Utility.logDebug('magentoUrl', magentoUrl);
+            var magentoUrl = this.getMagentoUrl(ConnectorConstants.CurrentStore);
+            Utility.logDebug('magentoUrl', magentoUrl);
 
             var authHeaderName = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Name;
             var authHeaderValue = WsmUtilityApiConstants.Header.NetSuiteMagentoConnector.Value;

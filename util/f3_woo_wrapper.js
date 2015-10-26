@@ -727,6 +727,8 @@ WooWrapper = (function () {
 
         finalUrl = httpRequestData.url + '?' + signedUrl;
 
+        Utility.logDebug('finalUrl = ', finalUrl);
+
         var res = null;
 
         if (!httpRequestData.headers) {
