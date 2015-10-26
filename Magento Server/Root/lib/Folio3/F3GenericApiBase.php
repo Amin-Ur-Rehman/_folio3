@@ -255,4 +255,88 @@ class F3_Generic_Api_Base
         }
         return $response;
     }
+
+    public function createCreditMemo($requestData){
+        try {
+            if(isset($requestData->order_increment_id) && isset($requestData->invoice_increment_id)) {
+                //Mage::log('inside createCreditMemo start', null, 'create-creditmemo.log', true);
+                $order_increment_id = $requestData->order_increment_id;
+                $invoice_increment_id = $requestData->invoice_increment_id;
+                //Mage::log('loading order', null, 'create-creditmemo.log', true);
+                $order = Mage::getModel('sales/order')->loadByIncrementId($order_increment_id);
+                //Mage::log('order loaded', null, 'create-creditmemo.log', true);
+                if ($order->canCreditmemo()) {
+
+                    $selectedInvoice = null;
+                    //Mage::log('going to get invoice', null, 'create-creditmemo.log', true);
+                    //Mage::log('provided invoice: '.$invoice_increment_id, null, 'create-creditmemo.log', true);
+                    foreach ($order->getInvoiceCollection() as $invoice) {
+                        //Mage::log('going to get current invoice id', null, 'create-creditmemo.log', true);
+                        $currentInvoiceIncrementId = $invoice->getIncrementId();
+                        //Mage::log('got current invoice id', null, 'create-creditmemo.log', true);
+                        //Mage::log('current invoice id: '.$currentInvoiceIncrementId, null, 'create-creditmemo.log', true);
+                        if($currentInvoiceIncrementId == $invoice_increment_id) {
+                            $selectedInvoice = $invoice;
+                            //Mage::log('invoice found', null, 'create-creditmemo.log', true);
+                            break;
+                        }
+                    }
+                    if(!isset($selectedInvoice)) {
+                        throw new Exception('No Invoice Found with provided invoice id: '+ $invoice_increment_id +' in magento.');
+                    }
+                    //Mage::log('getting service model', null, 'create-creditmemo.log', true);
+                    $service = Mage::getModel('sales/service_order', $order);
+                    //Mage::log('setting data properties', null, 'create-creditmemo.log', true);
+                    $data = array();
+                    $data['shipping_amount'] = (double)$requestData->shipping_cost;
+                    $data['adjustment_positive'] = (double)$requestData->adjustment_positive;
+
+                    $quantityArray = array();
+                    foreach ($requestData->quantities as $quantity) {
+                        $key = (int)$quantity->order_item_id;
+                        $value = (int)$quantity->qty;
+                        $quantityArray[$key] = $value;
+                    }
+
+                    $data['qtys'] = $quantityArray;
+                    $creditMemo = $service->prepareInvoiceCreditmemo($selectedInvoice, $data);
+                    $creditMemo->setShippingAmount($data['shipping_amount']);
+                    $creditMemo->setAdjustmentPositive($data['adjustment_positive']);
+                    //$creditMemo->setGrandTotal($data['adjustment_positive']);
+                    $creditMemo->setRefundRequested(true);
+                    if($requestData->capture_online == 'true') {
+                        $creditMemo->setOfflineRequested(false);
+                    } else {
+                        $creditMemo->setOfflineRequested(true);
+                    }
+
+                    $creditMemo->setPaymentRefundDisallowed(false);
+                    if(Mage::registry('current_creditmemo')) {
+                        Mage::unregister('current_creditmemo');
+                    }
+                    //Mage::log('going to register current_creditmemo', null, 'create-creditmemo.log', true);
+                    Mage::register('current_creditmemo', $creditMemo);
+                    //Mage::log('going to register creditmemo', null, 'create-creditmemo.log', true);
+                    $creditMemo->register();
+                    //Mage::log('going to save creditmemo', null, 'create-creditmemo.log', true);
+                    Mage::getModel('core/resource_transaction')->addObject($creditMemo)->addObject($order)->save();
+
+                    # here follows the transactionSave: $this->_saveCreditmemo($creditmemo);
+                    $responseArr = array();
+                    $responseArr["increment_id"] = $creditMemo->getIncrementId();
+                    $response["status"] = 1;
+                    $response["message"] = "Credit Memo has been created";
+                    $response["data"] = $responseArr;
+                }
+            }
+            else {
+                throw new Exception('Please provide order_increment_id and invoice_increment_id values in request param');
+            }
+
+        } catch (Exception $e) {
+            Mage::log("F3_Generic_Api_Base.createCreditMemo - Exception = " . $e->getMessage(), null, date("d_m_Y") . '.log', true);
+            throw new Exception($e->getMessage());
+        }
+        return $response;
+    }
 }
