@@ -306,8 +306,12 @@ var OrderExportHelper = (function () {
                 shipmentMethod = carrier + '_' + method;
             }
 
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
             Utility.logDebug('key_shipmentMethod', shipmentMethod);
-            obj.shipmentMethod = FC_ScrubHandler.getMappedValue('ShippingMethod', shipmentMethod);
+            obj.shipmentMethod = FC_ScrubHandler.findValue(system, "ShippingMethod", shipmentMethod);
             Utility.logDebug('value_shipmentMethod', obj.shipmentMethod);
 
             // set shipping cost in object
@@ -325,6 +329,11 @@ var OrderExportHelper = (function () {
          */
         appendPaymentInfoInDataObject: function (orderRecord, orderDataObject, store) {
             var obj = {};
+
+            // initialize scrub
+            ConnectorConstants.initializeScrubList();
+            var system = ConnectorConstants.CurrentStore.systemId;
+
             var allMagentoPaymentMethodConfigured = store.entitySyncInfo.salesorder.allMagentoPaymentMethodConfigured;
             var paymentMethod = orderRecord.getFieldValue('paymentmethod');
             if(!!allMagentoPaymentMethodConfigured && allMagentoPaymentMethodConfigured == 'true' && !!paymentMethod) {
@@ -333,14 +342,14 @@ var OrderExportHelper = (function () {
                 var ccName = orderRecord.getFieldValue('ccname');
 
                 Utility.logDebug("paymentMethodLookup_Key", paymentMethod);
-                var paymentMethodLookupValue = FC_ScrubHandler.getMappedValue('PaymentMethod', paymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
                 Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
                 var paymentMethodDetail = (paymentMethodLookupValue + '').split('_');
                 var magentoPaymentMethod = paymentMethodDetail.length === 2 ? paymentMethodDetail[0] : '';
                 var magentoCCType = paymentMethodDetail.length === 2 ? paymentMethodDetail[1] : '';
                 // If payment method still not found in mapping, then set default
                 if(!magentoPaymentMethod) {
-                    magentoPaymentMethod = store.entitySyncInfo.salesorder.defaultMagentoPaymentMethod;
+                    magentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
                 }
                 obj.paymentMethod = magentoPaymentMethod;
                 obj.ccType = magentoCCType;
@@ -364,7 +373,7 @@ var OrderExportHelper = (function () {
                     } catch (e){}
                 }
             } else {
-                var defaultMagentoPaymentMethod = store.entitySyncInfo.salesorder.defaultMagentoPaymentMethod;
+                var defaultMagentoPaymentMethod = FC_ScrubHandler.findValue(system, "PaymentMethod", "DEFAULT_EXT");
                 obj.paymentMethod = defaultMagentoPaymentMethod;
             }
             Utility.logDebug("paymentInfo", JSON.stringify(obj));

@@ -82,6 +82,8 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                         continue;
                     }
 
+                    Utility.logDebug('isOrderSynced - ' + orders[i].increment_id, "NO");
+
                     salesOrderDetails = ConnectorConstants.CurrentWrapper.getSalesOrderInfo(orders[i].increment_id, sessionID);
                     Utility.logDebug('ZEE->salesOrderDetails', JSON.stringify(salesOrderDetails));
                     //Utility.logDebug('stages_w', 'Step-c');
@@ -322,7 +324,7 @@ function startup(type) {
 
                     if (!sessionID) {
                         Utility.logDebug('sessionID', 'sessionID is empty');
-                        return;
+                        continue;
                     }
 
                     Utility.logDebug('startup', 'Start Syncing');

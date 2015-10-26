@@ -314,46 +314,23 @@ var RefundExportHelper = (function () {
          * @param record
          * @param store
          */
-        processCustomerRefund: function (record, store) {
+        processCustomerRefund: function (record, sessionID, store) {
+            var cashRefundNsId = record.getId();
             try {
-                var cashRefundNsId = record.getId();
-                // get credit card data
+                // get refund data
                 var cashRefund = this.getCustomerRefund(cashRefundNsId, store);
-                if (cashRefund.items.length === 0 && !cashRefund.adjustmentPositive) {
-                    Utility.throwException(null, 'No item found to refund');
-                }
-                Utility.logDebug('cashRefund object', JSON.stringify(cashRefund));
-                var params = this.getRequestParameters(cashRefund, store);
-                var requestParam = {"data": JSON.stringify(params), "method" : "createCreditMemo"};
-                Utility.logDebug('requestParam', JSON.stringify(requestParam));
-                var magentoCreditMemoCreationUrl = store.entitySyncInfo.salesorder.magentoSOClosingUrl;
-                Utility.logDebug('magentoCreditMemoCreationUrl', magentoCreditMemoCreationUrl);
-                var resp = nlapiRequestURL(magentoCreditMemoCreationUrl, requestParam, null, 'POST');
-                var responseBody = resp.getBody();
-                Utility.logDebug('responseBody_w', responseBody);
-                responseBody = JSON.parse(responseBody);
+
+                var responseBody = ConnectorConstants.CurrentWrapper.createCustomerRefund(sessionID, cashRefund, store);
                 if(!!responseBody.status) {
-                    if(!!responseBody.increment_id) {
-                        ExportCustomerRefunds.setCashRefundMagentoId(responseBody.increment_id, cashRefundNsId);
+                    if(!!responseBody.data.increment_id) {
+                        ExportCustomerRefunds.setCashRefundMagentoId(responseBody.data.increment_id, cashRefundNsId);
                     } else {
-                        Utility.logDebug('Error', 'Magento Credit Memo Increment Id not found');
+                        Utility.logDebug('Error', 'Other system Credit Memo Increment Id not found');
                     }
-                    Utility.logDebug('successfully', 'magento credit memo created');
+                    Utility.logDebug('successfully', 'Other system credit memo created');
                 } else {
-                    Utility.logException('Some error occurred while creating Magento credit memo', responseBody.error);
+                    Utility.logException('Some error occurred while creating Other system credit memo', responseBody.error);
                 }
-
-
-                /*var requestXml = XmlUtility.getCreditMemoCreateXml(cashRefund, store.sessionID);
-                Utility.logDebug('cashRefund requestXml', requestXml);
-                var responseMagento = XmlUtility.validateAndTransformResponse(XmlUtility.soapRequestToMagento(requestXml), XmlUtility.transformCreditMemoCreateResponse);
-
-                if (responseMagento.status) {
-                    ExportCustomerRefunds.setCashRefundMagentoId(responseMagento.result.creditMemoId, cashRefundNsId);
-                } else {
-                    Utility.logDebug('RefundExportHelper.processCustomerRefund', responseMagento.faultString);
-                    ExportCustomerRefunds.markRecords(cashRefundNsId, responseMagento.faultString);
-                }*/
 
             } catch (e) {
                 Utility.logException('RefundExportHelper.processCustomerRefund', e);
@@ -477,7 +454,9 @@ var ExportCustomerRefunds = (function () {
 
             externalSystemConfig.forEach(function (store) {
                 ConnectorConstants.CurrentStore = store;
-                var sessionID = XmlUtility.getSessionIDFromMagento(store.userName, store.password);
+                ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
+                ConnectorConstants.CurrentWrapper.initialize(store);
+                var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
                 if (!sessionID) {
                     Utility.logDebug('sessionID', 'sessionID is empty');
                     return;
@@ -505,9 +484,12 @@ var ExportCustomerRefunds = (function () {
         },
 
         /**
-         * sends records to Salesforce using its API
+         * sends refund records to other system
+         * @param records
+         * @param sessionID
+         * @param store
          */
-        processRecords: function (records, store) {
+        processRecords: function (records, sessionID, store) {
             var context = nlapiGetContext();
             var params = {};
             var count = records.length;
@@ -516,7 +498,7 @@ var ExportCustomerRefunds = (function () {
 
             for (var i = 0; i < count; i++) {
 
-                RefundExportHelper.processCustomerRefund(records[i], store);
+                RefundExportHelper.processCustomerRefund(records[i], sessionID, store);
 
                 if (this.rescheduleIfNeeded(context, params)) {
                     return;
@@ -626,17 +608,18 @@ var ExportCustomerRefunds = (function () {
                         }
                         ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
                         ConnectorConstants.CurrentWrapper.initialize(store);
+                        //var sessionID = ConnectorConstants.CurrentWrapper.getSessionIDFromServer(store.userName, store.password);
+                        // There is no use for session id for current magento, because its creating using custom php api,
+                        // In future if its needed for woocommerce or magento, we will uncomment the above line
+                        var sessionID = '';
                         Utility.logDebug('debug', 'Step-2');
 
-                        var records = this.getRecords(store.systemId);
-
-
-                        
+                        var records = this.getRecords(store);
 
                         if (records !== null && records.length > 0) {
                             Utility.logDebug('fetched refunds count', records.length);
-			    Utility.logDebug('debug', 'Step-3');
-                            this.processRecords(records, store);
+			                Utility.logDebug('debug', 'Step-3');
+                            this.processRecords(records, sessionID, store);
                         } else {
                             Utility.logDebug('ExportCustomerRefunds.scheduled', 'No records found to process - StoreId: ' + store.systemId);
                         }
@@ -662,12 +645,12 @@ var ExportCustomerRefunds = (function () {
          * Gets customer refunds search records/ids if exist for syncing
          * @return {Array}
          */
-        getRecords: function (storeId) {
+        getRecords: function (store) {
             var fils = [];
             var records = null;
 
             try {
-                var ageOfRecordsToSyncInDays = ConnectorConstants.CurrentStore.entitySyncInfo.cashrefund.ageOfRecordsToSyncInDays;
+                var ageOfRecordsToSyncInDays = store.entitySyncInfo.cashrefund.ageOfRecordsToSyncInDays;
                 Utility.logDebug('ageOfRecordsToSyncInDays', ageOfRecordsToSyncInDays);
                 var currentDate = Utility.getDateUTC(0);
                 var oldDate = nlapiAddDays(currentDate, '-'+ageOfRecordsToSyncInDays);
@@ -679,7 +662,7 @@ var ExportCustomerRefunds = (function () {
 
 
                 fils.push(new nlobjSearchFilter('mainline', null, 'is', 'T', null));
-                fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', storeId, null));
+                fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoStore, null, 'is', store.systemId, null));
                 fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoId, null, 'isnotempty', null, null));
                 fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.CustomerRefundMagentoId, null, 'isempty', null, null));
                 //fils.push(new nlobjSearchFilter(ConnectorConstants.Transaction.Fields.MagentoSync, null, 'is', 'T', null));

@@ -929,6 +929,7 @@ function F3BaseV1Client() {
         Utility.logDebug("F3BaseV1Client.setPayment", "Start");
         var paymentInfo = ConnectorConstants.CurrentWrapper.getPaymentInfo(payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes);
 
+        Utility.logDebug("External Payment", JSON.stringify(payment));
         Utility.logDebug("paymentInfo", JSON.stringify(paymentInfo));
 
         rec.setFieldValue("paymentmethod", paymentInfo.paymentmethod);
