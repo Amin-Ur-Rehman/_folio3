@@ -230,18 +230,7 @@ var PromoCodesExportHelper = (function () {
                 ConnectorConstants.initialize();
                 // getting configuration
                 var externalSystemConfig = ConnectorConstants.ExternalSystemConfig;
-                // getting store object with respect to
-                var store = (function (externalSystemConfig, salesOrderStore) {
-                    var s;
-                    for (var i in externalSystemConfig) {
-                        var externalSystem = externalSystemConfig[i];
-                        if (externalSystem.systemId === salesOrderStore) {
-                            s = externalSystem;
-                            break;
-                        }
-                    }
-                    return s;
-                })(externalSystemConfig, promoCodeRecord.magentoStore);
+                var store = externalSystemConfig[promoCodeRecord.magentoStore];
                 // setting global values for future use
                 ConnectorConstants.CurrentStore = store;
                 ConnectorConstants.CurrentWrapper = F3WrapperFactory.getWrapper(store.systemType);
