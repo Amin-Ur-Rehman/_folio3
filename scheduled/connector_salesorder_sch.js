@@ -113,9 +113,9 @@ function syncSalesOrderMagento(sessionID, updateDate) {
                     netsuiteMagentoProductMapData = netsuiteMagentoProductMap.data;
                     Utility.logDebug('After getting product mapping', JSON.stringify(netsuiteMagentoProductMapData));
 
-                    //Utility.logDebug('stages_w', 'Step-f');
+                    Utility.logDebug('stages_w', 'before getting custoemr');
                     var customer = ConnectorModels.getCustomerObject(salesOrderDetails.customer);
-                    //Utility.logDebug('stages_w', 'Step-g');
+                    Utility.logDebug('stages_w', 'after getting customer');
                     // adding shipping and billing address in customer object getting from sales order
                     customer[0].addresses = ConnectorModels.getAddressesFromOrder(shippingAddress, billingAddress);
                     //Utility.logDebug('ZEE->customer', JSON.stringify(customer));
