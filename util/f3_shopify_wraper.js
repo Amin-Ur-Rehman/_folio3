@@ -22,11 +22,85 @@ ShopifyWrapper = (function () {
     //region Private Methods
 
     /**
-     * Parses Single Sales Order Response
+     * Parses Single Sales Order Response from listing
      * @param serverOrder
      * @returns {*|{customer_id, increment_id, shippingAddress, billingAddress, payment}}
      */
     function parseSingleSalesOrderResponse(serverOrder) {
+
+        var localOrder = ConnectorModels.salesOrderModel();
+
+        localOrder.increment_id = serverOrder.id;
+
+        if (serverOrder.shipping_lines && serverOrder.shipping_lines.length > 0) {
+            localOrder.shipping_amount = serverOrder.shipping_lines[0].price;
+            localOrder.shipment_method = serverOrder.shipping_lines[0].code;
+        }
+
+        if (serverOrder.customer) {
+            localOrder.customer_id = serverOrder.customer.id;
+
+            localOrder.email = serverOrder.customer.email;
+            localOrder.firstname = serverOrder.customer.first_name;
+            localOrder.middlename = ' ';
+            localOrder.lastname = serverOrder.customer.last_name;
+            localOrder.group_id = serverOrder.customer.customer_group_id;
+            localOrder.prefix = '';
+            localOrder.suffix = '';
+            localOrder.dob = '';
+            localOrder.customer_firstname = localOrder.firstname;
+            localOrder.customer_middlename = localOrder.middlename;
+            localOrder.customer_lastname = localOrder.lastname;
+        }
+
+        if (serverOrder.shipping_address) {
+            localOrder.shippingAddress.address_id = 0;
+            localOrder.shippingAddress.city = serverOrder.shipping_address.city;
+            localOrder.shippingAddress.country_id = serverOrder.shipping_address.country_code;
+            localOrder.shippingAddress.firstname = serverOrder.shipping_address.first_name;
+            localOrder.shippingAddress.lastname = serverOrder.shipping_address.last_name;
+            localOrder.shippingAddress.postcode = serverOrder.shipping_address.zip;
+            localOrder.shippingAddress.region = serverOrder.shipping_address.province_code;
+            localOrder.shippingAddress.region_id = serverOrder.shipping_address.province_code;
+            localOrder.shippingAddress.street = serverOrder.shipping_address.address1;
+            localOrder.shippingAddress.telephone = serverOrder.shipping_address.phone;
+            localOrder.shippingAddress.is_default_billing = false;
+            localOrder.shippingAddress.is_default_shipping = true;
+        }
+
+        if (serverOrder.billing_address) {
+            localOrder.billingAddress.address_id = 0;
+            localOrder.billingAddress.city = serverOrder.billing_address.city;
+            localOrder.billingAddress.country_id = serverOrder.billing_address.country_code;
+            localOrder.billingAddress.firstname = serverOrder.billing_address.first_name;
+            localOrder.billingAddress.lastname = serverOrder.billing_address.last_name;
+            localOrder.billingAddress.postcode = serverOrder.billing_address.zip;
+            localOrder.billingAddress.region = serverOrder.billing_address.province_code;
+            localOrder.billingAddress.region_id = serverOrder.billing_address.province_code;
+            localOrder.billingAddress.street = serverOrder.billing_address.address_1 + ' ' + serverOrder.billing_address.address_2;
+            localOrder.billingAddress.telephone = serverOrder.billing_address.phone;
+            localOrder.billingAddress.is_default_billing = true;
+            localOrder.billingAddress.is_default_shipping = false;
+        }
+
+        if (serverOrder.line_items && serverOrder.line_items.length > 0) {
+
+            for (var i = 0; i < serverOrder.line_items.length; i++) {
+                var serverLineItem = serverOrder.line_items[i];
+                localOrder.products.push(parseSingleProductResponse(serverLineItem));
+            }
+
+        }
+
+        return localOrder;
+    }
+
+    /**
+     * Parse single sales order details response
+     * @param serverOrder
+     * @returns {*}
+     */
+    function parseSingleSalesOrderDetailsResponse(serverOrder) {
 
         var localOrder = ConnectorModels.salesOrderModel();
 
@@ -36,11 +110,19 @@ ShopifyWrapper = (function () {
         localOrder.customer.increment_id = serverOrder.id.toString();
 
         if (serverOrder.shipping_lines && serverOrder.shipping_lines.length > 0) {
-            localOrder.shipping_amount = serverOrder.shipping_lines[0].total;
-            localOrder.shipment_method = serverOrder.shipping_lines[0].method_id;
+            localOrder.shipping_amount = serverOrder.shipping_lines[0].price;
+            localOrder.shipment_method = serverOrder.shipping_lines[0].source + '_' + serverOrder.shipping_lines[0].code;
             // hack for SO list logic changes
-            localOrder.customer.shipping_amount = serverOrder.shipping_lines[0].total;
-            localOrder.customer.shipment_method = serverOrder.shipping_lines[0].method_id;
+            localOrder.customer.shipping_amount = localOrder.shipping_amount;
+            localOrder.customer.shipment_method = localOrder.shipment_method;
+            localOrder.customer.shipping_description = '';
+        } else {
+            localOrder.shipping_amount = 0;
+            localOrder.shipment_method = '';
+            // hack for SO list logic changes
+            localOrder.customer.shipping_amount = 0;
+            localOrder.customer.shipment_method = '';
+            localOrder.customer.shipping_description = '';
         }
 
         if (serverOrder.customer) {
@@ -70,6 +152,17 @@ ShopifyWrapper = (function () {
             localOrder.customer.customer_firstname = localOrder.customer.firstname;
             localOrder.customer.customer_middlename = localOrder.customer.middlename;
             localOrder.customer.customer_lastname = localOrder.customer.lastname;
+
+            // Remaining properties, needed by change in magento order listing call
+            /*
+             That call bring only order increment ids now, all the other properties are fetched from
+             order detail call now
+             */
+            localOrder.customer.order_id = serverOrder.order_number.toString();
+            localOrder.customer.created_at = serverOrder.created_at.toString();
+            localOrder.customer.grandtotal = serverOrder.total_price.toString();
+            localOrder.customer.store_id = '';
+            localOrder.customer.discount_amount = serverOrder.total_discounts.toString();
         }
 
         if (serverOrder.shipping_address) {
@@ -114,6 +207,21 @@ ShopifyWrapper = (function () {
             localOrder.payment.method = serverOrder.payment_details.method_id;
             localOrder.payment.methodTitle = serverOrder.payment_details.method_title;
             localOrder.payment.paid = serverOrder.payment_details.paid;
+
+            localOrder.payment.parentId = '';
+            localOrder.payment.amountOrdered = '';
+            localOrder.payment.shippingAmount = '';
+            localOrder.payment.baseAmountOrdered = '';
+            if(!!serverOrder.payment_gateway_names && serverOrder.payment_gateway_names.length > 0) {
+                localOrder.payment.method = serverOrder.payment_gateway_names[0];
+            } else {
+                localOrder.payment.method = '';
+            }
+            localOrder.payment.ccType = serverOrder.payment_details.credit_card_company;
+            localOrder.payment.ccLast4 = serverOrder.payment_details.credit_card_number;
+            localOrder.payment.ccExpMonth = '';
+            localOrder.payment.ccExpYear = '';
+            localOrder.payment.paymentId = '';
         }
 
         return localOrder;
@@ -124,7 +232,7 @@ ShopifyWrapper = (function () {
      * @param serverResponse
      * @returns {Array}
      */
-    function parseSalesOrderResponse(serverResponse) {
+    function parseSalesOrderResponse(serverResponse, isOrderDetailsResponse) {
         var finalResult = [];
 
         try {
@@ -134,7 +242,13 @@ ShopifyWrapper = (function () {
 
                     Utility.logDebug('serverOrder = ', JSON.stringify(serverOrder));
 
-                    var localOrder = parseSingleSalesOrderResponse(serverOrder);
+                    var localOrder = null;
+                    if(!!isOrderDetailsResponse) {
+                        localOrder = parseSingleSalesOrderDetailsResponse(serverOrder);
+                    } else {
+                        localOrder = parseSingleSalesOrderResponse(serverOrder);
+                    }
+
 
                     Utility.logDebug('localOrder = ', JSON.stringify(localOrder));
                     finalResult.push(localOrder);
@@ -156,7 +270,7 @@ ShopifyWrapper = (function () {
     function parseSingleProductResponse(serverProduct) {
         var localProduct = ConnectorModels.productModel();
 
-        localProduct.increment_id = serverProduct.id;
+        localProduct.increment_id = serverProduct.id.toString();
         localProduct.shipping_amount = serverProduct.price;
         localProduct.shipment_method = serverProduct.shipment_method;
         localProduct.product_id = serverProduct.sku;
@@ -181,7 +295,7 @@ ShopifyWrapper = (function () {
         localProduct.fulfillable_quantity = serverProduct.fulfillable_quantity;
         localProduct.total_discount = serverProduct.total_discount;
         localProduct.tax_lines = serverProduct.tax_lines;
-        localProduct.item_id = "";
+        localProduct.item_id = serverProduct.id.toString();
 
         return localProduct;
     }
@@ -794,16 +908,17 @@ ShopifyWrapper = (function () {
             }
 
             if (!!serverResponse && serverResponse.orders) {
-                Utility.logDebug('Shopify Response of Order Details:', JSON.stringify(serverResponse));
-                var orders = parseSalesOrderResponse(serverResponse.orders);
+                //Utility.logDebug('Shopify Response of Order Details:', JSON.stringify(serverResponse));
+                var orders = parseSalesOrderResponse(serverResponse.orders, true);
 
                 if (!!orders && orders.length > 0) {
-                    Utility.logDebug('Shopify parsed Response for Order Details:', JSON.stringify(orders));
+                    //Utility.logDebug('Shopify parsed Response for Order Details:', JSON.stringify(orders));
                     serverFinalResponse.customer_id = orders[0].customer_id;
                     serverFinalResponse.shippingAddress = orders[0].shippingAddress;
                     serverFinalResponse.billingAddress = orders[0].billingAddress;
                     serverFinalResponse.payment = orders[0].payment;
                     serverFinalResponse.products = orders[0].products;
+                    serverFinalResponse.customer = orders[0].customer;
                 }
             }
 
