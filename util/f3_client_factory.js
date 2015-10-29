@@ -765,7 +765,7 @@ function F3BaseV1Client() {
      */
     currentClient.createSalesOrder = function (salesOrderObj) {
         Utility.logDebug("F3BaseV1Client.createSalesOrder", "Start");
-        Utility.logDebug("salesOrderObj", JSON.stringify(salesOrderObj));
+        Utility.logDebug("F3BaseV1Client.salesOrderObj", JSON.stringify(salesOrderObj));
 
         var order = salesOrderObj.order;
         var products = salesOrderObj.products;
@@ -875,7 +875,10 @@ function F3BaseV1Client() {
         currentClient.setDiscountLine(rec, discountAmount);
 
         var quoteId = order.quote_id;
-        currentClient.setGiftCardLineItem(rec, quoteId);
+        if(!!quoteId) {
+            currentClient.setGiftCardLineItem(rec, quoteId);
+        }
+
 
         //Utility.logDebug('All items set_w', 'All items set');
         //Utility.logDebug('payment.ccType_w', payment.ccType);
