@@ -10,7 +10,7 @@
         .controller("ViewCashRefundLogsController", ViewCashRefundLogsController);
 
 
-    function ViewCashRefundLogsController(f3StoreId, $http) {
+    function ViewCashRefundLogsController(f3Store, $http) {
         console.log('ViewCashRefundLogsController');
 
         var _self = this;

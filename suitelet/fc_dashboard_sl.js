@@ -40,6 +40,10 @@ var ConnectorDashboardApi = (function () {
                     return this.getFailedSalesOrders(request, response);
                     break;
 
+                case 'importSalesOrder':
+                    return this.importSalesOrder(request,response);
+                    break;
+
                 case 'getSOSyncLogs':
                     return this.getSOSyncLogs(request, response);
                     break;
@@ -141,22 +145,31 @@ var ConnectorDashboardApi = (function () {
         },
 
 
+        importSalesOrder: function(request, response) {
+            var storeId = request.getParameter('store_id');
+            var salesorderId = request.getParameter('record_id');
+            return this.executeScheduledScript('customscript_connectororderimport', 'customdeploy_connectororderimport2', {
+                salesorderIds: [salesorderId]
+            });
+        },
 
         executeCashRefundSyncScript: function(request, response) {
-            return this.executeScheduledScript('customscript_cashrefund_export_sch', 'customdeploy_cashrefund_export_dep');
+            return this.executeScheduledScript('customscript_cashrefund_export_sch', 'customdeploy_cashrefund_export_dep2');
         },
         executeItemSyncScript: function(request, response) {
-            return this.executeScheduledScript('customscript_magento_item_sync_sch', 'customdeploy_magento_item_sync_sch');
+            return this.executeScheduledScript('customscript_magento_item_sync_sch', 'customdeploy_magento_item_sync_sch2');
         },
         executeSOSyncScript: function(request, response) {
-            return this.executeScheduledScript('customscript_connectororderimport', 'customdeploy_connectororderimport');
+            return this.executeScheduledScript('customscript_connectororderimport', 'customdeploy_connectororderimport2');
         },
-        executeScheduledScript: function(scriptId, deploymentId) {
+        executeScheduledScript: function(scriptId, deploymentId, parameters) {
             var result = {
                 success: true,
                 error: false
             };
 
+
+            // TODO : need to pass parameters to following method
             var status = nlapiScheduleScript(scriptId, deploymentId);
 
             var msg = 'scriptId: ' + scriptId + ' --- deploymentId: ' +deploymentId + ' --- status: ' + status;
@@ -290,21 +303,24 @@ var ConnectorDashboard = (function () {
     return {
 
         SIDEBAR_TEMPLATE : '<li class="sidebar-title">' +
-                            '  <a href="[BASE_URL]#/">[PRODUCT_NAME]</a>' +
+                            '  <select ng-change="actionsController.storeChanged()" ng-model="actionsController.selectedStore" ' +
+                                'ng-options="store.name for store in actionsController.stores"></select>' +
                             '</li>' +
                             '<li class="sidebar-list">' +
-                            '  <a href="[BASE_URL]#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a>' +
+                            '  <a href="#/">Dashboard <span class="menu-icon fa fa-tachometer"></span></a>' +
                             '</li>' +
-                            '<li class="sidebar-list" ng-repeat="action in actionsController.actions">' +
-                            '  <a href="[BASE_URL]#/" ng-if="!action.action" ui-sref="{{ action.key }}"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
-                            '  <a href="[BASE_URL]#/" ng-if="!!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
-                            '</li>' +
-                            '<li class="sidebar-list" ng-repeat="(group, actions) in actionsController.groupedActions track by $index">' +
-                            '  <a class="submenu-link"><span ng-bind="group"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
-                            '  <ul>' +
-                            '    <li class="sidebar-list" ng-repeat="action in actions">' +
-                            '      <a href="[BASE_URL]#/" ng-if="!action.action" ui-sref="{{ action.key }}" > <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
-                            '      <a href="[BASE_URL]#/" ng-if="!!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            //'<li class="sidebar-list" ng-repeat="action in actionsController.actions">' +
+                            //'  <a ng-if="!action.action" ui-sref="{{ action.key }}"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            //'  <a ng-if="!!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-gavel"></span></a>' +
+                            //'</li>' +
+                            '<li class="sidebar-list" ng-repeat="action in actionsController.actions track by $index">' +
+                            '  <a ng-if="!!action.group" class="submenu-link"><span ng-bind="action.group"></span> <span class="menu-icon fa fa-minus"></span></a>' +
+                            '  <a ng-if="!action.group && !action.action" ui-sref="{{ action.key }}" > <span ng-bind="action.title"></span> <span class="menu-icon fa fa-{{ action.icon }}"></span></a>' +
+                            '  <a ng-if="!action.group && !!action.action" ng-click="action.action()" target="_blank"> <span ng-bind="action.title"></span> <span class="menu-icon fa fa-{{ action.icon }}"></span></a>' +
+                            '  <ul ng-if="!!action.actions">' +
+                            '    <li class="sidebar-list" ng-repeat="subAction in action.actions">' +
+                            '      <a ng-if="!subAction.action" ui-sref="{{ subAction.key }}" > <span ng-bind="subAction.title"></span> <span class="menu-icon fa fa-{{ subAction.icon }}"></span></a>' +
+                            '      <a ng-if="!!subAction.action" ng-click="subAction.action()" target="_blank"> <span ng-bind="subAction.title"></span> <span class="menu-icon fa fa-{{ subAction.icon }}"></span></a>' +
                             '    </li>' +
                             '  </ul>' +
                             '</li>',
@@ -333,18 +349,19 @@ var ConnectorDashboard = (function () {
             var indexPageValue = '';
 
             var store_id = request.getParameter('store_id');
-
-            if (!store_id || store_id.length <= 0) {
-                indexPageValue = 'Please select a Product first.';
-                return indexPageValue;
-            }
+            //
+            //if (!store_id || store_id.length <= 0) {
+            //    indexPageValue = 'Please select a Product first.';
+            //    return indexPageValue;
+            //}
 
             var data = nlapiLoadFile(this.getFileUrl() + "f3-dash/index.html");
 
             indexPageValue = data.getValue();
             var sideBar = this.createSideBar();
             indexPageValue = indexPageValue.replace(/<BASE_URL>/g, fileUrl);
-            indexPageValue = indexPageValue.replace('[SIDE_BAR]', sideBar);
+            indexPageValue = indexPageValue.replace('[STORES_JSON]', JSON.stringify(sideBar && sideBar.stores || {}));
+            indexPageValue = indexPageValue.replace('[SIDE_BAR]', sideBar && sideBar.sidebarHtml || '');
 
             return indexPageValue;
 
@@ -382,7 +399,7 @@ var ConnectorDashboard = (function () {
                         indexPageValue; // external html page
 
 
-                    form = nlapiCreateForm('Folio3 Connector Dashboard');
+                    form = nlapiCreateForm('Folio3 Connector - Dashboard');
                     //form.setScript(FC_SYNC_CONSTANTS.ClientScripts.ClientScript3.Id); // Constants.Netsuite.Scripts.ClientScriptId
                     html = form.addField('inlinehtml', 'inlinehtml', '');
 
@@ -423,27 +440,31 @@ var ConnectorDashboard = (function () {
                 var finalResult = '';
                 var productList = ExternalSystemConfig.getAll();
 
+                var stores = [];
                 for (var i = 0; i < productList.length; i++) {
                     var obj = productList[i];
                     var url = nlapiResolveURL('SUITELET', 'customscript_dashboard_sl', 'customdeploy_dashboard_sl');
                     url = url + '&store_id=' + obj.internalId;
+                    obj.url = url;
 
-                    var template = this.SIDEBAR_TEMPLATE;
-
-                    template = template.replace(/\[PRODUCT_NAME\]/g, obj.systemDisplayName);
-                    template = template.replace(/\[BASE_URL\]/g, url);
-                    template = template.replace(/\[STORE_ID\]/g, obj.internalId);
-
-                    finalResult = finalResult + template;
+                    stores.push({
+                        id: obj.internalId,
+                        name: obj.systemDisplayName,
+                        url: obj.url
+                    });
                 }
 
-                return finalResult;
+                var template = this.SIDEBAR_TEMPLATE;
+
+                finalResult = finalResult + template;
+
+                return { stores: stores, sidebarHtml :  finalResult };
 
             } catch (e) {
                 Utility.logException('Error during main createSideBar', e);
             }
 
-            return '';
+            return null;
         },
 
         /**

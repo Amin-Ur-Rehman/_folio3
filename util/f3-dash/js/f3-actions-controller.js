@@ -9,18 +9,37 @@
     angular.module("f3UC")
         .controller("ActionsController", ActionsController);
 
-    function ActionsController($f3Actions, $state, f3StoreId) {
+    function ActionsController($f3Actions, $state, f3Store) {
 
         console.log('ActionsController', arguments);
         console.log('$f3Actions', $f3Actions);
 
         //this.selectedAction = null;
+        this.storeChanged = function(manual){
+            console.log('store changed!', this.selectedStore);
+            if(!!this.selectedStore) {
+                f3Store.id = this.selectedStore.id;
 
-        this.storeId = f3StoreId;
+                if(manual !== true) {
+                    console.log('reloading state: ' + $state.current.name);
+                    $state.go($state.current.name, $state.params, {reload: true});
+                }
+            }
+        };
+
+        this.storeId = f3Store.id;
         this.groupedActions = {};
         this.actions = [];
 
+        this.selectedStore = _stores && _stores[0];
+        this.storeChanged(true); // invoke manually for first time
 
+        //_stores.push({
+        //    id: 2,
+        //    name: 'Folio3 Woo'
+        //});
+
+        this.stores = _stores;
 
         this.menuState = [];
 
@@ -33,37 +52,38 @@
 
             if (!!action.group) {
 
-                this.groupedActions[action.group] = this.groupedActions[action.group] || [];
-                this.groupedActions[action.group].push({
+                var foundGroup = this.actions.filter(function (item) {
+                    return item.group == action.group
+                })[0];
+
+                if (!foundGroup) {
+
+                    foundGroup = {
+                        group: action.group,
+                        actions: []
+                    };
+
+                    this.actions.push(foundGroup);
+                }
+
+                foundGroup.actions.push({
                     title: action.title,
                     key: key,
-                    action: action.action
+                    action: action.action,
+                    icon: action.icon
                 });
 
             } else {
                 this.actions.push({
                     title: action.title,
                     key: key,
-                    action: action.action
+                    action: action.action,
+                    icon: action.icon
                 });
             }
         }
 
 
-        //this.go = function() {
-        //    console.log('ActionsController.go();');
-        //    console.log(this.selectedAction);
-        //
-        //    if ( !!this.selectedAction.action ) {
-        //        this.selectedAction.action();
-        //
-        //        $state.go('actions');
-        //    }
-        //    else {
-        //        //alert('navigate to: ' + this.selectedAction.key);
-        //        $state.go('actions.' + this.selectedAction.key);
-        //    }
-        //}
     }
 
 })();

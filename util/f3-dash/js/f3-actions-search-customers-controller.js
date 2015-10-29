@@ -11,10 +11,10 @@
 
 
 
-    function SearchCustomersController(f3StoreId) {
+    function SearchCustomersController(f3Store) {
         console.log('SearchCustomersController');
-        console.log('$location.path(): ', f3StoreId);
-        this.storeId = f3StoreId;
+        console.log('$location.path(): ', f3Store.id);
+        this.storeId = f3Store.id;
     }
 
 

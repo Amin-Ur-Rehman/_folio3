@@ -10,7 +10,7 @@
         .controller("SearchCreditMemoController", SearchCreditMemoController);
 
 
-    function SearchCreditMemoController(f3StoreId){
+    function SearchCreditMemoController(f3Store){
         console.log('SearchCreditMemoController');
     }
 

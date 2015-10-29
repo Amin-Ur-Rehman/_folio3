@@ -9,11 +9,11 @@
     angular.module("f3UC")
         .controller("SearchOrdersController", SearchOrdersController);
 
-    function SearchOrdersController(f3StoreId, $http) {
+    function SearchOrdersController(f3Store, $http) {
         console.log('SearchMagentoOrdersController');
 
         var _self = this;
-        this.storeId = f3StoreId;
+        this.store = f3Store;
         this.salesorderId = '';
         this.searchCompleted = false;
 
@@ -26,7 +26,7 @@
             console.log(_self.salesorderId);
 
             var apiUrl = location.href.replace(location.hash, '') +
-                '&method=searchSalesOrder&record_id=' + _self.salesorderId;
+                '&method=searchSalesOrder&record_id=' + _self.salesorderId + '&store_id' + f3Store.id;
 
             $http.get(apiUrl)
                 .success(function(response) {

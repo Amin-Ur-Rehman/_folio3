@@ -11,7 +11,7 @@
 
 
     //ViewSOSyncLogsController.$inject = ['f3StoreId','$http'];
-    function ViewSOSyncLogsController(f3StoreId, $http) {
+    function ViewSOSyncLogsController(f3Store, $http) {
         console.log('ViewSOSyncLogsController');
 
         var _self = this;
@@ -76,7 +76,12 @@
                     {label: 'Type', name: 'type', width: 30},
                     {label: 'Date', name: 'date', width: 35},
                     {label: 'Time', name: 'time', width: 30},
-                    {label: 'Title', name: 'title', width: 150},
+                    {
+                        label: 'Title', name: 'title', width: 150,
+                        formatter: function (cellValue, options, rowObject) {
+                            return '<a href="javascript:;" ng-click="showDetails(' + JSON.stringify(rowObject) + ')">' + cellValue + '</a>';
+                        }
+                    },
                     {label: 'Detail', name: 'detail', width: 250}
                 ],
                 viewrecords: true, // show records label in footer
@@ -85,6 +90,16 @@
                 pager: "#jqGridPager"
             });
 
+        }
+
+
+
+        /**
+         * Description of method ViewSOSyncLogsController
+         * @param parameter
+         */
+        this.showDetails = function(obj) {
+            console.log('show details...', arguments);
         }
 
     }

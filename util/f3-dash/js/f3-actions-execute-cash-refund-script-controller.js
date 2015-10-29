@@ -13,7 +13,7 @@
     // TODO : need to implement inheritance to prevent duplicate code.
     // TODO : we should also consider moving server calls into separate angular services
 
-    function ExecuteCashRefundScriptController(f3StoreId, $http){
+    function ExecuteCashRefundScriptController(f3Store, $http){
         console.log('ExecuteCashRefundScriptController');
 
         var viewModel = this;

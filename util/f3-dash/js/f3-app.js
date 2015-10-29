@@ -51,7 +51,8 @@
             console.log('bindLinks(); // click');
             var $this = jQuery(this);
             var $subMenu = $this.next();
-            $subMenu.toggle();
+            $subMenu.toggle(200);
+            $this.find('.menu-icon').toggleClass('fa-minus').toggleClass('fa-plus');
 
             console.log('bindLinks(); // $this:', $this);
             console.log('bindLinks(); // $subMenu:', $subMenu);
