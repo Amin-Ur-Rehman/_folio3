@@ -203,8 +203,16 @@ ShopifyWrapper = (function () {
             }
 
         }
+
+        if (!!serverOrder.gateway) {
+            localOrder.payment.method = serverOrder.gateway;
+        } else {
+            localOrder.payment.method = '';
+        }
+
         if (serverOrder.payment_details) {
-            localOrder.payment.method = serverOrder.payment_details.method_id;
+            // @zee: No need to do this
+            //localOrder.payment.method = serverOrder.payment_details.method_id;
             localOrder.payment.methodTitle = serverOrder.payment_details.method_title;
             localOrder.payment.paid = serverOrder.payment_details.paid;
 
@@ -212,11 +220,8 @@ ShopifyWrapper = (function () {
             localOrder.payment.amountOrdered = '';
             localOrder.payment.shippingAmount = '';
             localOrder.payment.baseAmountOrdered = '';
-            if(!!serverOrder.payment_gateway_names && serverOrder.payment_gateway_names.length > 0) {
-                localOrder.payment.method = serverOrder.payment_gateway_names[0];
-            } else {
-                localOrder.payment.method = '';
-            }
+
+
             localOrder.payment.ccType = serverOrder.payment_details.credit_card_company;
             localOrder.payment.ccLast4 = serverOrder.payment_details.credit_card_number;
             localOrder.payment.ccExpMonth = '';
@@ -243,7 +248,7 @@ ShopifyWrapper = (function () {
                     Utility.logDebug('serverOrder = ', JSON.stringify(serverOrder));
 
                     var localOrder = null;
-                    if(!!isOrderDetailsResponse) {
+                    if (!!isOrderDetailsResponse) {
                         localOrder = parseSingleSalesOrderDetailsResponse(serverOrder);
                     } else {
                         localOrder = parseSingleSalesOrderResponse(serverOrder);
@@ -326,16 +331,17 @@ ShopifyWrapper = (function () {
 
 
     function parseFulfillmentResponse(serverResponse) {
-        var finalResult = [];
+        var finalResult = {
+            isOrderStatusCompleted: false
+        };
         try {
-            if (!!serverResponse && serverResponse.length > 0) {
-                for (var i = 0; i < serverResponse.length; i++) {
-                    var serverFulfillment = serverResponse[i];
+            if (serverResponse.hasOwnProperty("status") && serverResponse.status.toString() === "success") {
+                finalResult.isOrderStatusCompleted = true;
+                finalResult.id = serverResponse.id;
+                finalResult.order_id = serverResponse.order_id;
 
-                    var localFulfillment = parseSingleSalesOrderResponse(serverFulfillment);
+                finalResult.service = serverResponse.service;
 
-                    finalResult.push(localFulfillment);
-                }
             }
         } catch (e) {
             Utility.logException('Error during parseFulfillmentResponse', e);
@@ -416,6 +422,7 @@ ShopifyWrapper = (function () {
         data.shipping_address = serverResponse.shipping_address;
         return data;
     }
+
     /**
      * Make a billing address object
      * @param address
@@ -436,6 +443,7 @@ ShopifyWrapper = (function () {
         data.phone = address.telephone || "";
         return data;
     }
+
     /**
      * Make a shipping address object
      * @param address
@@ -454,6 +462,7 @@ ShopifyWrapper = (function () {
         data.country = address.country || "";
         return data;
     }
+
     /**
      * Make the default address objects for billing and shipping if found else return blank objects
      * @param customerRecord
@@ -482,6 +491,7 @@ ShopifyWrapper = (function () {
             billingAddress: billingAddress || {}
         };
     }
+
     /**
      * This method returns customer object data required to upsert the customer to WOO
      * @param customerRecord
@@ -504,6 +514,7 @@ ShopifyWrapper = (function () {
         data.customer.shipping_address = defaultAddresses.billingAddress;
         return data;
     }
+
     /**
      * This method returns an array of line item for sales order
      * @param orderRecord
@@ -523,6 +534,7 @@ ShopifyWrapper = (function () {
         }
         return lineItems;
     }
+
     /**
      * This method returns an object of billing address for sales order
      * @param orderRecord
@@ -549,6 +561,7 @@ ShopifyWrapper = (function () {
         }
         return billingAddress;
     }
+
     /**
      * * This method returns an object of shipping address for sales order
      * @param orderRecord
@@ -573,6 +586,7 @@ ShopifyWrapper = (function () {
         }
         return shippingAddress;
     }
+
     /**
      * This method returns an array of shipping lines for sales order
      * @param orderRecord
@@ -588,6 +602,7 @@ ShopifyWrapper = (function () {
         });
         return shippingLines;
     }
+
     /**
      * This method returns an object of payment details for sales order
      * @param orderRecord
@@ -601,6 +616,7 @@ ShopifyWrapper = (function () {
         paymentDetail.paid = false;
         return paymentDetail;
     }
+
     /**
      * This method returns an object of sales order data required to create sales order to WOO
      * @param orderRecord
@@ -623,6 +639,7 @@ ShopifyWrapper = (function () {
         data.order.payment_details = getSalesOrderPaymentDetails(orderRecord);
         return data;
     }
+
     function getDiscountType(discountType) {
         var type = null;
         if (discountType.toString() === "percent") {
@@ -631,6 +648,7 @@ ShopifyWrapper = (function () {
             type = "fixed_cart";
         }
     }
+
     function getSingleCouponData(promoCodeRecord) {
         var couponData = WOOModels.coupon();
         if (promoCodeRecord.hasOwnProperty("record_id") && !!promoCodeRecord.record_id) {
@@ -644,12 +662,14 @@ ShopifyWrapper = (function () {
         couponData.description = promoCodeRecord.description;
         return couponData;
     }
+
     function getCouponsData(promoCodeRecord) {
         var couponsData = {};
         couponsData.coupons = [];
         couponsData.coupons.push(getSingleCouponData(promoCodeRecord));
         return couponsData;
     }
+
     function parseCouponsResponse(coupons) {
         var couponsList = [];
         for (var i in coupons) {
@@ -658,6 +678,7 @@ ShopifyWrapper = (function () {
         }
         return couponsList;
     }
+
     function parseSingleCouponResponse(coupon) {
         var couponObj = WOOModels.coupon();
         couponObj.id = coupon.id.toString();
@@ -684,6 +705,7 @@ ShopifyWrapper = (function () {
         couponObj.description = coupon.description;
         return couponObj;
     }
+
     //function parseResponse(_serverResponse, _function, _type) {
     //    var serverResponse;
     //    var error = getErrorIfExist(_serverResponse, _type);
@@ -741,6 +763,7 @@ ShopifyWrapper = (function () {
         //}
         return errorObject;
     }
+
     /**
      * Sends request to server
      * @param httpRequestData
@@ -756,13 +779,12 @@ ShopifyWrapper = (function () {
             httpRequestData.headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                //"Authorization":
-                //    "Basic YjM4OGQ3ZjZlOWY4YjRhODNlOGMzNzI3YTgxZTBmMGI6MWExN2QzMGExZDYyNmVlY2U1M2QzNjZhYjBiMmIyNDA="
                 "Authorization": "Basic " + ShopifyWrapper.AuthHeader
             };
         }
 
-        Utility.logDebug('Request headers = ', JSON.stringify(httpRequestData.headers));
+        Utility.logDebug('finalUrl = ', finalUrl);
+        Utility.logDebug('httpRequestData = ', JSON.stringify(httpRequestData));
 
         if (httpRequestData.method === 'GET') {
             res = nlapiRequestURL(finalUrl, null, httpRequestData.headers);
@@ -778,6 +800,65 @@ ShopifyWrapper = (function () {
         var serverResponse = eval('(' + body + ')');
 
         return serverResponse;
+    }
+    function getCreateFulfillmentLineItemsData(){
+        var lineItems =  [];
+        // we are in after submit event of item fulfillment that's why I have accessed the record
+        // here direclty because it is only for shopify and we can get the info here
+        var linesCount = nlapiGetLineItemCount('item');
+        for(var lineNum = 1; lineNum<= linesCount; lineNum++){
+            var isLineFulfill =  nlapiGetLineItemValue('item', 'itemreceive', lineNum);
+            // if line is not fulfill skip it
+            if(isLineFulfill !== "T"){
+                continue;
+            }
+            var itemId = nlapiGetLineItemValue('item', ConnectorConstants.Transaction.Columns.MagentoOrderId, lineNum);
+            var itemQty = nlapiGetLineItemValue('item', 'quantity', lineNum);
+            // make line items which will be fulfilled
+            lineItems.push({
+                id: itemId,
+                quantity: itemQty
+            });
+        }
+        return lineItems;
+    }
+    function getCreateFulfillmentTrackingNumbersData(){
+        var trackingNumbersData = {};
+        var trackingNumbers = [];
+        var packageCarrier = '';
+        var totalPackages;
+        // packages sublist is generated by carrier / netsuite feature
+        if (nlapiGetLineItemCount('packageups') > 0) {
+            packageCarrier = 'ups';
+        }
+        if (nlapiGetLineItemCount('packagefedex') > 0) {
+            packageCarrier = 'fedex';
+        }
+        // get tracking numbers if exist
+        totalPackages = nlapiGetLineItemCount('package' + packageCarrier);
+        for (var p = 1; p <= totalPackages; p++) {
+            var trackingNumber = nlapiGetLineItemValue('package' + packageCarrier, 'packagetrackingnumber' + packageCarrier, p);
+            if (Utility.isBlankOrNull(trackingNumber)) {
+                continue;
+            }
+            trackingNumbers.push(trackingNumber);
+        }
+        trackingNumbersData.trackingNumbers = trackingNumbers;
+        return trackingNumbersData;
+    }
+    function getCreateFulfillmentData(){
+        var data = {
+            "tracking_numbers":[],
+            "line_items": []
+        };
+        var lineItems = getCreateFulfillmentLineItemsData();
+        var trackingNumbersData = getCreateFulfillmentTrackingNumbersData();
+        if(lineItems.length === 0){
+            Utility.throwException("ALLZOHU", "No lines are found to be fulfilled");
+        }
+        data.line_items = lineItems;
+        data.tracking_numbers = trackingNumbersData.trackingNumbers;
+        return data;
     }
 
     //endregion
@@ -1040,27 +1121,17 @@ ShopifyWrapper = (function () {
             return serverFinalResponse;
         },
 
-        hasDifferentLineItemIds: function () {
-            return false;
-        },
 
         createFulfillment: function (sessionID, serverItemIds, serverSOId) {
 
             var httpRequestData = {
                 additionalUrl: 'orders/' + serverSOId + '/fulfillments.json',
-                method: 'PUT',
+                method: 'POST',
                 postData: {
-                    "fulfillment": {
-                        "tracking_number": null,
-                        "line_items": []
-                    }
+                    "fulfillment": getCreateFulfillmentData()
                 }
             };
 
-            for (var i = 0; i < serverItemIds.length; i++) {
-                var serverItem = serverItemIds[i];
-                httpRequestData.postData.fulfillment.line_items.push(serverItem);
-            }
 
             var serverResponse = null;
 
@@ -1080,11 +1151,13 @@ ShopifyWrapper = (function () {
                 Utility.logException('Error during createFulfillment', e);
             }
 
-            if (!!serverResponse && serverResponse.orders) {
-                var fulfillmentArray = parseFulfillmentResponse(serverResponse);
+            if (!!serverResponse && serverResponse.fulfillment) {
+                var fulfillmentObj = parseFulfillmentResponse(serverResponse.fulfillment);
 
-                if (!!fulfillmentArray && fulfillmentArray.length > 0) {
-                    serverFinalResponse.result = fulfillmentArray;
+                // check if order status is changed to complete
+                if (!!fulfillmentObj && fulfillmentObj.isOrderStatusCompleted) {
+                    // for setting order id as shipment id in item fulfillment
+                    serverFinalResponse.result = fulfillmentObj.id;
                 }
             }
 
@@ -1390,13 +1463,16 @@ ShopifyWrapper = (function () {
             responseBody.data = {increment_id: ''};
             return responseBody;
         },
-        getPaymentInfo: function(payment){
+        getPaymentInfo: function (payment, netsuitePaymentTypes, magentoCCSupportedPaymentTypes) {
             var paymentInfo = {
                 "paymentmethod": "",
                 "pnrefnum": "",
                 "ccapproved": "",
                 "paypalauthid": ""
             };
+
+            Utility.logDebug("MagentoWrapper.getPaymentInfo", "Start");
+            var paypalPaymentMethod = netsuitePaymentTypes.PayPal;
 
             var paymentMethod = payment.method;
             // if no payment method found return
@@ -1407,17 +1483,42 @@ ShopifyWrapper = (function () {
             ConnectorConstants.initializeScrubList();
             var system = ConnectorConstants.CurrentStore.systemId;
             paymentMethod = (paymentMethod + "").toLowerCase();
-            paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "PaymentMethod", paymentMethod);
+
+            Utility.logDebug("system", system);
+            Utility.logDebug("paymentMethod", paymentMethod);
+
+            if (!!payment.ccType && magentoCCSupportedPaymentTypes.indexOf(paymentMethod) > -1) {
+                Utility.logDebug("Condition (1)", "");
+                paymentInfo.paymentmethod = FC_ScrubHandler.findValue(system, "CreditCardType", payment.ccType);
+                Utility.logDebug("paymentInfo.paymentmethod", paymentInfo.paymentmethod);
+                if (!!payment.authorizedId) {
+                    paymentInfo.pnrefnum = payment.authorizedId;
+                }
+                paymentInfo.ccapproved = "T";
+            }
+            else {
+                Utility.logDebug("Condition (3)", "");
+                var otherPaymentMethod = paymentMethod;
+                Utility.logDebug("paymentMethodLookup_Key", otherPaymentMethod);
+                var paymentMethodLookupValue = FC_ScrubHandler.findValue(system, 'PaymentMethod', otherPaymentMethod);
+                Utility.logDebug("paymentMethodLookup_Value", paymentMethodLookupValue);
+                if (!!paymentMethodLookupValue && paymentMethodLookupValue != otherPaymentMethod) {
+                    paymentInfo.paymentmethod = paymentMethodLookupValue;
+                }
+            }
+            Utility.logDebug("MagentoWrapper.getPaymentInfo", "End");
+
             return paymentInfo;
         },
 
-/**
+        /**
          * Create refund in shopify
          * @param sessionID
-         * @param netsuiteRefundObj
+         * @param cashRefund
          * @param store
+         * @return {{}}
          */
-        createCustomerRefund: function(sessionID, cashRefund, store) {
+        createCustomerRefund: function (sessionID, cashRefund, store) {
             // To be implement later
             var responseBody = {};
             responseBody.status = 1;
@@ -1425,7 +1526,7 @@ ShopifyWrapper = (function () {
             responseBody.data = {increment_id: ''};
             return responseBody;
         },
-        getPaymentInfoToExport:function(orderRecord, orderDataObject, store){
+        getPaymentInfoToExport: function (orderRecord, orderDataObject, store) {
             var obj = {};
             // initialize scrub
             ConnectorConstants.initializeScrubList();
