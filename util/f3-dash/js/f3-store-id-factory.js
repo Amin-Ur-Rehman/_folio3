@@ -7,10 +7,6 @@
     'use strict';
 
     angular.module('f3UC')
-        .factory('f3StoreId', ['f3Utility', function (f3Utility) {
-
-            return f3Utility.qs('store_id')
-
-        }]);
+        .value('f3Store', {id: 0});
 
 })();

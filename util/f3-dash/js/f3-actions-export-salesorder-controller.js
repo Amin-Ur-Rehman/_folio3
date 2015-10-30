@@ -9,10 +9,10 @@
     angular.module("f3UC")
         .controller("ExportSalesorderController", ExportSalesorderController);
 
-    function ExportSalesorderController(f3StoreId) {
+    function ExportSalesorderController(f3Store) {
         console.log('ExportSalesorderController');
 
-        this.storeId = f3StoreId;
+        this.storeId = f3Store.id;
     }
 
 })();

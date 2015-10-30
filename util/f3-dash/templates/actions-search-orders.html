@@ -17,12 +17,14 @@
                         <div class="col-sm-9">
                             <input type="text" class="form-control salesorder-id-text"
                                    id="salesorder_id"
-                                   name="salesorder_id" ng-model="viewModel.salesorderId" />
+                                   name="salesorder_id"
+                                   ng-enter="viewModel.search()"
+                                   ng-model="viewModel.salesorderId" />
                         </div>
                     </div>
                 </div>
                 <div class="col-sm-6">
-                    <button type="button" ng-enter="viewModel.search()" ng-click="viewModel.search()" class="btn btn-primary btn-submit">Go <i class="fa fa-arrow-right"></i></button>
+                    <button type="button" ng-click="viewModel.search()" class="btn btn-primary btn-submit">Go <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 

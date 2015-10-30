@@ -10,7 +10,7 @@
         .controller("ViewFulfilmentSyncLogsController", ViewFulfilmentSyncLogsController);
 
 
-    function ViewFulfilmentSyncLogsController(f3StoreId, $http) {
+    function ViewFulfilmentSyncLogsController(f3Store, $http) {
         console.log('ViewFulfilmentSyncLogsController');
 
         var _self = this;

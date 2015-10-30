@@ -7,7 +7,7 @@
     'use strict';
 
     angular.module('f3UC')
-        .factory('f3Utility', function () {
+        .factory('f3Utility', function ($f3Actions) {
 
             return {
 
