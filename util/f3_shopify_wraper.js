@@ -301,6 +301,7 @@ ShopifyWrapper = (function () {
         localProduct.total_discount = serverProduct.total_discount;
         localProduct.tax_lines = serverProduct.tax_lines;
         localProduct.item_id = serverProduct.id.toString();
+        localProduct.variants = serverProduct.variants;
 
         return localProduct;
     }
@@ -1015,30 +1016,24 @@ ShopifyWrapper = (function () {
          * Updates item to server
          * @param product
          * @param sessionID
-         * @param magID
+         * @param productId
          * @param isParent
+         * @param shopifyProduct
          * @returns {{status: boolean, faultCode: string, faultString: string}}
          */
-        updateItem: function (product, sessionID, magID, isParent) {
+        updateItem: function (product, sessionID, productId, isParent, shopifyProduct) {
 
-            // first get the product id here
-            var productInfo = ShopifyWrapper.getProduct(sessionID, product, '&fields=variants');
 
-            var firstProduct = productInfo[0];
+            shopifyProduct.variants[0].price = product.price;
+            shopifyProduct.variants[0].inventory_quantity = product.quantity;
 
             var httpRequestData = {
-                additionalUrl: 'products/' + magID + '.json',
+                additionalUrl: 'products/' + productId.toString() + '.json',
                 method: 'PUT',
                 postData: {
                     product: {
-                        id: magID,
-                        variants: [{
-                            id: firstProduct.variants[0].id,
-                            price: product.price,
-                            inventory_quantity: product.quantity,
-                            product_id: magID
-                        }
-                        ]
+                        id: productId.toSource(),
+                        variants: shopifyProduct.variants
                     }
                 }
             };
@@ -1084,8 +1079,7 @@ ShopifyWrapper = (function () {
         getProduct: function (sessionID, product, variantRequest) {
 
             var httpRequestData = {
-                additionalUrl: 'products.json?ids=' + product.magentoSKU +
-                (!!variantRequest && variantRequest.length > 0 ? variantRequest : ''),
+                additionalUrl: 'products/' + product.magentoSKU + '.json',
                 method: 'GET'
             };
 
@@ -1107,8 +1101,8 @@ ShopifyWrapper = (function () {
                 Utility.logException('Error during getProduct', e);
             }
 
-            if (!!serverResponse && serverResponse.products) {
-                serverFinalResponse.product = parseProductResponse(serverResponse.products);
+            if (!!serverResponse && serverResponse.product) {
+                serverFinalResponse.product = parseSingleProductResponse(serverResponse.product);
 
 
             }
