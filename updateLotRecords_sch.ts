@@ -4,6 +4,14 @@
  * Created by hatimali on 8/25/2017.
  */
 
+let CONSTANTS = {
+    PROCESSING_STATUS: {
+        "PendingProcessing": 1,
+        "Processed":2,
+        "Error": 3
+    }
+};
+
 class UpdateRecordSch {
 
     private startTime = null;
@@ -19,7 +27,7 @@ class UpdateRecordSch {
 
             if (usageRemaining < this.minUsage) {
                 nlapiLogExecution('DEBUG', "Rescheduling due to low usage limit", usageRemaining);
-                nlapiYieldScript();
+                nlapiYieldScript(); // Creates a recovery point and and then reschedules the script and set its governance units reset.
             }
 
             let endTime = (new Date()).getTime();
@@ -29,7 +37,7 @@ class UpdateRecordSch {
             if (minutes > this.minutesAfterReschedule) {
                nlapiLogExecution('DEBUG', 'Time', 'Minutes: ' + minutes + ' , endTime = ' + endTime + ' , startTime = ' + this.startTime);
                nlapiScheduleScript(context.getScriptId(), context.getDeploymentId(), params);
-                return true;
+               return true;
             }
         }
         catch (e) {
@@ -45,13 +53,14 @@ class UpdateRecordSch {
     private getRecordsToProcess() {
         try {
             let Columns = [];  let filters = [];
-            filters.push(new nlobjSearchFilter('custrecord_processing_status', null, 'is', 'Pending Processing'));
+            filters.push(new nlobjSearchFilter('custrecord_processing_status', null, 'is', '1'));
 
-            Columns.push(new nlobjSearchColumn('custrecord_vendor_lot_number', null, null)); // Vendor Lot Number
-            Columns.push(new nlobjSearchColumn('custrecord_f3_serial', null, null)); // Serial/ Lot Number
+            Columns.push(new nlobjSearchColumn('custrecord_lot_name', null, null)); // Serial / Lot Number
+            Columns.push(new nlobjSearchColumn('custrecord_lotrecordid', null, null)); // Record ID
             Columns.push(new nlobjSearchColumn('custrecord_processing_status', null, null)); // PROCESSING STATUS
 
-            let LotActivityRecord = nlapiSearchRecord('customrecord_lot_number_activity_record', null, filters, Columns) || []; // Search on Custom Record - Lot Number Activity Record
+            // Search on Custom Record - Lot Number Activity Record
+            let LotActivityRecord = nlapiSearchRecord('customrecord_lot_number_activity_record', null, filters, Columns) || [];
 
             return LotActivityRecord;
         } catch (e) {
@@ -59,14 +68,10 @@ class UpdateRecordSch {
         }
     };
 
-
-
-
-    private getCorresspondingLotNumberRecords(vendorLotNumber) {
+    private getCorresspondingLotNumberRecords(serialLotNumber) {
         try {
-
             let Columns = [];  let filters = [];
-            filters.push(new nlobjSearchFilter('custitemnumberlot_vendor_no', null, 'is', vendorLotNumber));  // Serial/ Lot Number
+            filters.push(new nlobjSearchFilter('inventorynumber', null, 'is', serialLotNumber));  // Serial/ Lot Number
 
             Columns.push(new nlobjSearchColumn('custitemnumberlot_vendor_no', null, null)); // Vendor Lot Number
             Columns.push(new nlobjSearchColumn('inventorynumber', null, null)); // Serial/ Lot Number
@@ -75,22 +80,20 @@ class UpdateRecordSch {
             Columns.push(new nlobjSearchColumn('custitemnumberlot_extact_meth', null, null)); // EXTRACTION METHOD
             Columns.push(new nlobjSearchColumn('custitemnumberlot_cult_meth', null, null)); // CULTIVATION METHOD
             Columns.push(new nlobjSearchColumn('custitemnumberlot_country', null, null)); //COUNTRY OF ORIGIN
-
-            let lotNumberRecords = nlapiSearchRecord('inventorynumber', null, filters, Columns) || []; // Search on Custom Record - Lot Number Activity Record
-
+            Columns.push(new nlobjSearchColumn('item', null, null));
+            // Search on Custom Record - Lot Number Activity Record
+            let lotNumberRecords = nlapiSearchRecord('inventorynumber', null, filters, Columns) || [];
             return lotNumberRecords;
         } catch (e) {
             nlapiLogExecution('ERROR', 'Error In getCorresspondingLotNumberRecords()', e);
         }
     };
 
-
-    private getLotInformationRecord(vendorLotNumber, name) {
+    private getLotInformationRecord(name, recordID) {
         try {
-
             let Columns = [];  let filters = [];
-            filters.push(new nlobjSearchFilter('custrecordvendorlotnum', null, 'is', vendorLotNumber));  // Vendor Lot Number
-    //        filters.push(new nlobjSearchFilter('expirationdate', null, 'is', name));  // Serial/ Lot Number
+            filters.push(new nlobjSearchFilter('name', null, 'is', name));  // Name
+            filters.push(new nlobjSearchFilter('internalid', null, 'anyof', [recordID]));  // Record ID
 
             Columns.push(new nlobjSearchColumn('custrecordvendorlotnum', null, null)); // Vendor Lot Number
             Columns.push(new nlobjSearchColumn('custrecordcultmethod', null, null)); // CULTIVATION METHOD
@@ -103,7 +106,8 @@ class UpdateRecordSch {
             Columns.push(new nlobjSearchColumn('custrecord_distmethod', null, null)); // Extraction Method
             Columns.push(new nlobjSearchColumn('custrecord_countryoforigin', null, null)); // Extraction Method
 
-            let LotInformationRecord = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || []; // Search on Custom Record - Lot Information
+            // Search on Custom Record - Lot Information
+            let LotInformationRecord = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
             nlapiLogExecution('DEBUG', 'LotRecordInformation Record Object', JSON.stringify(LotInformationRecord));
 
             return LotInformationRecord;
@@ -114,12 +118,21 @@ class UpdateRecordSch {
 
     };
 
-    private setLotNumberRecord(lotNumberRecord, expiry_Date , Lot_Number, cultivation_Method, extraction_Date,extraction_Method, countryOfOrigin){
+    private setLotNumberRecord(lotNumberRecord, lotInforRecordobj){
         try {
+           // let itemname = lotNumberRecord[x].getText('item');
+            let expiry_Date = lotInforRecordobj[3];
+            let Lot_Number  = lotInforRecordobj[1];
+            let cultivation_Method = lotInforRecordobj[2];
+            let extraction_Date = lotInforRecordobj[4];
+            let extraction_Method = lotInforRecordobj[5];
+            let countryOfOrigin = lotInforRecordobj[6];
+            let name = lotInforRecordobj[0];
 
-            let LotNumberRecord = nlapiLoadRecord('inventorynumber', lotNumberRecord[0].getId());
+            let LotNumberRecord = nlapiLoadRecord('inventorynumber', lotNumberRecord.getId());
             nlapiLogExecution('DEBUG', 'Lot Number Record Object', JSON.stringify(LotNumberRecord));
 
+         //   nlapiLogExecution('DEBUG', 'Item Name', itemname);
             LotNumberRecord.setFieldValue('expirationdate', expiry_Date);
             LotNumberRecord.setFieldValue('custitemnumberlot_vendor_no', Lot_Number);
             LotNumberRecord.setFieldText('custitemnumberlot_cult_meth', cultivation_Method);
@@ -127,14 +140,17 @@ class UpdateRecordSch {
             LotNumberRecord.setFieldText('custitemnumberlot_extact_meth', extraction_Method);
             LotNumberRecord.setFieldText('custitemnumberlot_country', countryOfOrigin);
             let id = nlapiSubmitRecord(LotNumberRecord, true);
-            nlapiLogExecution('DEBUG', 'RECORD SUBMITTED','');
-        }  catch (e) {
+           // processedRecords += itemname + ', ';
+
+            if(!!id) {
+                nlapiLogExecution('DEBUG', 'RECORD SUBMITTED','');
+            }
+            //return processedRecords;
+        }catch (e) {
             nlapiLogExecution('ERROR', 'Error In setLotNumberRecord()', e);
         }
 
 };
-
-
 
     /**
      * @param {String} type Context Types: scheduled, ondemand, userinterface, aborted, skipped
@@ -145,46 +161,72 @@ class UpdateRecordSch {
             nlapiLogExecution('DEBUG', 'Starting');
             this.startTime = (new Date()).getTime();
             let customRecord;
-            let lotNumberRecord;
-            let lotInfoRecordSearch; let lotInfoRecord;
-            let vendorLotNumber;
-            let serialLotNumber; let lotNoRecord;
+            let lotNumberRecord; let lotActivityRecordId; let processedRecords = "";
+            let lotInfoRecordSearch; let lotInfoRecord; let sysDate2;
+            let serialLotNumber;
+            let LotNumberRecordID; let check =0;
             let lotActivityRecords = this.getRecordsToProcess();
             if(!!lotActivityRecords && lotActivityRecords.length > 0) {
                 for(let i = 0; i < lotActivityRecords.length; i++) {
                     try {
                         this.rescheduleIfNeeded();
                         customRecord = lotActivityRecords[i];
-                        vendorLotNumber = customRecord.getValue('custrecord_vendor_lot_number'); // Vendor Lot Number
-                        serialLotNumber = customRecord.getValue('custrecord_f3_serial'); //Serial/Lot Number
-                        nlapiLogExecution('DEBUG', 'LOT ACTIVITY - Vendor Lot Number', vendorLotNumber);
-                        lotNumberRecord = this.getCorresspondingLotNumberRecords(vendorLotNumber);
+                        let activityRecord = nlapiLoadRecord('customrecord_lot_number_activity_record', lotActivityRecords[i].getId());
+                        serialLotNumber = customRecord.getValue('custrecord_lot_name'); // Lot Name
+                        LotNumberRecordID = customRecord.getValue('custrecord_lotrecordid'); //LotNumberRecordID
+                        nlapiLogExecution('DEBUG', 'LOT ACTIVITY - Serial Lot Number', serialLotNumber);
+                        nlapiLogExecution('DEBUG', 'LOT ACTIVITY - Record ID', LotNumberRecordID);
+                        lotNumberRecord = this.getCorresspondingLotNumberRecords(serialLotNumber);
                         nlapiLogExecution('DEBUG', 'Lot Number Record Length', lotNumberRecord.length);
-                        for(let j=0; j < lotNumberRecord.length; j++) {
-                            lotInfoRecordSearch = this.getLotInformationRecord(vendorLotNumber, serialLotNumber);
-                            if (lotInfoRecordSearch.length > 0) {
-                                nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', lotInfoRecordSearch[1].getId());
-                                let name = lotInfoRecordSearch[1].getValue('name');
-                                let Lot_Number = lotInfoRecordSearch[1].getValue('custrecordvendorlotnum'); // Vendor Lot Number
-                                let cultivation_Method = lotInfoRecordSearch[1].getText('custrecordcultmethod'); // Cultivation Method
-                                let expiry_Date = lotInfoRecordSearch[1].getValue('custrecord_expirydate');  // Expiry Date
-                                let extraction_Date = lotInfoRecordSearch[1].getValue('custrecord_distillationdate');  // Extraction Date
-                                let extraction_Method = lotInfoRecordSearch[1].getText('custrecord_distmethod');  // Extraction Method
-                                let countryOfOrigin = lotInfoRecordSearch[1].getText('custrecord_countryoforigin');  // Extraction Method
+                        if (lotNumberRecord.length <= 0) {
+                            activityRecord.setFieldValue('custrecord_processing_status', '4'); // 4 = No Lot Number Record
+                            lotActivityRecordId = nlapiSubmitRecord(activityRecord, true);
+                        }
+                        else if(lotNumberRecord.length > 0) {
+                            nlapiLogExecution('DEBUG', 'Lot Number Record Length', lotNumberRecord.length);
+                            for (let j = 0; j < lotNumberRecord.length; j++) {
+                                try {
+                                    lotInfoRecordSearch = this.getLotInformationRecord(serialLotNumber, LotNumberRecordID);
+                                    if (!lotInfoRecordSearch && lotInfoRecordSearch.length <= 0) {
+                                        activityRecord.setFieldValue('custrecord_processing_status', '3');
+                                     //   lotActivityRecordId = nlapiSubmitRecord(activityRecord, true);
+                                    }
+                                    else if (lotInfoRecordSearch.length > 0) {
 
-                                this.setLotNumberRecord(lotNumberRecord, expiry_Date, Lot_Number, cultivation_Method, extraction_Date, extraction_Method, countryOfOrigin);
+                                    nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', lotInfoRecordSearch[0].getId());
+                                    let name = lotInfoRecordSearch[0].getText('name');
+                                    let Lot_Number = lotInfoRecordSearch[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
+                                    let cultivation_Method = lotInfoRecordSearch[0].getText('custrecordcultmethod'); // Cultivation Method
+                                    let expiry_Date = lotInfoRecordSearch[0].getValue('custrecord_expirydate');  // Expiry Date
+                                    let extraction_Date = lotInfoRecordSearch[0].getValue('custrecord_distillationdate');  // Extraction Date
+                                    let extraction_Method = lotInfoRecordSearch[0].getText('custrecord_distmethod');  // Extraction Method
+                                    let countryOfOrigin = lotInfoRecordSearch[0].getText('custrecord_countryoforigin');  // Country of Origin
+                                    let lotInforRecordobj = [name, Lot_Number, cultivation_Method, expiry_Date, extraction_Date, extraction_Method, countryOfOrigin];
+                                    this.setLotNumberRecord(lotNumberRecord[j],lotInforRecordobj);
+
+                                        let itemname = lotNumberRecord[j].getText('item');
+                                        processedRecords += itemname + ', ';
+                                        activityRecord.setFieldValue('custrecord_processing_status','2'); // 2 = Processed
+                                       // activityRecord.setFieldValue('custrecord_processed_lot_number_id', processedRecords);
+                                        sysDate2 = new Date();
+                                        activityRecord.setFieldValue('custrecord_processed_on_date', sysDate2);
+                                      //  lotActivityRecordId = nlapiSubmitRecord(activityRecord, true);
+                                    }
+                                } catch (e) {
+                                    nlapiLogExecution('ERROR', 'Error in Getting Corresponding Records Iteration', e);
+                                }
                             }
+                            activityRecord.setFieldValue('custrecord_processed_lot_number_id', processedRecords);
+                            lotActivityRecordId = nlapiSubmitRecord(activityRecord, true);
                         }
 
                     }catch(e) {
-                        nlapiLogExecution('ERROR', 'Error in Records Iteration', e);
+                        nlapiLogExecution('ERROR', 'Error in Lot Activity Records Iteration', e);
                     }
                 }
                 nlapiLogExecution('DEBUG', 'EDN', '');
 
             }
-
-
 
         } catch (e) {
             nlapiLogExecution('ERROR', 'Error during  Script working', e.toString());
