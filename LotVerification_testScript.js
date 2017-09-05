@@ -27,7 +27,7 @@ function validateLine(type) {
                     itemName = parent.nlapiGetLineItemValue('item', 'itemname');
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
-
+                    itemMiddleName = itemMiddleName.toUpperCase();
                     filters.push(new nlobjSearchFilter('name', null, 'contains', receiptLotFirstName)); // Vendor Lot Number
                     LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
 
@@ -67,7 +67,7 @@ function validateLine(type) {
                     itemName = parent.nlapiGetLineItemText('item', 'item');
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
-
+                    itemMiddleName = itemMiddleName.toUpperCase();
                     filters.push(new nlobjSearchFilter('name', null, 'contains', issueLotFirstName)); // Vendor Lot Number
                     LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
 

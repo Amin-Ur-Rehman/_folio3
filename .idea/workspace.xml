@@ -3,9 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="61336ceb-a242-4dfa-b9da-a151e586d14d" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setLotNumberActivityRecords_UE.js" afterPath="$PROJECT_DIR$/setLotNumberActivityRecords_UE.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/updateLotRecords_sch.js" afterPath="$PROJECT_DIR$/updateLotRecords_sch.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/updateLotRecords_sch.ts" afterPath="$PROJECT_DIR$/updateLotRecords_sch.ts" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/LotVerification_testScript.js" afterPath="$PROJECT_DIR$/LotVerification_testScript.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SetLotNumberRecord_UE.js" afterPath="$PROJECT_DIR$/SetLotNumberRecord_UE.js" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
@@ -29,7 +28,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="updateLotRecords_sch.ts" pinned="false" current-in-tab="true">
+      <file leaf-file-name="updateLotRecords_sch.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/updateLotRecords_sch.ts">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="223">
@@ -44,8 +43,8 @@
       <file leaf-file-name="LotVerification_testScript.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1207">
-              <caret line="71" column="99" lean-forward="false" selection-start-line="71" selection-start-column="99" selection-end-line="71" selection-end-column="99" />
+            <state relative-caret-position="431">
+              <caret line="29" column="66" lean-forward="true" selection-start-line="29" selection-start-column="66" selection-end-line="29" selection-end-column="66" />
               <folding>
                 <element signature="n#!!block;n#isAllowedRecordType#0" expanded="false" />
               </folding>
@@ -53,11 +52,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2278">
-              <caret line="134" column="1" lean-forward="true" selection-start-line="134" selection-start-column="1" selection-end-line="134" selection-end-column="1" />
+            <state relative-caret-position="257">
+              <caret line="138" column="42" lean-forward="true" selection-start-line="138" selection-start-column="42" selection-end-line="138" selection-end-column="42" />
               <folding>
                 <element signature="n#!!block;n#removeSubrecordLineItems#0" expanded="false" />
               </folding>
@@ -69,7 +68,7 @@
         <entry file="file://$PROJECT_DIR$/setLotNumberActivityRecords_UE.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="340">
-              <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="8" selection-end-line="20" selection-end-column="33" />
+              <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="33" selection-end-line="20" selection-end-column="33" />
               <folding />
             </state>
           </provider>
@@ -87,8 +86,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>setLotNumberRecord</find>
-      <find>page</find>
       <find>SyncPayoutDate</find>
       <find>rescheduleIfNeeded</find>
       <find>lotnu</find>
@@ -117,6 +114,8 @@
       <find>custrecord_pushed_on</find>
       <find>Error in Getting Corresponding Records Iteration</find>
       <find>LotRecordInformation Record ID</find>
+      <find>Lot Number Name</find>
+      <find>getInventoryDetailLotName</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -130,6 +129,8 @@
         <option value="$PROJECT_DIR$/updateLotNumberRecord_sch.js" />
         <option value="$PROJECT_DIR$/setLotNumberActivityRecords_UE.js" />
         <option value="$PROJECT_DIR$/updateLotRecords_sch.ts" />
+        <option value="$PROJECT_DIR$/LotVerification_testScript.js" />
+        <option value="$PROJECT_DIR$/SetLotNumberRecord_UE.js" />
       </list>
     </option>
   </component>
@@ -225,11 +226,12 @@
       <workItem from="1503985008527" duration="26967000" />
       <workItem from="1504070479761" duration="16000" />
       <workItem from="1504092354850" duration="3297000" />
+      <workItem from="1504586680905" duration="3079000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="75433000" />
+    <option name="totallyTimeSpent" value="78512000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
@@ -668,38 +670,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1207">
-          <caret line="71" column="99" lean-forward="false" selection-start-line="71" selection-start-column="99" selection-end-line="71" selection-end-column="99" />
-          <folding>
-            <element signature="n#!!block;n#isAllowedRecordType#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/inventory-number.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
           <caret line="18" column="0" lean-forward="false" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2278">
-          <caret line="134" column="1" lean-forward="true" selection-start-line="134" selection-start-column="1" selection-end-line="134" selection-end-column="1" />
-          <folding>
-            <element signature="n#!!block;n#removeSubrecordLineItems#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/setLotNumberActivityRecords_UE.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="8" selection-end-line="20" selection-end-column="33" />
           <folding />
         </state>
       </provider>
@@ -710,6 +684,34 @@
           <caret line="120" column="12" lean-forward="false" selection-start-line="120" selection-start-column="12" selection-end-line="120" selection-end-column="12" />
           <folding>
             <element signature="n#!!block;n#rescheduleIfNeeded#0;n#UpdateRecordSch#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="431">
+          <caret line="29" column="66" lean-forward="true" selection-start-line="29" selection-start-column="66" selection-end-line="29" selection-end-column="66" />
+          <folding>
+            <element signature="n#!!block;n#isAllowedRecordType#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/setLotNumberActivityRecords_UE.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="340">
+          <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="33" selection-end-line="20" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="138" column="42" lean-forward="true" selection-start-line="138" selection-start-column="42" selection-end-line="138" selection-end-column="42" />
+          <folding>
+            <element signature="n#!!block;n#removeSubrecordLineItems#0" expanded="false" />
           </folding>
         </state>
       </provider>

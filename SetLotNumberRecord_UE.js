@@ -136,17 +136,19 @@ function getItemId(itemName) {
 
 function setLotNumberRecord(record, expiry_Date , Lot_Number, cultivation_Method, extraction_Date,extraction_Method, countryOfOrigin){
     nlapiLogExecution('DEBUG', '---> Search Record Length', record.length);
-    var record_id = record[0].getId(); // Inventory Number Reoord ID
-    var LotNumberRecord = nlapiLoadRecord('inventorynumber', record_id);
-    nlapiLogExecution('DEBUG', 'Lot Number Record Object', JSON.stringify(LotNumberRecord));
+    for(var i=0; i < record.length; i++) {
+        var record_id = record[i].getId(); // Inventory Number Reoord ID
+        var LotNumberRecord = nlapiLoadRecord('inventorynumber', record_id);
+        nlapiLogExecution('DEBUG', 'Lot Number Record Object', JSON.stringify(LotNumberRecord));
 
-    LotNumberRecord.setFieldValue('expirationdate', expiry_Date);
-    LotNumberRecord.setFieldValue('custitemnumberlot_vendor_no', Lot_Number);
-    LotNumberRecord.setFieldText('custitemnumberlot_cult_meth', cultivation_Method);
-    LotNumberRecord.setFieldValue('custitemnumberlot_extraction_date', extraction_Date);
-    LotNumberRecord.setFieldText('custitemnumberlot_extact_meth', extraction_Method);
-    LotNumberRecord.setFieldText('custitemnumberlot_country', countryOfOrigin);
-    var id = nlapiSubmitRecord(LotNumberRecord, true);
+        LotNumberRecord.setFieldValue('expirationdate', expiry_Date);
+        LotNumberRecord.setFieldValue('custitemnumberlot_vendor_no', Lot_Number);
+        LotNumberRecord.setFieldText('custitemnumberlot_cult_meth', cultivation_Method);
+        LotNumberRecord.setFieldValue('custitemnumberlot_extraction_date', extraction_Date);
+        LotNumberRecord.setFieldText('custitemnumberlot_extact_meth', extraction_Method);
+        LotNumberRecord.setFieldText('custitemnumberlot_country', countryOfOrigin);
+        var id = nlapiSubmitRecord(LotNumberRecord, true);
+    }
 }
 
 function removeSubrecordLineItems(poSubrecord) {
@@ -165,8 +167,8 @@ function getInventoryDetailLotName(subrecord, RecordType) {
     if (RecordType == 'inventorytransfer' || RecordType == 'workorder') {
         InventoryDetail_lotNumber = subrecord.getCurrentLineItemValue('inventoryassignment', 'issueinventorynumber');
     }
+    InventoryDetail_lotNumber = InventoryDetail_lotNumber.toUpperCase();
     return InventoryDetail_lotNumber;
-
 }
 
 function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
