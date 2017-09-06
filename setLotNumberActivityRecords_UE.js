@@ -36,6 +36,7 @@ function afterSubmit(type) {
         activityRecord.setFieldValue('custrecord_processing_status',CONSTANTS.PROCESSING_STATUS.PendingProcessing);
         activityRecord.setFieldValue('custrecord_pushed_on', sysDate);
         activityRecord.setFieldValue('custrecord_lotrecordid', recordID);
+        activityRecord.setFieldValue('custrecord_processed_lot_number_id', "");
         activityRecord.setFieldValue('custrecordlot_number_tbprocessed', recordstobeProcessed);
 
         id = nlapiSubmitRecord(activityRecord, true);
