@@ -1,5 +1,6 @@
 /**
  * Created by hatimali on 8/3/2017.
+ * Updated by amin
  */
 
 
@@ -7,6 +8,7 @@
 function afterSubmit(type) {
 
     try {
+        var vendLotNumbr = [];
         var InventoryDetail_lotNumber, InventoryDetail_exp_date, InventoryDetail_quantity;
         var sublistType = "" , fldName , itemsCount,itemName , subRecordCount;
         var RecordType = nlapiGetRecordType();
@@ -33,6 +35,7 @@ function afterSubmit(type) {
                 nlapiLogExecution('DEBUG', 'Sub record Line Item Count', subRecordCount);
                 itemName = nlapiGetLineItemValue(sublistType, fldName, line);
 
+                //getLineItemValue('item','custcol_folio3_v_lotnumber',1)
                 for (var i = 1; i <= subRecordCount; i++) { // loop for each item Subrecord lineItems
                     subrecord.selectLineItem('inventoryassignment', i);
                     InventoryDetail_lotNumber = getInventoryDetailLotName(subrecord, RecordType); // Function Return Sub Record Line Item Field (Lot Name)
@@ -46,6 +49,7 @@ function afterSubmit(type) {
                         nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', LotRecordInformation[0].getId());
                         var name = LotRecordInformation[0].getValue('name');
                         var Lot_Number = LotRecordInformation[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
+                        vendLotNumbr.push(Lot_Number);
                         var cultivation_Method = LotRecordInformation[0].getText('custrecordcultmethod'); // Cultivation Method
                         var expiry_Date = LotRecordInformation[0].getValue('custrecord_expirydate');  // Expiry Date
 
@@ -68,15 +72,18 @@ function afterSubmit(type) {
                         }
                     }
                 }
+
+
             }
 
-            setPurchaseOrderLineItemsSubRecords(RecordType, sublistType); // This Function Backtrack PO and set Inventory Detail SubRecords
+            setPurchaseOrderLineItemsSubRecords(RecordType, sublistType, vendLotNumbr); // This Function Backtrack PO and set Inventory Detail SubRecords
 
-            nlapiLogExecution('DEBUG', 'Done');
+            //nlapiLogExecution('DEBUG', 'Done');
 
         } else {
             console.log("Its Parent don't exist, please open this subrecord from any record");
         }
+        nlapiLogExecution("Debug","Process","Ended..");
     } catch (e) {
         nlapiLogExecution('ERROR', 'Error', e);
     }
@@ -171,18 +178,25 @@ function getInventoryDetailLotName(subrecord, RecordType) {
     return InventoryDetail_lotNumber;
 }
 
-function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
+function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType, vendLotNumbr) {
+
     var InventoryDetail_lotNumber2, InventoryDetail_exp_date2, InventoryDetail_quantity2;
     var PurchaseOrderID = nlapiGetFieldValue('createdfrom');
     var PurchaseorderRecord = nlapiLoadRecord('purchaseorder', PurchaseOrderID);
     var lotNamesSubRecordPO = "",  lotNamesSubRecordPOArray = [];
     var count =0;
     var lineItemCountPO = PurchaseorderRecord.getLineItemCount('item');
+
     for (var line = 1; line <= lineItemCountPO; line++) {
         var subsubrecord = nlapiViewLineItemSubrecord(sublistType, 'inventorydetail', line); // Sub record of Item Receipt Line Item
         nlapiLogExecution('DEBUG', 'Sub record of Item Receipt', JSON.stringify(subsubrecord));
         var subRecordCountItemDetail = subsubrecord.getLineItemCount('inventoryassignment');
         PurchaseorderRecord.selectLineItem('item', line);
+        nlapiLogExecution('DEBUG', 'Sub record of Item myVendrecord', vendLotNumbr.toString());
+        PurchaseorderRecord.setLineItemValue('item','custcol_folio3_v_lotnumber',line,vendLotNumbr.toString());
+        nlapiSubmitRecord(PurchaseorderRecord);
+        PurchaseorderRecord = nlapiLoadRecord('purchaseorder', PurchaseOrderID);
+        nlapiLogExecution('DEBUG', 'Set Value vendNumber', "Done...");
         //   var POsubrecord = PurchaseorderRecord.createSubrecord('inventorydetail');
         var POsubrecord = PurchaseorderRecord.editCurrentLineItemSubrecord('item', 'inventorydetail');
         if (!POsubrecord) {
@@ -225,18 +239,18 @@ function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
 
         POsubrecord.commit();
         nlapiLogExecution('DEBUG', 'lotNamesSubRecordPO', JSON.stringify(lotNamesSubRecordPO));
-        for(var x=0; x<lotNamesSubRecordPOArray.length; x++) {
-            var lotname = lotNamesSubRecordPO.split(',');
-            nlapiLogExecution('DEBUG', 'Last last check please', JSON.stringify(lotNamesSubRecordPOArray[x]));
-            var LotInformationRecord = getLotInformationRecord(lotNamesSubRecordPOArray[x]); // Function getting Custom Lot Record
-            nlapiLogExecution('DEBUG', 'Lot Information Record Length', LotInformationRecord.length);
-            if (LotInformationRecord.length > 0) {
-                var vendorLotNumber = LotInformationRecord[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
-                PurchaseorderRecord.setLineItemValue('item', 'custcol_folio3_v_lotnumber', line, vendorLotNumber);
-                   PurchaseorderRecord.commitLineItem('item');
-            }
-            count++;
-        }
+        // for(var x=0; x<lotNamesSubRecordPOArray.length; x++) {
+        //     var lotname = lotNamesSubRecordPO.split(',');
+        //     nlapiLogExecution('DEBUG', 'Last last check please', JSON.stringify(lotNamesSubRecordPOArray[x]));
+        //     var LotInformationRecord = getLotInformationRecord(lotNamesSubRecordPOArray[x]); // Function getting Custom Lot Record
+        //     nlapiLogExecution('DEBUG', 'Lot Information Record Length', LotInformationRecord.length);
+        //     if (LotInformationRecord.length > 0) {
+        //         var vendorLotNumber = LotInformationRecord[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
+        //         PurchaseorderRecord.setLineItemValue('item', 'custcol_folio3_v_lotnumber', line, vendorLotNumber);
+        //            PurchaseorderRecord.commitLineItem('item');
+        //     }
+        //     count++;
+        // }
 
         PurchaseorderRecord.commitLineItem('item');
 
