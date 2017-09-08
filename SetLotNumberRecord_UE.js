@@ -167,7 +167,7 @@ function getInventoryDetailLotName(subrecord, RecordType) {
     if (RecordType == 'inventorytransfer' || RecordType == 'workorder') {
         InventoryDetail_lotNumber = subrecord.getCurrentLineItemValue('inventoryassignment', 'issueinventorynumber');
     }
-    InventoryDetail_lotNumber = InventoryDetail_lotNumber.toUpperCase();
+  //  InventoryDetail_lotNumber = InventoryDetail_lotNumber.toUpperCase();
     return InventoryDetail_lotNumber;
 }
 
@@ -175,7 +175,8 @@ function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
     var InventoryDetail_lotNumber2, InventoryDetail_exp_date2, InventoryDetail_quantity2;
     var PurchaseOrderID = nlapiGetFieldValue('createdfrom');
     var PurchaseorderRecord = nlapiLoadRecord('purchaseorder', PurchaseOrderID);
-
+    var lotNamesSubRecordPO = "",  lotNamesSubRecordPOArray = [];
+    var count =0;
     var lineItemCountPO = PurchaseorderRecord.getLineItemCount('item');
     for (var line = 1; line <= lineItemCountPO; line++) {
         var subsubrecord = nlapiViewLineItemSubrecord(sublistType, 'inventorydetail', line); // Sub record of Item Receipt Line Item
@@ -189,18 +190,21 @@ function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
         }
 
         nlapiLogExecution('DEBUG', 'Purchase Order Sub Rec', JSON.stringify(POsubrecord));
-        var subrecordLineItemCount = POsubrecord.getLineItemCount('inventoryassignment'); // Count before removing line Items
+        var subrecordLineItemCount = POsubrecord.getLineItemCount('inventoryassignment'); // PO sub record count before removing line Items
 
-        removeSubrecordLineItems(POsubrecord);
+        removeSubrecordLineItems(POsubrecord); // Remove all line Items from PO SubRecord to avoid any duplicates or qunatity issues
 
         subrecordLineItemCount = POsubrecord.getLineItemCount('inventoryassignment'); // Count after removing line Items
 
         for (var c = 1; c <= subRecordCountItemDetail; c++) {
             subsubrecord.selectLineItem('inventoryassignment', c);
             InventoryDetail_lotNumber2 = getInventoryDetailLotName(subsubrecord, RecordType);
-            nlapiLogExecution('DEBUG', 'Lot Number Name second', InventoryDetail_lotNumber2);
+            nlapiLogExecution('DEBUG', 'Lot Name (PO subrecord LineItem)', InventoryDetail_lotNumber2);
             InventoryDetail_exp_date2 = subsubrecord.getCurrentLineItemValue('inventoryassignment', 'expirationdate');
             InventoryDetail_quantity2 = subsubrecord.getCurrentLineItemValue('inventoryassignment', 'quantity');
+
+             lotNamesSubRecordPO = lotNamesSubRecordPO + InventoryDetail_lotNumber2+ ', '; //  storing Lot Name from SubRecord of PO
+             lotNamesSubRecordPOArray.push(InventoryDetail_lotNumber2);
             POsubrecord.selectNewLineItem('inventoryassignment');
 
             if (RecordType == 'itemreceipt' || RecordType == 'inventoryadjustment') {
@@ -218,10 +222,26 @@ function setPurchaseOrderLineItemsSubRecords(RecordType, sublistType) {
             subrecordLineItemCount = POsubrecord.getLineItemCount('inventoryassignment');
             nlapiLogExecution('DEBUG', 'setPOLineItemsSubRecordsFromItemReceipt', 'subrecordLineItemCount: ' + subrecordLineItemCount);
         }
+
         POsubrecord.commit();
+        nlapiLogExecution('DEBUG', 'lotNamesSubRecordPO', JSON.stringify(lotNamesSubRecordPO));
+        for(var x=0; x<lotNamesSubRecordPOArray.length; x++) {
+            var lotname = lotNamesSubRecordPO.split(',');
+            nlapiLogExecution('DEBUG', 'Last last check please', JSON.stringify(lotNamesSubRecordPOArray[x]));
+            var LotInformationRecord = getLotInformationRecord(lotNamesSubRecordPOArray[x]); // Function getting Custom Lot Record
+            nlapiLogExecution('DEBUG', 'Lot Information Record Length', LotInformationRecord.length);
+            if (LotInformationRecord.length > 0) {
+                var vendorLotNumber = LotInformationRecord[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
+                PurchaseorderRecord.setLineItemValue('item', 'custcol_folio3_v_lotnumber', line, vendorLotNumber);
+                   PurchaseorderRecord.commitLineItem('item');
+            }
+            count++;
+        }
+
         PurchaseorderRecord.commitLineItem('item');
 
         nlapiLogExecution('DEBUG', 'Last last check please', JSON.stringify(POsubrecord));
     }
+
     var id = nlapiSubmitRecord(PurchaseorderRecord);
 }

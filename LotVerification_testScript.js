@@ -21,14 +21,14 @@ function validateLine(type) {
                     var receiptlotNumberName = nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
                     console.log('Receipt Lot Number Name ' + receiptlotNumberName);
                     var receiptlotNumberArray = receiptlotNumberName.split("-");
-                    var receiptLotFirstName = receiptlotNumberArray[0];
-                    receiptLotFirstName = receiptLotFirstName.toUpperCase();
+                    var receiptLotFirstName = receiptlotNumberArray[0]; // Serial/Lot Number (Inventory Detail)
+                  //  receiptLotFirstName = receiptLotFirstName.toUpperCase();
 
                     itemName = parent.nlapiGetLineItemValue('item', 'itemname');
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
-                    itemMiddleName = itemMiddleName.toUpperCase();
-                    filters.push(new nlobjSearchFilter('name', null, 'contains', receiptLotFirstName)); // Vendor Lot Number
+                //    itemMiddleName = itemMiddleName.toUpperCase();
+                    filters.push(new nlobjSearchFilter('name', null, 'contains', receiptLotFirstName)); // name field (Lot Information Record)
                     LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
 
                     if (LotRecordInformation.length <= 0) { // Checks if the Lot is returned
@@ -62,12 +62,12 @@ function validateLine(type) {
                     console.log('Issue Lot Number' + issuelotNumberName);
                     var issuelotNumberArray = issuelotNumberName.split("-");
                     var issueLotFirstName = issuelotNumberArray[0];
-                    issueLotFirstName = issueLotFirstName.toUpperCase();
+                   // issueLotFirstName = issueLotFirstName.toUpperCase();
 
                     itemName = parent.nlapiGetLineItemText('item', 'item');
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
-                    itemMiddleName = itemMiddleName.toUpperCase();
+                   // itemMiddleName = itemMiddleName.toUpperCase();
                     filters.push(new nlobjSearchFilter('name', null, 'contains', issueLotFirstName)); // Vendor Lot Number
                     LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
 
