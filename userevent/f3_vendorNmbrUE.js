@@ -6,7 +6,8 @@ function afterSubmit(type) {
     try {
         if (type === 'delete'){ }
         else{
-            var vendLotNumbr = [];
+
+
             var InventoryDetail_lotNumber, InventoryDetail_exp_date, InventoryDetail_quantity;
             var sublistType = "" , fldName , itemsCount,itemName , subRecordCount;
             var RecordType = nlapiGetRecordType();
@@ -27,12 +28,17 @@ function afterSubmit(type) {
                 itemsCount = nlapiGetLineItemCount(sublistType);
                 //nlapiLogExecution('DEBUG', 'Item Count', itemsCount);
                 for (var line = 1; line <= itemsCount; line++) { // Loop on All Line Items
+                    var vendLotNumbr = "";
                     var subrecord = nlapiViewLineItemSubrecord(sublistType, 'inventorydetail', line);
                     nlapiLogExecution('DEBUG', 'Sub record 1', JSON.stringify(subrecord));
                     if(subrecord){
                         subRecordCount = subrecord.getLineItemCount('inventoryassignment');
                         //nlapiLogExecution('DEBUG', 'Sub record Line Item Count', subRecordCount);
                         itemName = nlapiGetLineItemValue(sublistType, fldName, line);
+
+                        var checkInventoryItemRecord =nlapiSearchRecord("item",null,new nlobjSearchFilter("internalid",null,"anyof",itemName));
+                        var recordType = checkInventoryItemRecord[0].getRecordType();
+
                         for (var i = 1; i <= subRecordCount; i++) { // loop for each item Subrecord lineItems
                             subrecord.selectLineItem('inventoryassignment', i);
                             InventoryDetail_lotNumber = getInventoryDetailLotName(subrecord, RecordType); // Function Return Sub Record Line Item Field (Lot Name)
@@ -46,7 +52,9 @@ function afterSubmit(type) {
                                 //nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', LotRecordInformation[0].getId());
                                 var name = LotRecordInformation[0].getValue('name');
                                 var Lot_Number = LotRecordInformation[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
-                                vendLotNumbr.push(Lot_Number);
+                                if(recordType == 'lotnumberedinventoryitem') {
+                                    vendLotNumbr = vendLotNumbr + Lot_Number + '[ ' + InventoryDetail_quantity + ' ] ,';
+                                }
                                 var cultivation_Method = LotRecordInformation[0].getText('custrecordcultmethod'); // Cultivation Method
                                 var expiry_Date = LotRecordInformation[0].getValue('custrecord_expirydate');  // Expiry Date
                                 var date_Created = LotRecordInformation[0].getValue('created');                // Date Created
