@@ -25,9 +25,9 @@ function validateLine(type) {
                         itemName = parent.nlapiGetLineItemText('item', 'item');
                     }
                     else if(parentRecord == 'inventoryadjustment') {
-                        itemName = parent.nlapiGetLineItemText('inventory', 'item');
-                        array = itemName.split(': ');
-                        itemName = array[1];
+                        itemName = nlapiGetFieldText('item');
+                       // array = itemName.split(': ');
+                       // itemName = array[1];
                     }
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
@@ -53,7 +53,7 @@ function validateLine(type) {
                 }
 
                 if (parentRecord == 'assemblybuild') {
-                    var issuelotNumberName = nlapiGetLineItemText('inventoryassignment', 'issueinventorynumber');
+                    var issuelotNumberName = nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
                     console.log('Issue Lot Number' + issuelotNumberName);
                     var issuelotNumberArray = issuelotNumberName.split("-");
                     var issueLotFirstName = issuelotNumberArray[0];
@@ -61,9 +61,11 @@ function validateLine(type) {
                     console.log("Issue lot First Name = ",issueLotFirstName);
                     // issueLotFirstName = issueLotFirstName.toUpperCase();
 
-                    var itemId = parent.nlapiGetLineItemValue('component', 'item');
-                    var itemNameObj = nlapiLookupField('item', itemId, ['name']);
-                    itemName = itemNameObj.name;
+                    // var itemId = parent.nlapiGetLineItemValue('component', 'item');
+                    //
+                    // var itemNameObj = nlapiLookupField('item', itemId, ['name']);
+                    // itemName = itemNameObj.name;
+                    itemName = nlapiGetFieldText('item');
                     console.log("Item Name = ",itemName);
                     var itemArray = itemName.split("-");
                     console.log("Item Name = ",itemArray);

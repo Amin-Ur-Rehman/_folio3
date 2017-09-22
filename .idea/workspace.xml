@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="61336ceb-a242-4dfa-b9da-a151e586d14d" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/LotVerification_testScript.js" afterPath="$PROJECT_DIR$/LotVerification_testScript.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js" afterPath="$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
@@ -19,11 +17,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="29" column="0" lean-forward="true" selection-start-line="29" selection-start-column="0" selection-end-line="29" selection-end-column="0" />
+            <state relative-caret-position="442">
+              <caret line="36" column="0" lean-forward="true" selection-start-line="36" selection-start-column="0" selection-end-line="36" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -32,17 +30,17 @@
       <file leaf-file-name="LotVerification_testScript.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-323">
-              <caret line="26" column="68" lean-forward="true" selection-start-line="26" selection-start-column="68" selection-end-line="26" selection-end-column="68" />
+            <state relative-caret-position="-117">
+              <caret line="57" column="76" lean-forward="true" selection-start-line="57" selection-start-column="76" selection-end-line="57" selection-end-column="76" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="f3_vendorNmbrUE.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="f3_vendorNmbrUE.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1224">
+            <state relative-caret-position="635">
               <caret line="72" column="71" lean-forward="false" selection-start-line="72" selection-start-column="71" selection-end-line="72" selection-end-column="71" />
               <folding />
             </state>
@@ -52,7 +50,7 @@
       <file leaf-file-name="SuiteScriptAPITS.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SuiteScriptAPITS.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="223">
+            <state relative-caret-position="714">
               <caret line="42" column="17" lean-forward="false" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
               <folding />
             </state>
@@ -115,8 +113,8 @@
         <option value="$PROJECT_DIR$/updateLotRecords_sch.ts" />
         <option value="$PROJECT_DIR$/setLotNumberActivityRecords_UE.js" />
         <option value="$PROJECT_DIR$/SetLotNumberRecord_UE.js" />
-        <option value="$PROJECT_DIR$/LotVerification_testScript.js" />
         <option value="$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js" />
+        <option value="$PROJECT_DIR$/LotVerification_testScript.js" />
       </list>
     </option>
   </component>
@@ -155,7 +153,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
       <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
@@ -168,11 +165,12 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../Aromatics" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="HbShouldOpenHtmlAsHb" value="" />
     <property name="nodejs_interpreter_path" value="C:/Program Files/nodejs/node" />
   </component>
@@ -220,12 +218,14 @@
       <workItem from="1504679247828" duration="1549000" />
       <workItem from="1504766835774" duration="9347000" />
       <workItem from="1504781210282" duration="14000" />
-      <workItem from="1505987614449" duration="14963000" />
+      <workItem from="1505987614449" duration="15557000" />
+      <workItem from="1506056674228" duration="1206000" />
+      <workItem from="1506080422705" duration="2692000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="119116000" />
+    <option name="totallyTimeSpent" value="123608000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
@@ -598,7 +598,7 @@
     <entry file="file://$PROJECT_DIR$/util/f3_set_lot_number.js" />
     <entry file="file://$PROJECT_DIR$/SuiteScriptAPITS.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="223">
+        <state relative-caret-position="714">
           <caret line="42" column="17" lean-forward="false" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
           <folding />
         </state>
@@ -606,24 +606,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-323">
-          <caret line="26" column="68" lean-forward="true" selection-start-line="26" selection-start-column="68" selection-end-line="26" selection-end-column="68" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1224">
-          <caret line="72" column="71" lean-forward="false" selection-start-line="72" selection-start-column="71" selection-end-line="72" selection-end-column="71" />
+        <state relative-caret-position="-117">
+          <caret line="57" column="76" lean-forward="true" selection-start-line="57" selection-start-column="76" selection-end-line="57" selection-end-column="76" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="29" column="0" lean-forward="true" selection-start-line="29" selection-start-column="0" selection-end-line="29" selection-end-column="0" />
+        <state relative-caret-position="442">
+          <caret line="36" column="0" lean-forward="true" selection-start-line="36" selection-start-column="0" selection-end-line="36" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="635">
+          <caret line="72" column="71" lean-forward="false" selection-start-line="72" selection-start-column="71" selection-end-line="72" selection-end-column="71" />
           <folding />
         </state>
       </provider>
