@@ -53,7 +53,7 @@ function afterSubmit(type) {
                                 var name = LotRecordInformation[0].getValue('name');
                                 var Lot_Number = LotRecordInformation[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
                                 if(recordType == 'lotnumberedinventoryitem') {
-                                    vendLotNumbr = vendLotNumbr + Lot_Number + '[ ' + InventoryDetail_quantity + ' ] ,';
+                                    vendLotNumbr = vendLotNumbr + Lot_Number + ' [' + InventoryDetail_quantity + '] , ';
                                 }
                                 var cultivation_Method = LotRecordInformation[0].getText('custrecordcultmethod'); // Cultivation Method
                                 var expiry_Date = LotRecordInformation[0].getValue('custrecord_expirydate');  // Expiry Date

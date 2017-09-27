@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="61336ceb-a242-4dfa-b9da-a151e586d14d" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/LotVerification_testScript.js" afterPath="$PROJECT_DIR$/LotVerification_testScript.js" />
-    </list>
+    <list default="true" id="61336ceb-a242-4dfa-b9da-a151e586d14d" name="Default" comment="" />
     <ignored path="$PROJECT_DIR$/.tmp/" />
     <ignored path="$PROJECT_DIR$/temp/" />
     <ignored path="$PROJECT_DIR$/tmp/" />
@@ -17,11 +14,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="SetLotNumberRecord_UE.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="442">
-              <caret line="36" column="0" lean-forward="true" selection-start-line="36" selection-start-column="0" selection-end-line="36" selection-end-column="0" />
+            <state relative-caret-position="368">
+              <caret line="37" column="57" lean-forward="false" selection-start-line="37" selection-start-column="44" selection-end-line="37" selection-end-column="57" />
               <folding />
             </state>
           </provider>
@@ -30,18 +27,18 @@
       <file leaf-file-name="LotVerification_testScript.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-117">
-              <caret line="57" column="76" lean-forward="true" selection-start-line="57" selection-start-column="76" selection-end-line="57" selection-end-column="76" />
+            <state relative-caret-position="280">
+              <caret line="28" column="55" lean-forward="true" selection-start-line="28" selection-start-column="55" selection-end-line="28" selection-end-column="55" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="f3_vendorNmbrUE.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="f3_vendorNmbrUE.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="635">
-              <caret line="72" column="71" lean-forward="false" selection-start-line="72" selection-start-column="71" selection-end-line="72" selection-end-column="71" />
+            <state relative-caret-position="314">
+              <caret line="54" column="78" lean-forward="true" selection-start-line="54" selection-start-column="32" selection-end-line="54" selection-end-column="78" />
               <folding />
             </state>
           </provider>
@@ -50,8 +47,8 @@
       <file leaf-file-name="SuiteScriptAPITS.d.ts" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SuiteScriptAPITS.d.ts">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="714">
-              <caret line="42" column="17" lean-forward="false" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
+            <state relative-caret-position="195">
+              <caret line="111" column="17" lean-forward="false" selection-start-line="111" selection-start-column="17" selection-end-line="111" selection-end-column="17" />
               <folding />
             </state>
           </provider>
@@ -69,16 +66,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>pending</find>
-      <find>custitemnumberlot_vendor_no</find>
-      <find>vendorlotnumber</find>
-      <find>custrecord_lotrecordid</find>
-      <find>custrecord_vendor_lot_number</find>
-      <find>custrecordvendorlotnum</find>
-      <find>custrecord_lot_name</find>
-      <find>custrecordlot_number_tbprocessed</find>
-      <find>custrecord_</find>
-      <find>custrecord_pushed_on</find>
       <find>Error in Getting Corresponding Records Iteration</find>
       <find>Lot Number Name</find>
       <find>getInventoryDetailLotName</find>
@@ -93,15 +80,26 @@
       <find>Sub record of Item Receipt</find>
       <find>nlapisubmitrecord</find>
       <find>Quanity Array Value</find>
-      <find>LotRecordInformation Record ID</find>
       <find>itemid</find>
-      <find>Sub record 1</find>
       <find>custcol_folio3_v_lotnumber</find>
       <find>inventorydetail</find>
       <find>Columns</find>
+      <find>LotRecordInformation Length</find>
+      <find>Lot Number Record Object</find>
+      <find>LotRecordInformation Record ID</find>
+      <find>---&gt; Search Record Length</find>
+      <find>RECORD ID</find>
+      <find>iN getLotNumberRecord():</find>
+      <find>testing 2</find>
+      <find>Check 1234</find>
+      <find>N getLotNumberRecord():</find>
+      <find>In getItemId():</find>
+      <find>getLineItemCount</find>
+      <find>Sub record 1</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
@@ -112,9 +110,9 @@
         <option value="$PROJECT_DIR$/updateLotNumberRecord_sch.js" />
         <option value="$PROJECT_DIR$/updateLotRecords_sch.ts" />
         <option value="$PROJECT_DIR$/setLotNumberActivityRecords_UE.js" />
-        <option value="$PROJECT_DIR$/SetLotNumberRecord_UE.js" />
-        <option value="$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js" />
         <option value="$PROJECT_DIR$/LotVerification_testScript.js" />
+        <option value="$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js" />
+        <option value="$PROJECT_DIR$/SetLotNumberRecord_UE.js" />
       </list>
     </option>
   </component>
@@ -153,26 +151,27 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
-              <item name="Aromatics2" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Aromatics2" type="462c0819:PsiDirectoryNode" />
+              <item name="Aromatics" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Aromatics" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
       <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="C:/Program Files/Git/git-cmd.exe" />
     <property name="HbShouldOpenHtmlAsHb" value="" />
     <property name="nodejs_interpreter_path" value="C:/Program Files/nodejs/node" />
+    <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -221,26 +220,27 @@
       <workItem from="1505987614449" duration="15557000" />
       <workItem from="1506056674228" duration="1206000" />
       <workItem from="1506080422705" duration="2692000" />
+      <workItem from="1506426637645" duration="26869000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="123608000" />
+    <option name="totallyTimeSpent" value="150477000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
+    <frame x="-8" y="-8" width="1382" height="744" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="TypeScript" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24968314" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TypeScript" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.328594" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1749634" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -269,13 +269,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/inventory-number.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="18" column="0" lean-forward="false" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/updateLotRecords_sch.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1564">
@@ -596,34 +589,42 @@
     </entry>
     <entry file="jar://$APPLICATION_HOME_DIR$/plugins/php/lib/php.jar!/stubs/standard/standard_7.php" />
     <entry file="file://$PROJECT_DIR$/util/f3_set_lot_number.js" />
-    <entry file="file://$PROJECT_DIR$/SuiteScriptAPITS.d.ts">
+    <entry file="file://$APPLICATION_CONFIG_DIR$/consoles/ide/ide-scripting.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="714">
-          <caret line="42" column="17" lean-forward="false" selection-start-line="42" selection-start-column="17" selection-end-line="42" selection-end-column="17" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/LotVerification_testScript.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-117">
-          <caret line="57" column="76" lean-forward="true" selection-start-line="57" selection-start-column="76" selection-end-line="57" selection-end-column="76" />
+        <state relative-caret-position="280">
+          <caret line="28" column="55" lean-forward="true" selection-start-line="28" selection-start-column="55" selection-end-line="28" selection-end-column="55" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
+    <entry file="file://$PROJECT_DIR$/SuiteScriptAPITS.d.ts">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="442">
-          <caret line="36" column="0" lean-forward="true" selection-start-line="36" selection-start-column="0" selection-end-line="36" selection-end-column="0" />
+        <state relative-caret-position="195">
+          <caret line="111" column="17" lean-forward="false" selection-start-line="111" selection-start-column="17" selection-end-line="111" selection-end-column="17" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/userevent/f3_vendorNmbrUE.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="635">
-          <caret line="72" column="71" lean-forward="false" selection-start-line="72" selection-start-column="71" selection-end-line="72" selection-end-column="71" />
+        <state relative-caret-position="314">
+          <caret line="54" column="78" lean-forward="true" selection-start-line="54" selection-start-column="32" selection-end-line="54" selection-end-column="78" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SetLotNumberRecord_UE.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="368">
+          <caret line="37" column="57" lean-forward="false" selection-start-line="37" selection-start-column="44" selection-end-line="37" selection-end-column="57" />
           <folding />
         </state>
       </provider>

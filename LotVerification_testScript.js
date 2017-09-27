@@ -117,8 +117,7 @@ function checkForValidationInLotInfoRecord(lotFirstName, itemMiddleName, lotNumb
     LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
 
     if (LotRecordInformation.length <= 0) {
-        alert("The Lot name you have entered didn't matches with the middle Item name," +
-            "Please try a appropriate one !!");
+        alert("The lot number entered is incorrect or relates to a different product. Please re-enter.");
         return false;
     }
     else {
@@ -127,8 +126,7 @@ function checkForValidationInLotInfoRecord(lotFirstName, itemMiddleName, lotNumb
             filters.push(new nlobjSearchFilter('name', null, 'is', lotNumberName));
             LotRecordInformation = nlapiSearchRecord('customrecord_lotinformation', null, filters, Columns) || [];
             if (LotRecordInformation.length <= 0) {
-                alert('The Lot first name you have entered is correct but the ' +
-                    'Complete Lot name is Incorrect, Please try a appropriate one !!');
+                alert("The lot number entered does not exist. Please create the lot number.");
                 return false;
             }
             else if (LotRecordInformation.length > 0) {
@@ -136,8 +134,7 @@ function checkForValidationInLotInfoRecord(lotFirstName, itemMiddleName, lotNumb
             }
         }
         else {
-            alert("The Lot name you have entered didn't matches with the middle Item name," +
-                "Please try a appropriate one !!");
+            alert("The lot number entered is incorrect or relates to a different product. Please re-enter.");
             return false;
         }
     }
