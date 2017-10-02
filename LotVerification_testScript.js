@@ -29,11 +29,17 @@ function validateLine(type) {
                        // array = itemName.split(': ');
                        // itemName = array[1];
                     }
+                    else if(parentRecord == 'inventorycount') {
+                        itemName = parent.nlapiGetLineItemText('item', 'item');
+                    }
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
                 //    itemMiddleName = itemMiddleName.toUpperCase();
                     response = checkForValidationInLotInfoRecord(receiptLotFirstName, itemMiddleName, receiptlotNumberName);
                     return response;
+
+                }
+                if(parentRecord == 'inventorycount') {
 
                 }
 
@@ -97,6 +103,7 @@ function isAllowedRecordType (recordType) {
         case "inventoryadjustment" :
         case "assemblybuild":
         case "purchaseorder":
+        case "inventorycount":
             flag = true;
             break;
 

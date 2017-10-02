@@ -1,4 +1,6 @@
-
+/*
+This file is deployed on Lot Number Record in order to disable fields on the record.
+ */
 function beforeLoad(type, form, request) {
     nlapiLogExecution('DEBUG', 'beforeLoad', '');
 
