@@ -2,11 +2,11 @@
 created on 10/2/2017 by Hatimali
  */
 
-function beforeLoad() {
+function beforeSubmit(type) {
     var itemsCount, sublistType = "item", fldName = "item", itemName, subRecordCount;
     var countDetail_lotnum, countDetail_quantity;
     itemsCount = nlapiGetLineItemCount(sublistType);
-
+    nlapiLogExecution('DEBUG', 'item count', itemsCount);
     for (var line = 1; line <= itemsCount; line++) {
         itemName = nlapiGetLineItemText(sublistType, fldName, line);
         nlapiLogExecution('DEBUG', 'itemName ', itemName);
@@ -23,19 +23,27 @@ function beforeLoad() {
                 nlapiLogExecution('DEBUG', 'countDetail_quantity', countDetail_quantity);
                 var LotRecordInformation = getLotInformationRecord(countDetail_lotnum); // Function getting Custom Lot Record
                 nlapiLogExecution('DEBUG', 'LotRecordInformation Length', LotRecordInformation.length);
-                if (LotRecordInformation.length > 0) {
-                    // appy validation here
+                if (LotRecordInformation.length <= 0) {
+                    throw nlapiCreateError("ERROR", "The lot number entered "+ countDetail_lotnum+" does not exist. Please create the lot number.", true);
                 }
-
+                if (LotRecordInformation.length > 0) {
+                    for (var x = 0; x < LotRecordInformation.length; x++) {
+                        var name = LotRecordInformation[x].getValue('name');
+                        if(name == countDetail_lotnum) {
+                        } else {
+                            throw nlapiCreateError("ERROR", "The lot number entered "+ countDetail_lotnum + " is incorrect or relates to a different product. Please re-enter.", true);
+                        }
+                    }
+                }
 
             }
         }
     }
 }
 
-function getLotInformationRecord(InventoryDetail_lotNumber) {
+function getLotInformationRecord(countDetail_lotnum) {
     var Columns = [];  var filters = [];
-    filters.push(new nlobjSearchFilter('name', null, 'is', InventoryDetail_lotNumber)); // Vendor Lot Number
+    filters.push(new nlobjSearchFilter('name', null, 'is', countDetail_lotnum)); // Vendor Lot Number
 
     Columns.push(new nlobjSearchColumn('custrecordvendorlotnum', null, null)); // Vendor Lot Number
     Columns.push(new nlobjSearchColumn('custrecordcultmethod', null, null)); // CULTIVATION METHOD

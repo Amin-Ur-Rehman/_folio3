@@ -17,67 +17,71 @@ function afterSubmit(type) {
                     sublistType = 'item';
                     fldName = 'item_display';
                 }
-                else if (RecordType === 'workorder') {
-                    sublistType = 'item';
-                    fldName = 'item';
-                }
-                else if (RecordType === 'inventoryadjustment' || RecordType === 'inventorytransfer') {
-                    sublistType = "inventory";
-                    fldName = 'item';
-                }
+                // else if (RecordType === 'workorder') {
+                //     sublistType = 'item';
+                //     fldName = 'item';
+                // }
+                // else if (RecordType === 'inventoryadjustment' || RecordType === 'inventorytransfer') {
+                //     sublistType = "inventory";
+                //     fldName = 'item';
+                // }
                 itemsCount = nlapiGetLineItemCount(sublistType);
                 //nlapiLogExecution('DEBUG', 'Item Count', itemsCount);
                 for (var line = 1; line <= itemsCount; line++) { // Loop on All Line Items
                     var vendLotNumbr = "";
+                    itemName = nlapiGetLineItemValue(sublistType, fldName, line);
+                    nlapiLogExecution('DEBUG', 'ITEM NAME ', itemName);
                     var subrecord = nlapiViewLineItemSubrecord(sublistType, 'inventorydetail', line);
                     nlapiLogExecution('DEBUG', 'Sub record 1', JSON.stringify(subrecord));
-                    if(subrecord){
+                    if(subrecord) {
                         subRecordCount = subrecord.getLineItemCount('inventoryassignment');
                         //nlapiLogExecution('DEBUG', 'Sub record Line Item Count', subRecordCount);
-                        itemName = nlapiGetLineItemValue(sublistType, fldName, line);
-
-                        var checkInventoryItemRecord =nlapiSearchRecord("item",null,new nlobjSearchFilter("internalid",null,"anyof",itemName));
-                        var recordType = checkInventoryItemRecord[0].getRecordType();
+                        var checkInventoryItemRecord = nlapiSearchRecord("item", null, new nlobjSearchFilter("internalid", null, "anyof", itemName));
+                        var itemRecordType = checkInventoryItemRecord[0].getRecordType();
 
                         for (var i = 1; i <= subRecordCount; i++) { // loop for each item Subrecord lineItems
                             subrecord.selectLineItem('inventoryassignment', i);
                             InventoryDetail_lotNumber = getInventoryDetailLotName(subrecord, RecordType); // Function Return Sub Record Line Item Field (Lot Name)
-                            //nlapiLogExecution('DEBUG', 'Lot Number Name', InventoryDetail_lotNumber);
+                            nlapiLogExecution('DEBUG', 'Lot Number Name', InventoryDetail_lotNumber);
                             InventoryDetail_exp_date = subrecord.getCurrentLineItemValue('inventoryassignment', 'expirationdate');
                             InventoryDetail_quantity = subrecord.getCurrentLineItemValue('inventoryassignment', 'quantity');
-                            //nlapiLogExecution('DEBUG', 'Quanity Array Value', InventoryDetail_quantity);
+                            nlapiLogExecution('DEBUG', 'Quanity Array Value', InventoryDetail_quantity);
                             var LotRecordInformation = getLotInformationRecord(InventoryDetail_lotNumber); // Function getting Custom Lot Record
-                            //nlapiLogExecution('DEBUG', 'LotRecordInformation Length', LotRecordInformation.length);
+                            nlapiLogExecution('DEBUG', 'LotRecordInformation Length', LotRecordInformation.length);
                             if (LotRecordInformation.length > 0) {
-                                //nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', LotRecordInformation[0].getId());
-                                var name = LotRecordInformation[0].getValue('name');
-                                var Lot_Number = LotRecordInformation[0].getValue('custrecordvendorlotnum'); // Vendor Lot Number
-                                if(recordType == 'lotnumberedinventoryitem') {
-                                    vendLotNumbr = vendLotNumbr + Lot_Number + ' [' + InventoryDetail_quantity + '] , ';
-                                }
-                                var cultivation_Method = LotRecordInformation[0].getText('custrecordcultmethod'); // Cultivation Method
-                                var expiry_Date = LotRecordInformation[0].getValue('custrecord_expirydate');  // Expiry Date
-                                var date_Created = LotRecordInformation[0].getValue('created');                // Date Created
-                                var product_Category = LotRecordInformation[0].getText('custrecordlotprodcategory'); // Product Category
-                                var product_Name = LotRecordInformation[0].getValue('custrecordlotproduct'); // Product
-                                var extraction_Date = LotRecordInformation[0].getValue('custrecord_distillationdate');  // Extraction Date
-                                var extraction_Method = LotRecordInformation[0].getText('custrecord_distmethod');  // Extraction Method
-                                var countryOfOrigin = LotRecordInformation[0].getText('custrecord_countryoforigin');  // Extraction Method
-                                var record = getLotNumberRecord(InventoryDetail_lotNumber, itemName, fldName); // Search for Lot Number Record
-                                //nlapiLogExecution('DEBUG', 'Inventory Number Record', JSON.stringify(record));
-                                if (record.length <= 0) {
-                                    nlapiLogExecution('DEBUG', 'No Inventory Number Record Exist');
-                                    break;
-                                }
-                                else if (record.length > 0) {
-                                    setLotNumberRecord(record, expiry_Date , Lot_Number, cultivation_Method, extraction_Date,extraction_Method, countryOfOrigin);
+                                for(var x =0; x<LotRecordInformation.length; x++) {
+                                    nlapiLogExecution('DEBUG', 'LotRecordInformation Record ID', LotRecordInformation[x].getId());
+                                    var name = LotRecordInformation[x].getValue('name');
+                                    var Lot_Number = LotRecordInformation[x].getValue('custrecordvendorlotnum'); // Vendor Lot Number
+                                    nlapiLogExecution('DEBUG', 'Lot Number from Lot Info Record', Lot_Number);
+                                    nlapiLogExecution('DEBUG', 'Record type is ', itemRecordType);
+                                    if (itemRecordType == 'lotnumberedinventoryitem' || itemRecordType == 'inventoryitem') {
+                                        vendLotNumbr = vendLotNumbr + Lot_Number + ' [' + InventoryDetail_quantity + '] , ';
+                                    }
+                                    var cultivation_Method = LotRecordInformation[x].getText('custrecordcultmethod'); // Cultivation Method
+                                    var expiry_Date = LotRecordInformation[x].getValue('custrecord_expirydate');  // Expiry Date
+                                    var date_Created = LotRecordInformation[x].getValue('created');                // Date Created
+                                    var product_Category = LotRecordInformation[x].getText('custrecordlotprodcategory'); // Product Category
+                                    var product_Name = LotRecordInformation[x].getValue('custrecordlotproduct'); // Product
+                                    var extraction_Date = LotRecordInformation[x].getValue('custrecord_distillationdate');  // Extraction Date
+                                    var extraction_Method = LotRecordInformation[x].getText('custrecord_distmethod');  // Extraction Method
+                                    var countryOfOrigin = LotRecordInformation[x].getText('custrecord_countryoforigin');  // Extraction Method
+                                    var record = getLotNumberRecord(InventoryDetail_lotNumber, itemName, fldName); // Search for Lot Number Record
+                                    //nlapiLogExecution('DEBUG', 'Inventory Number Record', JSON.stringify(record));
+                                    if (record.length <= 0) {
+                                        nlapiLogExecution('DEBUG', 'No Inventory Number Record Exist');
+                                        break;
+                                    }
+                                    else if (record.length > 0) {
+                                        setLotNumberRecord(record, expiry_Date, Lot_Number, cultivation_Method, extraction_Date, extraction_Method, countryOfOrigin);
+                                    }
                                 }
                             }
                         }
+                        var x = nlapiLoadRecord(RecordType, recordId); // loading current record to get the value
+                        x.setLineItemValue('item', 'custcol_folio3_v_lotnumber', line, vendLotNumbr.toString());
+                        nlapiSubmitRecord(x); //submitting here because after the loop runs the value got changed
                     }
-                    var x = nlapiLoadRecord(RecordType,recordId); // loading current record to get the value
-                    x.setLineItemValue('item','custcol_folio3_v_lotnumber',line,vendLotNumbr.toString());
-                    nlapiSubmitRecord(x); //submitting here because after the loop runs the value got changed
                 }
             }
             else { }

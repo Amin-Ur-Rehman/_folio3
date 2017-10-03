@@ -38,7 +38,8 @@ function afterSubmit(type) {
                 nlapiLogExecution('DEBUG', 'Item Name !!!', itemName);
                 var checkInventoryItemRecord =nlapiSearchRecord("item",null,new nlobjSearchFilter("internalid",null,"anyof",itemName));
                 var recordType2 = checkInventoryItemRecord[0].getRecordType();
-                if(recordType2 == 'lotnumberedinventoryitem') {
+                nlapiLogExecution('DEBUG', 'Item Record Type', recordType2);
+                if(recordType2 == 'lotnumberedinventoryitem' || recordType2 == 'inventoryitem') {
                     var subrecord = nlapiViewLineItemSubrecord(sublistType, 'inventorydetail', line);
                     nlapiLogExecution('DEBUG', 'Sub record 1', JSON.stringify(subrecord));
                     if (!!subrecord) {

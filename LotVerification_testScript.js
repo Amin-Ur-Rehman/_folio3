@@ -30,7 +30,7 @@ function validateLine(type) {
                        // itemName = array[1];
                     }
                     else if(parentRecord == 'inventorycount') {
-                        itemName = parent.nlapiGetLineItemText('item', 'item');
+
                     }
                     var itemArray = itemName.split("-");
                     var itemMiddleName = itemArray[1];
@@ -59,6 +59,7 @@ function validateLine(type) {
                 }
 
                 if (parentRecord == 'assemblybuild') {
+                  //  if (condition here to check if invoked from mainline) {}
                     var issuelotNumberName = nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
                     console.log('Issue Lot Number' + issuelotNumberName);
                     var issuelotNumberArray = issuelotNumberName.split("-");
