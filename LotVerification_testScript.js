@@ -59,30 +59,25 @@ function validateLine(type) {
                 }
 
                 if (parentRecord == 'assemblybuild') {
-                  //  if (condition here to check if invoked from mainline) {}
-                    var issuelotNumberName = nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
-                    console.log('Issue Lot Number' + issuelotNumberName);
-                    var issuelotNumberArray = issuelotNumberName.split("-");
-                    var issueLotFirstName = issuelotNumberArray[0];
-                    console.log("Issue lot Number Array = ",issuelotNumberArray);
-                    console.log("Issue lot First Name = ",issueLotFirstName);
-                    // issueLotFirstName = issueLotFirstName.toUpperCase();
+                    response = true;
+                    var isMainLine = !!nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
+                    if (isMainLine) {
+                        var issuelotNumberName = nlapiGetCurrentLineItemValue('inventoryassignment', 'receiptinventorynumber');
+                        console.log('Issue Lot Number' + issuelotNumberName);
+                        var issuelotNumberArray = issuelotNumberName.split("-");
+                        var issueLotFirstName = issuelotNumberArray[0];
+                        console.log("Issue lot Number Array = ",issuelotNumberArray);
+                        console.log("Issue lot First Name = ",issueLotFirstName);
+                        itemName = nlapiGetFieldText('item');
+                        console.log("Item Name = ",itemName);
+                        var itemArray = itemName.split("-");
+                        console.log("Item Name = ",itemArray);
+                        var itemMiddleName = itemArray[1];
+                        console.log("Item Middle Name = ",itemMiddleName);
+                        response = checkForValidationInLotInfoRecord(issueLotFirstName, itemMiddleName, issuelotNumberName);
 
-                    // var itemId = parent.nlapiGetLineItemValue('component', 'item');
-                    //
-                    // var itemNameObj = nlapiLookupField('item', itemId, ['name']);
-                    // itemName = itemNameObj.name;
-                    itemName = nlapiGetFieldText('item');
-                    console.log("Item Name = ",itemName);
-                    var itemArray = itemName.split("-");
-                    console.log("Item Name = ",itemArray);
-                    var itemMiddleName = itemArray[1];
-                    console.log("Item Middle Name = ",itemMiddleName);
-                    // itemMiddleName = itemMiddleName.toUpperCase();
-
-                    response = checkForValidationInLotInfoRecord(issueLotFirstName, itemMiddleName, issuelotNumberName);
+                    }
                     return response;
-
                 }
                 //return response;
             }
